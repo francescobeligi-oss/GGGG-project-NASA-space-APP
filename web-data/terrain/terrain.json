@@ -108,5 +108,115 @@
     "max_error_m": 0.0503
    }
   }
+ },
+ "mid": {
+  "shape": [
+   501,
+   501
+  ],
+  "pixel_m": 160,
+  "half_width_m": 40000,
+  "note": "160 m terrain (2x2 mean of LOLA 80 m), centred near each site; uint16, height = offset + value*scale",
+  "sites": {
+   "Site01": {
+    "file": "Site01_160m.u16",
+    "offset": -3025.0,
+    "scale": 0.25,
+    "centre_x_m": -11520,
+    "centre_y_m": -12560,
+    "gcx": -11520.0,
+    "gcy": -12560
+   },
+   "Site04": {
+    "file": "Site04_160m.u16",
+    "offset": -4039.0,
+    "scale": 0.25,
+    "centre_x_m": -2720,
+    "centre_y_m": -6720,
+    "gcx": -2720.0,
+    "gcy": -6720
+   },
+   "Site07": {
+    "file": "Site07_160m.u16",
+    "offset": -2859.0,
+    "scale": 0.25,
+    "centre_x_m": 30240,
+    "centre_y_m": -20080,
+    "gcx": 30240.0,
+    "gcy": -20080
+   },
+   "Site11": {
+    "file": "Site11_160m.u16",
+    "offset": -4378.0,
+    "scale": 0.25,
+    "centre_x_m": -37440,
+    "centre_y_m": 14800,
+    "gcx": -37440.0,
+    "gcy": 14800
+   },
+   "Site23": {
+    "file": "Site23_160m.u16",
+    "offset": -3503.0,
+    "scale": 0.25,
+    "centre_x_m": 4720,
+    "centre_y_m": 121120,
+    "gcx": 4720.0,
+    "gcy": 121120
+   },
+   "Site06": {
+    "file": "Site06_160m.u16",
+    "offset": -1929.0,
+    "scale": 0.25,
+    "centre_x_m": 85840,
+    "centre_y_m": 113600,
+    "gcx": 85840.0,
+    "gcy": 113600
+   },
+   "DM2": {
+    "file": "DM2_160m.u16",
+    "offset": -3006.0,
+    "scale": 0.25,
+    "centre_x_m": 155120,
+    "centre_y_m": 92080,
+    "gcx": 155120.0,
+    "gcy": 92080
+   },
+   "Site20": {
+    "file": "Site20_160m.u16",
+    "offset": -2047.0,
+    "scale": 0.25,
+    "centre_x_m": 73680,
+    "centre_y_m": 116880,
+    "gcx": 73680.0,
+    "gcy": 116880
+   },
+   "Haworth": {
+    "file": "Haworth_160m.u16",
+    "offset": -4021.0,
+    "scale": 0.25,
+    "centre_x_m": -37200,
+    "centre_y_m": 95600,
+    "gcx": -37200.0,
+    "gcy": 95600
+   },
+   "Shoemaker": {
+    "file": "Shoemaker_160m.u16",
+    "offset": -4246.0,
+    "scale": 0.25,
+    "centre_x_m": 74560,
+    "centre_y_m": 40240,
+    "gcx": 74560.0,
+    "gcy": 40240
+   },
+   "MonsMouton": {
+    "file": "MonsMouton_160m.u16",
+    "offset": -1455.0,
+    "scale": 0.25,
+    "centre_x_m": 77200,
+    "centre_y_m": 138320,
+    "gcx": 77200.0,
+    "gcy": 138320
+   }
+  }
  }
 }

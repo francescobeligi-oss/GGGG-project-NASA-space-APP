@@ -26,12 +26,18 @@
 </header>
 
 <section class="screen" id="hero">
-  <div class="hero-text">
-    <h1>Choose where<br>to land.</h1>
-    <p>Sunlight, contact with Earth and safe ground for every site near the Moon's south pole, worked out from NASA data.</p>
-    <button class="btn primary" data-go="who">Start</button>
+  <div class="story">
+    <div class="ch" data-i="0"><h1>Choose where<br>to land.</h1><p>Sunlight, contact with Earth and safe ground for every site near the Moon’s south pole, worked out from NASA data.</p>
+      <div class="ch-act"><button class="btn primary" data-go="who">Start</button><button class="btn ghost" id="storyNext">Scroll to fly to the south pole</button></div></div>
+    <div class="ch" data-i="1"><h2>At the south pole, the Sun never rises high.</h2><p>It circles the horizon a degree or two up. Every hill throws a shadow tens of kilometres long, and the shadows turn with the Sun.</p></div>
+    <div class="ch" data-i="2"><h2>A hill far away can hide it for days.</h2><p>Some crater floors have not seen sunlight for billions of years. They are among the coldest places known, and may hold water ice.</p></div>
+    <div class="ch" data-i="3"><h2>Earth hangs low on the horizon.</h2><p>When it sinks behind a ridge, a lander cannot call home. Where you land decides when you have power and when you can talk.</p></div>
+    <div class="ch" data-i="4"><h2>Ten missions are heading here.<br>Where will yours land?</h2><p>We check 11 candidate sites hour by hour, from NASA terrain and JPL ephemeris, for your mission and your dates.</p>
+      <div class="ch-act"><button class="btn primary" data-go="who">Find my landing site</button></div></div>
   </div>
-  <div class="hero-foot">Data: NASA LOLA terrain, JPL ephemeris, NASA Deep Space Network<div class="loadbar" id="loadBar"><i></i></div></div>
+  <div class="story-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="scrollcue" id="scrollCue"><span>Scroll</span><i></i></div>
+  <div class="hero-foot">Photo: NASA LRO camera. Heights: NASA LOLA. Sun and Earth: JPL ephemeris<div class="loadbar" id="loadBar"><i></i></div></div>
 </section>
 
 <section class="screen" id="who">
@@ -54,12 +60,13 @@
     <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button><button class="btn" id="tourBtn">Discover the south pole</button></div></div>
   <div class="navctl" aria-label="Map controls"><button id="compass" aria-label="Face north"><i>N</i></button><div class="pad" aria-label="Move the map"><button data-p="up" aria-label="Move north">▲</button><button data-p="left" aria-label="Move west">◀</button><button data-p="right" aria-label="Move east">▶</button><button data-p="down" aria-label="Move south">▼</button></div><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="tiltBtn" aria-label="Switch between 3D and top view">2D</button><button id="homeBtn" aria-label="Back to my options">⌂</button><button id="helpBtn" aria-label="How to move on the map">?</button></div>
   <div class="tour" id="tour"></div>
-  <div class="maphint" id="maphint"><b>Explore the map</b><span>Drag to move</span><span>Scroll to zoom</span><span>Right-drag to turn and tilt</span><span>Click a name to fly there</span></div>
+  <div class="maphint" id="maphint"><b>Fly over the south pole</b><span>Drag to move, scroll to zoom</span><span>Right-drag (or Shift-drag) to turn and tilt</span><span>W A S D to fly, Q E to turn, R F to rise and sink</span><span>Click a name to fly there</span></div>
   <div class="map-key">
-    <span class="tabs light" id="lightMode"><button data-l="real" aria-pressed="true">Real sunlight</button><button data-l="readable" aria-pressed="false">Easy to read</button></span>
-    <span><i style="background:var(--sun)"></i>Often sunlit</span>
-    <span><i style="background:var(--ice)"></i>Always dark, may hold ice</span>
-    <label class="kplaces"><button class="toggle" id="placesT" aria-pressed="true" aria-label="Show places to discover"></button>Places</label>
+    <span class="tabs light" id="lightMode"><button data-l="photo" aria-pressed="true">Photo</button><button data-l="date" aria-pressed="false">Sunlight on the date</button></span>
+    <button class="layer" data-layer="sun" aria-pressed="true"><i style="background:var(--sun)"></i>Often sunlit</button>
+    <button class="layer" data-layer="ice" aria-pressed="true"><i style="background:var(--ice)"></i>Always dark, may hold ice</button>
+    <button class="layer" id="placesT" aria-pressed="true"><i class="dia"></i>Places</button>
+    <span class="credit xp">Photo: NASA LRO camera (LROC WAC). Heights: NASA LOLA.</span>
   </div>
   <div class="whenbar">
     <div class="when-head"><button class="play small-play" id="whenPlay" aria-label="Play through the dates">▶</button><b>When to land</b><span id="whenDate" class="num"></span>
@@ -75,8 +82,9 @@
   <div class="ex-left">
     <div class="ex-top">
       <div class="tabs" id="optTabs"></div>
-      <div class="tabs" id="views"><button data-view="fp">Stand there</button><button data-view="drone" aria-pressed="true">Fly over</button><button data-view="region">Whole area</button><button data-view="orbit">From orbit</button></div>
+      <div class="tabs views" id="views"><button data-view="fp"><b>On the ground</b><small>eye level</small></button><button data-view="drone" aria-pressed="true"><b>Above the lander</b><small>150 m up</small></button><button data-view="region"><b>The whole area</b><small>10 km around</small></button><button data-view="orbit"><b>From space</b><small>40 km up</small></button></div>
     </div>
+    <p class="viewhint" id="viewHint"></p>
     <div class="status" id="status"></div>
     <div class="look"><button class="btn ghost" id="lookSun">Look at the Sun</button><button class="btn ghost" id="lookEarth">Look at Earth</button></div>
   </div>

@@ -12,7 +12,8 @@
    "source": "https://www.nasa.gov/mission/artemis-iv/",
    "short": "Crewed landing. Early 2028.",
    "owner": "NASA",
-   "group": "agency"
+   "group": "agency",
+   "status": "planned"
   },
   {
    "name": "Chang'e-7",
@@ -26,7 +27,8 @@
    "source": "https://www.scientificamerican.com/article/chinas-change-7-moonshot-will-seek-water-ice-at-the-lunar-south-pole/",
    "short": "Lander, rover and hopper. 2027, near Shackleton crater.",
    "owner": "CNSA, China",
-   "group": "agency"
+   "group": "agency",
+   "status": "planned"
   },
   {
    "name": "Chandrayaan-4",
@@ -39,7 +41,8 @@
    "target": "South polar region; a site near Mons Mouton is under study",
    "preset": null,
    "earliest": "2027-12-01",
-   "source": "https://spacenews.com/?p=507567"
+   "source": "https://spacenews.com/?p=507567",
+   "status": "planned"
   },
   {
    "name": "Chang'e-8",
@@ -53,7 +56,8 @@
    "source": "https://en.wikipedia.org/wiki/Chang%27e_8",
    "short": "Tests with lunar soil. 2028, near Mons Mouton.",
    "owner": "CNSA, China",
-   "group": "agency"
+   "group": "agency",
+   "status": "planned"
   },
   {
    "name": "Chandrayaan-5 / LUPEX",
@@ -66,7 +70,8 @@
    "target": "Lunar south pole, near a permanently shadowed region",
    "preset": null,
    "earliest": "2028-06-01",
-   "source": "https://www.civilsdaily.com/?p=796318"
+   "source": "https://www.civilsdaily.com/?p=796318",
+   "status": "planned"
   },
   {
    "name": "Luna-27A",
@@ -79,7 +84,8 @@
    "target": "Lunar south pole (reported)",
    "preset": null,
    "earliest": "2029-06-01",
-   "source": "https://interfax.com/newsroom/top-stories/113182/"
+   "source": "https://interfax.com/newsroom/top-stories/113182/",
+   "status": "planned"
   },
   {
    "name": "Argonaut Mission 1",
@@ -92,7 +98,8 @@
    "target": "South polar region (near side)",
    "preset": "argonaut",
    "earliest": "2030-11-15",
-   "source": "https://www.esa.int/Science_Exploration/Human_and_Robotic_Exploration/Exploration/Argonaut"
+   "source": "https://www.esa.int/Science_Exploration/Human_and_Robotic_Exploration/Exploration/Argonaut",
+   "status": "planned"
   },
   {
    "name": "Blue Moon MK1 Endurance",
@@ -105,7 +112,8 @@
    "target": "Lunar south pole, near Shackleton crater",
    "preset": null,
    "earliest": "2026-12-01",
-   "source": "https://www.nasa.gov/?p=888289"
+   "source": "https://www.nasa.gov/?p=888289",
+   "status": "planned"
   },
   {
    "name": "Griffin Mission One",
@@ -118,7 +126,8 @@
    "source": "https://www.nasa.gov/event/clps-flight-astrobotics-griffin-mission-one/",
    "short": "Robotic lander and rover. From January 2027.",
    "owner": "Astrobotic, for NASA",
-   "group": "company"
+   "group": "company",
+   "status": "planned"
   },
   {
    "name": "IM-4 (CP-22)",
@@ -131,7 +140,44 @@
    "source": "https://spacenews.com/?p=505012",
    "short": "Six NASA instruments. 2027.",
    "owner": "Intuitive Machines, for NASA",
-   "group": "company"
+   "group": "company",
+   "status": "planned"
+  }
+ ],
+ "past": [
+  {
+   "name": "IM-2 Athena",
+   "owner": "Intuitive Machines, for NASA",
+   "group": "company",
+   "status": "landed",
+   "when": "6 Mar 2025",
+   "short": "Landed on Mons Mouton, about 250 m from its target, and tipped over in a small crater. The mission ended early.",
+   "site": "MonsMouton",
+   "preset": "novac",
+   "source": "https://www.astronomy.com/space-exploration/intuitive-machines-im-2-moon-lander-is-lying-dead-in-a-crater/",
+   "inMap": true
+  },
+  {
+   "name": "IM-1 Odysseus",
+   "owner": "Intuitive Machines, for NASA",
+   "group": "company",
+   "status": "landed",
+   "when": "22 Feb 2024",
+   "short": "Landed near Malapert A at 80.13°S on a 12° slope and came to rest tilted. About a week of operations.",
+   "preset": "novac",
+   "source": "https://www.nasa.gov/missions/lro/nasas-lro-images-intuitive-machines-odysseus-lander/",
+   "inMap": false
+  },
+  {
+   "name": "Chandrayaan-3",
+   "owner": "ISRO, India",
+   "group": "agency",
+   "status": "landed",
+   "when": "23 Aug 2023",
+   "short": "First landing near the south polar region, at 69.4°S. Lander and rover worked for one lunar day.",
+   "preset": null,
+   "source": "https://www.isro.gov.in/NSPD2025/",
+   "inMap": false
   }
  ]
 }
