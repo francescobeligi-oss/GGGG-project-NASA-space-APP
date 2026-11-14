@@ -89,7 +89,9 @@
     <div class="clock" id="clock"></div>
     <div class="speed" id="speed"><button data-s="2">Slow</button><button data-s="8" aria-pressed="true">Normal</button><button data-s="36">Fast</button></div>
   </div>
-  <div class="loading" id="loading"><b>Loading the terrain</b><p id="loadFact"></p></div>
+  <div class="loading" id="loading" role="status" aria-label="Loading the terrain">
+    <svg class="orbit" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="22" class="o-moon"/><path d="M48 52a6 6 0 1 0 0.1 0M66 70a4 4 0 1 0 0.1 0M68 50a3 3 0 1 0 0.1 0" class="o-crater"/><ellipse cx="60" cy="60" rx="48" ry="48" class="o-path"/><g class="o-ship"><path d="M71 12l-7-4.5v9z"/><rect x="54" y="8.5" width="10" height="7" rx="1.5"/><path d="M56 8.5l-4-4h3l3 4zM56 15.5l-4 4h3l3-4z"/><path d="M54 10.5l-4 1.5 4 1.5z" class="o-flame"/></g></svg>
+    <b>Loading the terrain</b></div>
 </section>
 
 <section class="screen" id="compare">

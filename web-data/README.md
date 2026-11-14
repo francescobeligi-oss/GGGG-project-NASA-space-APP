@@ -76,3 +76,6 @@ Each element of `options[]` contains:
 - `slip_tolerance_days`, `backup_site` (available if wanted later)
 
 `calendar.sites[<id>]` = list of `[landing_utc, verdict, worst_case_verdict, score]` every 6 hours → the **landing-window calendar** (date × site grid).
+
+## 16-bit terrain for the web app
+`src/pack16.py` writes `terrain/*.u16` (uint16, height_m = offset + value * scale; offsets and scales in `terrain.json` under `web16`). Site grids use 0.1 m steps, the region grid 0.25 m steps. The web app loads these: half the download of the float32 files, which stay for analysis.

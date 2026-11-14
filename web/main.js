@@ -10,9 +10,16 @@ const D = 'web-data/';
 const R_MOON = 1737400;
 const getJSON = p => fetch(D + p).then(r => { if (!r.ok) throw new Error(`Could not load ${p}`); return r.json(); });
 const getBuf = p => fetch(D + p).then(r => { if (!r.ok) throw new Error(`Could not load ${p}`); return r.arrayBuffer(); });
+const dec16 = (buf, w) => { const q = new Uint16Array(buf), z = new Float32Array(q.length); for (let i = 0; i < q.length; i++) z[i] = w.offset + q[i] * w.scale; return z; };
+const TERR = {};
+function siteTerrain(sid) { // 10 m NASA terrain, downloaded once and shared by the map and the 3D view
+  const w = S.info.web16 && S.info.web16.sites[sid];
+  return TERR[sid] || (TERR[sid] = (w ? getBuf('terrain/' + w.file).then(b => dec16(b, w)) : getBuf(`terrain/${sid}_10m.bin`).then(b => new Float32Array(b))).catch(e => { delete TERR[sid]; throw e; }));
+}
+const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 1500));
 async function getBufProgress(p, onp) { // download with a progress callback (0..1); safe when the server compresses the file
   const r = await fetch(D + p); if (!r.ok) throw new Error(`Could not load ${p}`);
-  const t = S.info && S.info.region, expect = t ? t.shape[0] * t.shape[1] * 4 : 0; // the real size after decompression
+  const t = S.info && S.info.region, expect = t ? t.shape[0] * t.shape[1] * (p.endsWith('.u16') ? 2 : 4) : 0; // the real size after decompression
   if (!r.body || !expect) return r.arrayBuffer();
   const rd = r.body.getReader(), parts = []; let got = 0;
   for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; onp(Math.min(1, got / expect)); }
@@ -210,7 +217,7 @@ function setCapTint(f) {
 async function mapTile(sid) {
   if (M.tileSid === sid || M.tileLoading) return; M.tileLoading = true;
   try {
-    const site = await siteMeta(sid), z = new Float32Array(await getBuf(`terrain/${sid}_10m.bin`)), t = S.info.sites, n = t.shape[0], step = GQ.low ? 4 : 2, mm = Math.floor((n - 1) / step) + 1;
+    const site = await siteMeta(sid), z = await siteTerrain(sid), t = S.info.sites, n = t.shape[0], step = GQ.low ? 4 : 2, mm = Math.floor((n - 1) / step) + 1;
     const pos = new Float32Array(mm * mm * 3), map = new Float32Array(mm * mm * 2);
     for (let i = 0; i < mm; i++) for (let j = 0; j < mm; j++) {
       const k = i * mm + j, mx = site.x_m - t.half_width_m + j * step * t.pixel_m, my = site.y_m + t.half_width_m - i * step * t.pixel_m, [lat, lon] = mapToLatLon(mx, my);
@@ -441,7 +448,7 @@ function gridGeometry(z, n, px, half, step, o) {
     pos[k * 3] = dx; pos[k * 3 + 1] = z[r * n + c] - h0 - (dx * dx + dy * dy) / (2 * R_MOON); pos[k * 3 + 2] = -dy; map[k * 2] = mx; map[k * 2 + 1] = my;
   }
   const idx = [];
-  for (let i = 0; i < m - 1; i++) for (let j = 0; j < m - 1; j++) { const a = i * m + j, b = a + 1, c = a + m, d = c + 1; if (hole && [a, b, c, d].every(q => Math.abs(map[q * 2] - ox) < hole && Math.abs(map[q * 2 + 1] - oy) < hole)) continue; idx.push(a, c, b, b, c, d); }
+  for (let i = 0; i < m - 1; i++) for (let j = 0; j < m - 1; j++) { const a = i * m + j, b = a + 1, c = a + m, d = c + 1; if (hole) { const inH = q => Math.abs(map[q * 2] - ox) < hole && Math.abs(map[q * 2 + 1] - oy) < hole; if (inH(a) && inH(b) && inH(c) && inH(d)) continue; } idx.push(a, c, b, b, c, d); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setIndex(new THREE.Uint32BufferAttribute(idx, 1)); g.computeVertexNormals(); g.userData = { map, m };
   return g;
 }
@@ -463,11 +470,17 @@ const localH = (dx, dz) => sampleH(X.z, X.n, X.px, X.half, X.site.x_m, X.site.y_
 async function siteMeta(id) { return S.sites[id] || (S.sites[id] = await getJSON(`${id}.json`)); }
 async function buildSite(sid) {
   if (X.sid === sid) return; X.sid = sid;
+  if (X.inner) { X.inner.geometry.dispose(); X.inner = null; }
   for (const k of ['mesh', 'far']) if (X[k]) { X.scene.remove(X[k]); X[k].geometry.dispose(); X[k] = null; }
-  const site = await siteMeta(sid), z = new Float32Array(await getBuf(`terrain/${sid}_10m.bin`));
+  const site = await siteMeta(sid), z = await siteTerrain(sid);
   const t = S.info.sites, n = t.shape[0], half = t.half_width_m, h0 = z[((n - 1) / 2) * n + (n - 1) / 2], ox = site.x_m, oy = site.y_m;
-  const g = gridGeometry(z, n, t.pixel_m, half, GQ.low ? 2 : 1, { gcx: ox, gcy: oy, ox, oy, h0 }); siteColours(g, 0.74);
+  // full 10 m detail in the inner 3 km where you stand and walk, 20 m further out: a quarter of the triangles
+  const ih = 1500, ic = (n - 1) / 2, ir = ih / t.pixel_m, inn = 2 * ir + 1, isub = new Float32Array(inn * inn);
+  for (let i = 0; i < inn; i++) isub.set(z.subarray((ic - ir + i) * n + ic - ir, (ic - ir + i) * n + ic - ir + inn), i * inn);
+  const g = gridGeometry(z, n, t.pixel_m, half, GQ.low ? 4 : 2, { gcx: ox, gcy: oy, ox, oy, h0, hole: ih + 1 }); siteColours(g, 0.74);
+  const gi = gridGeometry(isub, inn, t.pixel_m, ih, GQ.low ? 2 : 1, { gcx: ox, gcy: oy, ox, oy, h0 }); siteColours(gi, 0.74);
   X.mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 })); X.mesh.castShadow = X.mesh.receiveShadow = true; X.scene.add(X.mesh);
+  X.inner = new THREE.Mesh(gi, X.mesh.material); X.inner.castShadow = X.inner.receiveShadow = true; X.mesh.add(X.inner);
   const rt = S.info.region, rn = rt.shape[0], sn = 181, hw = 90, sub = new Float32Array(sn * sn);
   const ci = Math.round((rt.half_width_m - oy) / rt.pixel_m), cj = Math.round((ox + rt.half_width_m) / rt.pixel_m);
   for (let i = 0; i < sn; i++) for (let j = 0; j < sn; j++) sub[i * sn + j] = S.region[Math.max(0, Math.min(rn - 1, ci - hw + i)) * rn + Math.max(0, Math.min(rn - 1, cj - hw + j))];
@@ -607,15 +620,12 @@ function renderMission() {
     $$('#missionBody [data-m]').forEach(b => b.onclick = () => loadPreset(b.dataset.m, b));
   } else if (S.role === 'past') {
     const U = S.upcoming || { missions: [] };
-    el.innerHTML = `<h2>Upcoming missions</h2><p class="lead">Planned south pole landings from public sources. Dates are targets and often slip.</p>
-      <div class="choices">${U.missions.map((u, i) => `<div class="choice mission"><b>${esc(u.name)}</b><span class="tagline">${esc(u.agency)}. ${esc(u.when)}. ${esc(u.target)}.</span><span>${esc(u.goal)}</span>
-        <div class="mrow"><button class="btn" data-u="${i}" style="padding:9px 16px">${u.preset ? 'See the full analysis' : 'Check it with your values'}</button><a href="${u.source}" target="_blank" rel="noopener">Source</a></div></div>`).join('')}</div>
-      <p class="small" style="margin-top:18px">${esc(U.note || '')}</p>
-      <h2 style="margin-top:34px;font-size:30px">Example missions</h2>
-      <div class="choices">${MISSIONS.filter(m => m.id === 'argonaut').map(m => `<button class="choice" data-m="${m.id}"><b>${m.name}</b><span>${m.who}</span></button>`).join('')}</div>`;
+    el.innerHTML = `<h2>Pick a mission</h2><p class="lead">Planned landings at the south pole. Dates often slip.</p>
+      <div class="choices compact">${U.missions.map((u, i) => `<button class="choice" data-u="${i}"><b>${esc(u.name)}</b><span>${esc(u.short || u.agency)}</span></button>`).join('')}</div>
+      <p class="small xp" style="margin-top:16px">Sources: ${U.missions.map(u => `<a href="${u.source}" target="_blank" rel="noopener">${esc(u.name)}</a>`).join(', ')}. ${esc(U.note || '')}</p>`;
     $$('#missionBody [data-m]').forEach(b => b.onclick = () => loadPreset(b.dataset.m, b));
     $$('#missionBody [data-u]').forEach(b => b.onclick = () => { const u = U.missions[+b.dataset.u];
-      if (u.preset) { b.textContent = 'Loading…'; loadPreset(u.preset); }
+      if (u.preset) { b.querySelector('span').textContent = 'Loading…'; loadPreset(u.preset); }
       else { S.role = 'agency'; S.answers = null; S.q = 0; S.doc = { pages: 0, fields: {} }; renderQuestion(); S.answers.earliestUtc = u.earliest; renderQuestion(); } });
   } else if (S.role === 'project' && !S.doc) {
     el.innerHTML = `<h2>Upload your mission document</h2><p class="lead">A payload user guide or mission description in PDF. It stays on your computer: we read it in your browser.</p>
@@ -651,6 +661,7 @@ async function afterData() {
   await Promise.all(S.data.options.map(o => siteMeta(o.site)));
   S.opt = 0; X.sid = null; S.when = null; S.whenIdx = null; M.map = false;
   placeMarkers(); placePlaces(); renderResults(); go('results'); loadWhen();
+  idle(() => S.data.options.slice(0, 3).forEach((o, i) => setTimeout(() => siteTerrain(o.site).catch(() => {}), i * 400)));
 }
 
 const QS = [
@@ -776,7 +787,7 @@ async function openExplore(i) {
   go('explore');
   $('#optTabs').innerHTML = S.data.options.map((o, k) => `<button data-k="${k}" aria-pressed="${k === i}">${k + 1} ${esc(o.site_name)}</button>`).join('');
   $$('#optTabs button').forEach(b => b.onclick = () => openExplore(+b.dataset.k));
-  const L = $('#loading'); L.classList.add('on'); $('#loadFact').textContent = FACTS[Math.floor(Math.random() * FACTS.length)];
+  const L = $('#loading'); L.classList.add('on'); 
   $('#panel').innerHTML = '';
   await buildSite(opt().site);
   for (const k of ['ring', 'glow', 'sunPath', 'earthPath']) if (X[k]) { X.scene.remove(X[k]); X[k].geometry.dispose(); X[k] = null; }
@@ -903,7 +914,7 @@ function renderPanel() {
     <div class="sec"><div class="switch"><span>Show ice-bearing dark areas in blue</span><button class="toggle" id="iceT" aria-pressed="${S.ice}" aria-label="Show dark areas"></button></div></div>
     <button class="btn" data-go="compare">Compare all options</button>`;
   $$('#panel [data-hw]').forEach(b => b.onclick = () => { S.hw = b.dataset.hw; renderPanel(); });
-  $('#iceT').onclick = () => { S.ice = !S.ice; [X.mesh, X.far].forEach(m => m && setIce(m.geometry)); if (M.cap) setCapTint(M.tint); renderPanel(); };
+  $('#iceT').onclick = () => { S.ice = !S.ice; [X.mesh, X.inner, X.far].forEach(m => m && setIce(m.geometry)); if (M.cap) setCapTint(M.tint); GQ.dirty = true; renderPanel(); };
   $$('#panel [data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
 }
 
@@ -1105,9 +1116,10 @@ window.__lss = { M, NAV, GQ, X }; // for automated checks
   try {
     [S.index, S.info, S.psr, S.upcoming, S.places] = await Promise.all([getJSON('index.json'), getJSON('terrain/terrain.json'), getJSON('psr.json'), getJSON('upcoming.json').catch(() => null), getJSON('places.json').catch(() => null)]);
     const lp = $('#loadBar'); lp.classList.add('on');
-    const [r, rs] = await Promise.all([getBufProgress('terrain/' + S.info.region.file, f => { lp.querySelector('i').style.width = Math.round(f * 100) + '%'; }), getBuf('terrain/' + S.info.region_sun.file)]);
+    const w16 = S.info.web16 && S.info.web16.region;
+    const [r, rs] = await Promise.all([getBufProgress('terrain/' + (w16 ? w16.file : S.info.region.file), f => { lp.querySelector('i').style.width = Math.round(f * 100) + '%'; }), getBuf('terrain/' + S.info.region_sun.file)]);
     lp.classList.remove('on');
-    S.region = new Float32Array(r); S.regionSun = new Uint8Array(rs);
+    S.region = w16 ? dec16(r, w16) : new Float32Array(r); S.regionSun = new Uint8Array(rs);
     setTimeout(buildCap, 300); // ready before the first flight to the pole
   } catch (e) { $('.hero-text p').textContent = `${e.message}. Open the app from a web server, not as a local file.`; }
 })();

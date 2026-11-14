@@ -261,7 +261,13 @@ body.wide .whenbar { right: 40px; }
 .loading { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 12px; background: #000; opacity: 0; visibility: hidden; transition: opacity .4s, visibility 0s .4s; }
 .loading.on { opacity: 1; visibility: visible; transition: opacity .2s; }
 .loading b { font-family: var(--head); text-transform: uppercase; letter-spacing: .2em; font-size: 14px; color: var(--muted); }
-.loading p { font-family: var(--head); font-size: clamp(26px, 3vw, 40px); text-transform: uppercase; max-width: 22ch; margin: 0 auto; line-height: 1.05; }
+.orbit { width: 120px; height: 120px; margin: 0 auto; }
+.o-moon { fill: #2a2c30; stroke: #d7dade; stroke-width: 1.5; }
+.o-crater { fill: none; stroke: #8a8f97; stroke-width: 1.2; }
+.o-path { fill: none; stroke: var(--line); stroke-dasharray: 2 5; }
+.o-ship { fill: #fff; transform-origin: 60px 60px; animation: orbit 1.6s linear infinite; }
+@keyframes orbit { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .o-ship { animation-duration: 6s; } }
 .seg3 { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); }
 .seg3 button { font-family: var(--head); text-transform: uppercase; letter-spacing: .08em; font-size: 12px; padding: 9px 6px; color: var(--muted); }
 .seg3 button[aria-pressed="true"] { background: var(--text); color: #000; }
@@ -343,3 +349,9 @@ body[data-screen="results"] .map-key { bottom: 168px; }
   .tour { left: 12px; right: 12px; width: auto; top: auto; bottom: calc(38vh + 150px); }
   .howbtn { display: none; }
 }
+
+.choices.compact { gap: 8px; margin-top: 22px; }
+.choices.compact .choice { padding: 11px 18px; gap: 2px; }
+.choices.compact .choice b { font-size: 19px; }
+.choices.compact .choice span { font-size: 14.5px; }
+.o-flame { fill: var(--sun); }

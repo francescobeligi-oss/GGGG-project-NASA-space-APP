@@ -1,8 +1,62 @@
-{"note": "Public information as of 14 Nov 2026. Dates are targets set by each agency or company and often slip. Each entry links its source.",
+{
+ "note": "Public information as of 14 Nov 2026. Dates are targets set by each agency or company and often slip. Each entry links its source.",
  "missions": [
-  {"name": "Artemis IV", "agency": "NASA", "goal": "First crewed landing since 1972. Two astronauts spend about a week near the south pole.", "when": "Early 2028", "target": "South pole candidate regions", "preset": "artemis", "earliest": "2028-01-15", "source": "https://www.nasa.gov/mission/artemis-iv/"},
-  {"name": "Griffin Mission One", "agency": "Astrobotic (Voyager Technologies) for NASA CLPS", "goal": "Delivers more than 1,100 pounds of cargo, including the FLIP rover.", "when": "Launch no earlier than January 2027 (reported)", "target": "Nobile crater", "preset": "griffin1", "earliest": "2027-01-15", "source": "https://www.nasa.gov/event/clps-flight-astrobotics-griffin-mission-one/"},
-  {"name": "IM-4 (NASA task order CP-22)", "agency": "Intuitive Machines for NASA CLPS", "goal": "Six NASA payloads, 79 kg in total, to the south polar region.", "when": "2027", "target": "South polar region", "preset": "novac", "earliest": "2027-06-01", "source": "https://spacenews.com/?p=505012"},
-  {"name": "Chang'e-7", "agency": "CNSA (China)", "goal": "Orbiter, lander, rover and a hopper that searches for water ice in shadowed craters.", "when": "Delayed to 2027", "target": "Near the rim of Shackleton crater", "preset": null, "site": "Site04", "earliest": "2027-01-15", "source": "https://www.scientificamerican.com/article/chinas-change-7-moonshot-will-seek-water-ice-at-the-lunar-south-pole/"},
-  {"name": "Chang'e-8", "agency": "CNSA (China)", "goal": "Tests using lunar soil, including 3D-printed bricks.", "when": "2028 (planned)", "target": "Plateau near Mons Mouton (reported)", "preset": null, "site": "MonsMouton", "earliest": "2028-01-15", "source": "https://en.wikipedia.org/wiki/Chang%27e_8"}
- ]}
+  {
+   "name": "Artemis IV",
+   "agency": "NASA",
+   "goal": "First crewed landing since 1972. Two astronauts spend about a week near the south pole.",
+   "when": "Early 2028",
+   "target": "South pole candidate regions",
+   "preset": "artemis",
+   "earliest": "2028-01-15",
+   "source": "https://www.nasa.gov/mission/artemis-iv/",
+   "short": "NASA, crewed. Early 2028."
+  },
+  {
+   "name": "Griffin Mission One",
+   "agency": "Astrobotic (Voyager Technologies) for NASA CLPS",
+   "goal": "Delivers more than 1,100 pounds of cargo, including the FLIP rover.",
+   "when": "Launch no earlier than January 2027 (reported)",
+   "target": "Nobile crater",
+   "preset": "griffin1",
+   "earliest": "2027-01-15",
+   "source": "https://www.nasa.gov/event/clps-flight-astrobotics-griffin-mission-one/",
+   "short": "Astrobotic for NASA. From January 2027."
+  },
+  {
+   "name": "IM-4 (NASA task order CP-22)",
+   "agency": "Intuitive Machines for NASA CLPS",
+   "goal": "Six NASA payloads, 79 kg in total, to the south polar region.",
+   "when": "2027",
+   "target": "South polar region",
+   "preset": "novac",
+   "earliest": "2027-06-01",
+   "source": "https://spacenews.com/?p=505012",
+   "short": "Intuitive Machines for NASA. 2027."
+  },
+  {
+   "name": "Chang'e-7",
+   "agency": "CNSA (China)",
+   "goal": "Orbiter, lander, rover and a hopper that searches for water ice in shadowed craters.",
+   "when": "Delayed to 2027",
+   "target": "Near the rim of Shackleton crater",
+   "preset": null,
+   "site": "Site04",
+   "earliest": "2027-01-15",
+   "source": "https://www.scientificamerican.com/article/chinas-change-7-moonshot-will-seek-water-ice-at-the-lunar-south-pole/",
+   "short": "China. 2027, near Shackleton crater."
+  },
+  {
+   "name": "Chang'e-8",
+   "agency": "CNSA (China)",
+   "goal": "Tests using lunar soil, including 3D-printed bricks.",
+   "when": "2028 (planned)",
+   "target": "Plateau near Mons Mouton (reported)",
+   "preset": null,
+   "site": "MonsMouton",
+   "earliest": "2028-01-15",
+   "source": "https://en.wikipedia.org/wiki/Chang%27e_8",
+   "short": "China. 2028, near Mons Mouton."
+  }
+ ]
+}

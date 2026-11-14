@@ -31,5 +31,82 @@
   "dtype": "uint8",
   "units": "percent of time the Sun is visible (NASA LOLA average visibility map AVGVISIB_85S_060M, area-averaged to 600 m); 255 = outside the NASA map",
   "same_grid_as": "region"
+ },
+ "web16": {
+  "note": "uint16 little-endian; height_m = offset + value * scale",
+  "region": {
+   "file": "region_600m.u16",
+   "offset": -6669.0,
+   "scale": 0.25,
+   "max_error_m": 0.1255
+  },
+  "sites": {
+   "DM2": {
+    "file": "DM2_10m.u16",
+    "offset": -383.0,
+    "scale": 0.1,
+    "max_error_m": 0.0501
+   },
+   "Haworth": {
+    "file": "Haworth_10m.u16",
+    "offset": 961.0,
+    "scale": 0.1,
+    "max_error_m": 0.05
+   },
+   "MonsMouton": {
+    "file": "MonsMouton_10m.u16",
+    "offset": 4932.0,
+    "scale": 0.1,
+    "max_error_m": 0.0498
+   },
+   "Shoemaker": {
+    "file": "Shoemaker_10m.u16",
+    "offset": -57.0,
+    "scale": 0.1,
+    "max_error_m": 0.05
+   },
+   "Site01": {
+    "file": "Site01_10m.u16",
+    "offset": 477.0,
+    "scale": 0.1,
+    "max_error_m": 0.05
+   },
+   "Site04": {
+    "file": "Site04_10m.u16",
+    "offset": -950.0,
+    "scale": 0.1,
+    "max_error_m": 0.0502
+   },
+   "Site06": {
+    "file": "Site06_10m.u16",
+    "offset": 4224.0,
+    "scale": 0.1,
+    "max_error_m": 0.0503
+   },
+   "Site07": {
+    "file": "Site07_10m.u16",
+    "offset": 480.0,
+    "scale": 0.1,
+    "max_error_m": 0.05
+   },
+   "Site11": {
+    "file": "Site11_10m.u16",
+    "offset": -187.0,
+    "scale": 0.1,
+    "max_error_m": 0.0501
+   },
+   "Site20": {
+    "file": "Site20_10m.u16",
+    "offset": 4500.0,
+    "scale": 0.1,
+    "max_error_m": 0.0503
+   },
+   "Site23": {
+    "file": "Site23_10m.u16",
+    "offset": 3494.0,
+    "scale": 0.1,
+    "max_error_m": 0.0503
+   }
+  }
  }
 }
