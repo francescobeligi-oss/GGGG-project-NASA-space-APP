@@ -50,15 +50,18 @@
 
 <section class="screen" id="results">
   <div class="res-head"><h2 id="answer"></h2><p class="lead" id="answerSub"></p>
-    <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button></div></div>
+    <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button><button class="btn" id="tourBtn">Discover the south pole</button></div></div>
+  <div class="navctl" aria-label="Map controls"><button id="compass" aria-label="Face north"><i>N</i></button><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="tiltBtn" aria-label="Switch between 3D and top view">2D</button><button id="homeBtn" aria-label="Back to my options">⌂</button></div>
+  <div class="tour" id="tour"></div>
   <div class="map-key">
+    <span class="tabs light" id="lightMode"><button data-l="real" aria-pressed="true">Real sunlight</button><button data-l="readable" aria-pressed="false">Easy to read</button></span>
     <span><i style="background:var(--sun)"></i>Often in sunlight</span>
     <span><i style="background:var(--ice)"></i>Always dark, may hold ice</span>
     <span><i style="background:transparent;border:1.5px solid #fff;transform:rotate(45deg);width:9px;height:9px"></i>Places to discover <button class="toggle" id="placesT" aria-pressed="true" aria-label="Show places to discover" style="transform:scale(.8);vertical-align:middle"></button></span>
-    <span class="small">Drag to move, scroll to zoom, right-drag to tilt</span>
+    <span class="small">Drag to move. Scroll to zoom. Right-drag or Shift-drag to turn and tilt.</span>
   </div>
   <div class="whenbar">
-    <div class="when-head"><b>When to land</b><span id="whenDate" class="num"></span>
+    <div class="when-head"><button class="play small-play" id="whenPlay" aria-label="Play through the dates">▶</button><b>When to land</b><span id="whenDate" class="num"></span>
       <div class="tabs metric" id="metric"><button data-m="sun" aria-pressed="true">Sunlight</button><button data-m="earth">Earth contact</button><button data-m="cost">Cost of darkness</button></div>
       <button class="btn ghost" id="toBest">Back to best date</button>
     </div>
@@ -68,12 +71,14 @@
 </section>
 
 <section class="screen" id="explore">
-  <div class="ex-top">
-    <div class="tabs" id="optTabs"></div>
-    <div class="tabs" id="views"><button data-view="fp">Stand there</button><button data-view="drone" aria-pressed="true">Fly over</button><button data-view="region">Whole area</button><button data-view="orbit">From orbit</button></div>
+  <div class="ex-left">
+    <div class="ex-top">
+      <div class="tabs" id="optTabs"></div>
+      <div class="tabs" id="views"><button data-view="fp">Stand there</button><button data-view="drone" aria-pressed="true">Fly over</button><button data-view="region">Whole area</button><button data-view="orbit">From orbit</button></div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="look"><button class="btn ghost" id="lookSun">Look at the Sun</button><button class="btn ghost" id="lookEarth">Look at Earth</button></div>
   </div>
-  <div class="status" id="status"></div>
-  <div class="look"><button class="btn ghost" id="lookSun">Look at the Sun</button><button class="btn ghost" id="lookEarth">Look at Earth</button></div>
   <div class="walkhint" id="walkhint">Use the arrow keys or W A S D to walk. Hold Shift to run.</div>
   <aside class="panel" id="panel"></aside>
   <div class="time">

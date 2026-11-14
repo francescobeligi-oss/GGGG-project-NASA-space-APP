@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { MapControls } from 'three/addons/controls/MapControls.js';
 import { quickCheck, readDocument, dateMetrics } from './quick.js';
 import { exportPDF, exportXLSX } from './exports.js';
 
@@ -84,7 +83,7 @@ const MISSIONS = [
 
 const S = { screen: 'hero', role: null, mode: 'simple', data: null, mission: null, opt: 0, t: 0, playing: false, speed: 8, view: 'drone',
   ice: true, hw: 'none', sites: {}, index: null, info: null, psr: null, region: null, regionSun: null, doc: null, q: 0, answers: null,
-  when: null, whenIdx: null, metric: 'sun', showPlaces: true };
+  when: null, whenIdx: null, metric: 'sun', showPlaces: true, lightMode: 'real' };
 
 /* ================= renderer ================= */
 const canvas = $('#gl');
@@ -124,8 +123,8 @@ const mapToLatLon = (mx, my) => { const rho = Math.hypot(mx, my); return [-90 + 
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
   M.stars = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.55 })); M.scene.add(M.stars);
   M.camera.position.set(0, 0, 3);
-  M.controls = new MapControls(M.camera, canvas);
-  Object.assign(M.controls, { enableDamping: true, dampingFactor: 0.08, screenSpacePanning: false, minDistance: 0.006, maxDistance: 5, maxPolarAngle: rad(80), zoomSpeed: 1.2, enabled: false });
+  M.sun.castShadow = true; M.sun.shadow.mapSize.set(4096, 4096); M.sun.shadow.bias = -0.00002; M.sun.shadow.normalBias = 0.0006;
+  Object.assign(M.sun.shadow.camera, { left: -0.17, right: 0.17, top: 0.17, bottom: -0.17, near: 1.5, far: 2.6 }); M.scene.add(M.sun.target);
   M.mx = 0; M.my = 0; addEventListener('pointermove', e => { M.mx = e.clientX / innerWidth - 0.5; M.my = e.clientY / innerHeight - 0.5; });
 }
 const POSE = { hero: [-0.12, 3.0, 0.2], who: [-0.5, 3.6, 0.25], mission: [-1.0, 3.4, 0.25] };
@@ -143,7 +142,7 @@ function psrMask(map, m) {
 }
 function buildCap() {
   if (M.cap || !S.region) return;
-  const t = S.info.region, n = t.shape[0], step = 2, m = Math.floor((n - 1) / step) + 1;
+  const t = S.info.region, n = t.shape[0], step = /Mobi|Android/i.test(navigator.userAgent) ? 2 : 1, m = Math.floor((n - 1) / step) + 1;
   const pos = new Float32Array(m * m * 3), map = new Float32Array(m * m * 2), inside = new Uint8Array(m * m);
   for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) {
     const k = i * m + j, mx = -t.half_width_m + j * step * t.pixel_m, my = t.half_width_m - i * step * t.pixel_m;
@@ -163,7 +162,7 @@ function buildCap() {
     if (s !== 255) { const edge = Math.min(1, Math.max(0, (151000 - Math.max(Math.abs(map[k * 2]), Math.abs(map[k * 2 + 1]))) / 20000)), f = Math.min(1, Math.max(0, (s - 12) / 30)) * edge * 0.85; r += (1 - r) * f; gg += (0.78 - gg) * f; b += (0.32 - b) * f; }
     const fade = Math.min(1, Math.max(0, (RHO_MAX - Math.hypot(map[k * 2], map[k * 2 + 1])) / 25000)); // blend into the globe at the rim
     tintNoIce.set([base + (r - base) * fade, base + (gg - base) * fade, base * 0.98 + (b - base * 0.98) * fade], k * 3);
-    if (ice[k]) { r = r * 0.35 + 0.3; gg = gg * 0.35 + 0.52; b = b * 0.35 + 0.66; }
+    if (ice[k]) { r = r * 0.6 + 0.16; gg = gg * 0.6 + 0.27; b = b * 0.6 + 0.38; }
     tint.set([base + (r - base) * fade, base + (gg - base) * fade, base * 0.98 + (b - base * 0.98) * fade], k * 3);
   }
   const alpha = new Float32Array(m * m); for (let k = 0; k < m * m; k++) { const r = Math.min(1, Math.max(0, (RHO_MAX - Math.hypot(map[k * 2], map[k * 2 + 1])) / 30000)); alpha[k] = 0.42 + 0.58 * r; } // rim darkens to match the dimmed globe
@@ -181,6 +180,134 @@ function setCapTint(f) {
 }
 const siteWorld = s => M.moon.localToWorld(globePoint(s.lat, s.lon, 1 + (regionH(s.x_m, s.y_m) + 150) / R_MOON));
 
+
+/* ================= map navigation (globe camera, Google Earth style) ================= */
+// state is a point on the Moon (t, unit vector in world space), a distance above it, a heading and a tilt.
+// The camera tilts toward the horizon by itself as you come closer; right-drag (or Shift-drag) rotates and tilts.
+const NAV = { t: new THREE.Vector3(0, 1, 0), d: 1, head: 0, tiltU: 0, cur: null, fly: false, ptrs: new Map() };
+const D_MIN = 0.0075, D_MAX = 4.2;
+function tangent(up) { const ref = Math.abs(up.z) < 0.95 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0); const e1 = ref.sub(up.clone().multiplyScalar(ref.dot(up))).normalize(); return [e1, up.clone().cross(e1)]; }
+const autoTilt = d => rad(18) + rad(54) * Math.min(1, Math.max(0, (Math.log(1.2) - Math.log(d)) / (Math.log(1.2) - Math.log(0.012)))); // more perspective as you come closer
+function worldToMap(v) { // world point (map mode, south pole up) -> polar map metres and latitude
+  const l = v.clone().normalize(), y = -l.y, z = -l.z, lat = deg(Math.asin(Math.max(-1, Math.min(1, y)))), lon = deg(Math.atan2(z, -l.x)) - 180;
+  const rho = 2 * R_MOON * Math.tan(rad(90 + lat) / 2); return [rho * Math.sin(rad(lon)), rho * Math.cos(rad(lon)), lat];
+}
+function groundAt(v) { const [mx, my] = worldToMap(v); const t = S.info && S.info.region; return t && Math.abs(mx) < t.half_width_m && Math.abs(my) < t.half_width_m && Math.hypot(mx, my) < RHO_MAX ? regionH(mx, my) / R_MOON : 0; }
+function navPose(st) {
+  const up = st.t.clone().normalize(), [e1, e2] = tangent(up), fwd = e1.clone().multiplyScalar(Math.cos(st.head)).addScaledVector(e2, Math.sin(st.head));
+  const surf = up.clone().multiplyScalar(1 + groundAt(up)), tilt = Math.min(rad(82), Math.max(0, autoTilt(st.d) + st.tiltU));
+  const pos = surf.clone().addScaledVector(up, st.d * Math.cos(tilt)).addScaledVector(fwd, -st.d * Math.sin(tilt));
+  const gr = 1 + groundAt(pos) + 0.0012; if (pos.length() < gr) pos.setLength(gr); // never under the ground
+  return { pos, surf, up };
+}
+function navApply(dt) {
+  const c = NAV.cur; if (!c) return;
+  const k = 1 - Math.pow(NAV.fly ? 0.12 : 0.0015, dt);
+  c.t.lerp(NAV.t, k).normalize(); c.d = Math.exp(Math.log(c.d) + (Math.log(NAV.d) - Math.log(c.d)) * k);
+  c.head += (((NAV.head - c.head + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * k; c.tiltU += (NAV.tiltU - c.tiltU) * k;
+  if (NAV.fly && c.t.angleTo(NAV.t) < 1e-4 && Math.abs(Math.log(c.d / NAV.d)) < 0.01) NAV.fly = false;
+  const p = navPose(c); M.camera.position.copy(p.pos); M.camera.up.copy(p.up); M.camera.lookAt(p.surf);
+  const cmp = $('#compass i'); if (cmp) cmp.style.transform = `rotate(${deg(c.head)}deg)`;
+}
+function flyTo(v, d, head) { NAV.t.copy(v).normalize(); NAV.d = Math.max(D_MIN, Math.min(D_MAX, d)); if (head != null) NAV.head = head; NAV.fly = true; }
+function rayToMoon(cx, cy) {
+  const ndc = new THREE.Vector2(cx / VW * 2 - 1, -(cy / VH) * 2 + 1), ray = new THREE.Raycaster(); ray.setFromCamera(ndc, M.camera);
+  const o = ray.ray.origin, dir = ray.ray.direction, b = o.dot(dir), cc = o.lengthSq() - 1, disc = b * b - cc;
+  return disc < 0 ? null : o.clone().addScaledVector(dir, -b - Math.sqrt(disc));
+}
+{
+  const onMap = e => S.screen === 'results' && M.map && !anim && e.target === canvas;
+  canvas.addEventListener('pointerdown', e => { if (!onMap(e)) return; canvas.setPointerCapture(e.pointerId); NAV.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); NAV.btn = e.button; NAV.shift = e.shiftKey || e.ctrlKey; NAV.fly = false; $$('.pop').forEach(p => p.remove()); });
+  canvas.addEventListener('pointermove', e => {
+    if (!NAV.ptrs.has(e.pointerId) || !NAV.cur) return;
+    const prev = NAV.ptrs.get(e.pointerId), dx = e.clientX - prev.x, dy = e.clientY - prev.y; NAV.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (NAV.ptrs.size === 2) { // two fingers: pinch to zoom, twist to rotate
+      const [a, b] = [...NAV.ptrs.values()], dist = Math.hypot(a.x - b.x, a.y - b.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
+      if (NAV.pinch) { NAV.d = Math.max(D_MIN, Math.min(D_MAX, NAV.d * NAV.pinch.dist / dist)); NAV.head -= ang - NAV.pinch.ang; }
+      NAV.pinch = { dist, ang }; return;
+    }
+    if (NAV.btn === 2 || NAV.shift) { NAV.head -= dx * 0.005; NAV.tiltU = Math.max(-rad(70), Math.min(rad(40), NAV.tiltU + dy * 0.004)); return; }
+    // drag the ground under the cursor
+    const c = NAV.cur, up = c.t.clone().normalize(), scale = c.d * 2 * Math.tan(rad(M.camera.fov / 2)) / VH * 1.15;
+    const right = new THREE.Vector3().setFromMatrixColumn(M.camera.matrixWorld, 0); right.sub(up.clone().multiplyScalar(right.dot(up))).normalize();
+    const fwd = up.clone().cross(right).negate();
+    NAV.t.addScaledVector(right, -dx * scale).addScaledVector(fwd, dy * scale).normalize(); c.t.copy(NAV.t);
+  });
+  const end = e => { NAV.ptrs.delete(e.pointerId); if (NAV.ptrs.size < 2) NAV.pinch = null; };
+  canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+  canvas.addEventListener('contextmenu', e => { if (S.screen === 'results') e.preventDefault(); });
+  canvas.addEventListener('wheel', e => {
+    if (!(S.screen === 'results' && M.map && !anim)) return; e.preventDefault(); NAV.fly = false;
+    const f = Math.exp(Math.max(-60, Math.min(60, e.deltaY)) * 0.0022), p = rayToMoon(e.clientX, e.clientY);
+    NAV.d = Math.max(D_MIN, Math.min(D_MAX, NAV.d * f));
+    if (p && f < 1) NAV.t.lerp(p.normalize(), (1 - f) * 0.9).normalize(); // zoom toward the point under the cursor
+  }, { passive: false });
+}
+function mapButtons() {
+  $('#zoomIn').onclick = () => { NAV.d = Math.max(D_MIN, NAV.d / 1.8); NAV.fly = true; };
+  $('#zoomOut').onclick = () => { NAV.d = Math.min(D_MAX, NAV.d * 1.8); NAV.fly = true; };
+  $('#compass').onclick = () => { NAV.head = 0; NAV.fly = true; };
+  $('#tiltBtn').onclick = () => { const flat = NAV.tiltU < -rad(30); NAV.tiltU = flat ? 0 : -rad(70); $('#tiltBtn').textContent = flat ? '2D' : '3D'; NAV.fly = true; };
+  $('#homeBtn').onclick = () => { const f = mapFrame(); flyTo(f.t, f.d, 0); NAV.tiltU = 0; };
+}
+
+/* ================= real sunlight on the map ================= */
+// the Sun direction of the chosen landing time (option 1's site, the same within a few degrees across the region)
+function mapSunDir() {
+  const o = S.data.options[0], s0 = S.sites[o.site];
+  let az = o.landing.sun_azimuth_deg, el = o.landing.sun_elevation_deg;
+  if (S.whenIdx != null && S.when && S.when[o.site] && S.when[o.site][S.whenIdx]) { const m = S.when[o.site][S.whenIdx]; az = m.sunAz; el = m.sunEl; }
+  if (S.lightMode === 'readable') el = 25;
+  const dv = dirFromAzEl(s0, az, el); return new THREE.Vector3(-dv.z, dv.y, dv.x); // local site frame -> world (south pole up)
+}
+function setMapLight(instant) {
+  if (!S.data) return;
+  const d = mapSunDir(), real = S.lightMode !== 'readable', c = new THREE.Vector3(0, 1, 0);
+  M.lightTo = { pos: c.clone().addScaledVector(d, 2), real };
+  if (instant) M.sun.position.copy(M.lightTo.pos);
+  M.sun.target.position.copy(c); M.sun.castShadow = real; if (M.cap) M.cap.castShadow = M.cap.receiveShadow = real;
+  M.sun.intensity = real ? 3.6 : 2.6; M.hemiTo = real ? 0.42 : 0.55;
+}
+
+/* ================= discover tour ================= */
+const TOUR = { i: -1 };
+function tourStep(i) {
+  const P = (S.places && S.places.places) || []; if (!P.length) return;
+  TOUR.i = (i + P.length) % P.length; const p = P[TOUR.i];
+  const v = M.moon.localToWorld(globePoint(p.lat, p.lon, 1)); flyTo(v, Math.max(0.012, p.diam_km / 1737.4 * 2.6), NAV.head + 0.5);
+  $('#tour').classList.add('on');
+  $('#tour').innerHTML = `<div class="small">Discover the south pole, ${TOUR.i + 1} of ${P.length}</div><b>${esc(p.name)}</b><p>${esc(p.fact)}</p><div class="small">${esc(p.type.split(',')[0])}, ${fmt(p.diam_km)} km across. Named after ${esc(p.namesake)}</div>
+    <div class="trow"><button class="btn" id="tPrev">Back</button><button class="btn primary" id="tNext">Next place</button><button class="btn ghost" id="tEnd">End tour</button></div>`;
+  $('#tPrev').onclick = () => tourStep(TOUR.i - 1); $('#tNext').onclick = () => tourStep(TOUR.i + 1);
+  $('#tEnd').onclick = () => { $('#tour').classList.remove('on'); TOUR.i = -1; const f = mapFrame(); flyTo(f.t, f.d); };
+}
+
+/* ================= Earth as seen from the Moon: which face, which way up ================= */
+// Moon position: low-precision series (Meeus, Astronomical Algorithms ch. 47, main terms); checked against JPL DE421:
+// sub-lunar point within 0.1 degrees over 2027-2031. Earth's sidereal time from the IAU 1982 GMST formula.
+function moonGeo(ms) {
+  const jd = ms / 86400000 + 2440587.5, T = (jd - 2451545) / 36525, s = x => Math.sin(rad(x));
+  const Lp = 218.3164477 + 481267.88123421 * T, Dd = 297.8501921 + 445267.1114034 * T, Ms = 357.5291092 + 35999.0502909 * T, Mp = 134.9633964 + 477198.8675055 * T, F = 93.2720950 + 483202.0175233 * T;
+  const lam = rad(Lp + 6.289 * s(Mp) + 1.274 * s(2 * Dd - Mp) + 0.658 * s(2 * Dd) + 0.214 * s(2 * Mp) - 0.186 * s(Ms) - 0.114 * s(2 * F));
+  const bet = rad(5.128 * s(F) + 0.281 * s(Mp + F) + 0.278 * s(Mp - F) + 0.173 * s(2 * Dd - F)), eps = rad(23.4393 - 0.0130 * T);
+  const ra = Math.atan2(Math.sin(lam) * Math.cos(eps) - Math.tan(bet) * Math.sin(eps), Math.cos(lam)), dec = Math.asin(Math.sin(bet) * Math.cos(eps) + Math.cos(bet) * Math.sin(eps) * Math.sin(lam));
+  const gmst = (280.46061837 + 360.98564736629 * (jd - 2451545)) % 360;
+  return { lam, bet, eps, subLat: deg(dec), subLon: ((deg(ra) - gmst) % 360 + 540) % 360 - 180 };
+}
+function earthQuat(ms, ed) {
+  const g = moonGeo(ms), V = (x, y, z) => new THREE.Vector3(x, y, z);
+  // ecliptic frame; the local zenith at the lunar south pole is close to the south ecliptic pole (Moon's axis is 1.5 degrees off)
+  const dE = V(-Math.cos(g.bet) * Math.cos(g.lam), -Math.cos(g.bet) * Math.sin(g.lam), -Math.sin(g.bet)), u1 = V(0, 0, -1);
+  const u2 = dE.clone().sub(u1.clone().multiplyScalar(dE.dot(u1))).normalize(), u3 = u1.clone().cross(u2);
+  const w1 = V(0, 1, 0), w2 = ed.clone().sub(w1.clone().multiplyScalar(ed.dot(w1))).normalize(), w3 = w1.clone().cross(w2);
+  const toW = v => w1.clone().multiplyScalar(v.dot(u1)).addScaledVector(w2, v.dot(u2)).addScaledVector(w3, v.dot(u3));
+  const nW = toW(V(0, Math.sin(g.eps), Math.cos(g.eps))), oW = ed.clone().negate();
+  const a1 = globePoint(g.subLat, g.subLon, 1).normalize(), a2 = V(0, 1, 0).sub(a1.clone().multiplyScalar(a1.y)).normalize(), a3 = a1.clone().cross(a2);
+  const b1 = oW, b2 = nW.sub(b1.clone().multiplyScalar(nW.dot(b1))).normalize(), b3 = b1.clone().cross(b2);
+  const A = new THREE.Matrix4().makeBasis(a1, a2, a3), B = new THREE.Matrix4().makeBasis(b1, b2, b3);
+  return new THREE.Quaternion().setFromRotationMatrix(B.multiply(A.transpose()));
+}
+
 /* ================= map markers ================= */
 let markers = [];
 function placeMarkers() {
@@ -192,7 +319,7 @@ function placeMarkers() {
     if (rank >= 0) el.style.setProperty('--c', VC[verdictOf(opts[rank])]);
     el.innerHTML = rank >= 0 ? `<span class="rk">${rank + 1}</span><span class="pl">${esc(s.name)}</span>` : `<span class="dotm"></span><span class="pl">${esc(s.name)}</span>`;
     el.setAttribute('aria-label', rank >= 0 ? `Option ${rank + 1}: ${s.name}` : s.name);
-    el.onclick = () => rank >= 0 ? openExplore(rank) : sitePopover(s, el);
+    el.onclick = () => { flyTo(siteWorld(s), 0.022); rank >= 0 ? setTimeout(() => rankPopover(rank, el), 650) : sitePopover(s, el); };
     el.style.display = 'none'; labels.appendChild(el);
     markers.push({ el, site: s, top: rank >= 0 });
   }
@@ -201,12 +328,19 @@ function placePlaces() {
   for (const p of (S.places && S.places.places) || []) {
     const el = document.createElement('button'); el.className = 'pin poi'; el.innerHTML = `<span class="dia"></span><span class="pl">${esc(p.name)}</span>`;
     el.setAttribute('aria-label', `Place: ${p.name}`); el.style.display = 'none'; labels.appendChild(el);
-    el.onclick = () => { $$('.pop').forEach(x => x.remove()); const pop = document.createElement('div'); pop.className = 'pop';
+    el.onclick = () => { flyTo(M.moon.localToWorld(globePoint(p.lat, p.lon, 1)), Math.max(0.012, p.diam_km / 1737.4 * 2.6)); $$('.pop').forEach(x => x.remove()); const pop = document.createElement('div'); pop.className = 'pop';
       pop.innerHTML = `<b>${esc(p.name)}</b><div class="small">${esc(p.type.split(',')[0])}, ${fmt(p.diam_km)} km across. Named after: ${esc(p.namesake)}</div><div>${esc(p.fact)}</div><a class="small" href="${p.source}" target="_blank" rel="noopener">IAU Gazetteer of Planetary Nomenclature</a>`;
       document.body.appendChild(pop); const r = el.getBoundingClientRect(); pop.style.left = Math.min(innerWidth - 310, r.left) + 'px'; pop.style.top = Math.min(innerHeight - 220, r.bottom + 8) + 'px';
       setTimeout(() => addEventListener('pointerdown', function off(e) { if (!pop.contains(e.target)) { pop.remove(); removeEventListener('pointerdown', off); } }), 0); };
     markers.push({ el, site: { lat: p.lat, lon: p.lon, x_m: p.x_m, y_m: p.y_m }, poi: true });
   }
+}
+function rankPopover(i, el) {
+  $$('.pop').forEach(p => p.remove()); const o = S.data.options[i], pop = document.createElement('div'); pop.className = 'pop';
+  pop.innerHTML = `<b>${i + 1}. ${esc(o.site_name)}</b><div class="small">${VSIMPLE[verdictOf(o)]}. Best landing ${dateTime(o.landing_utc)}.</div><button class="btn primary" style="padding:9px 16px">See it in 3D</button>`;
+  pop.querySelector('button').onclick = () => { pop.remove(); openExplore(i); };
+  document.body.appendChild(pop); const r = el.getBoundingClientRect(); pop.style.left = Math.min(innerWidth - 310, r.left) + 'px'; pop.style.top = Math.min(innerHeight - 200, r.bottom + 8) + 'px';
+  setTimeout(() => addEventListener('pointerdown', function off(e) { if (!pop.contains(e.target)) { pop.remove(); removeEventListener('pointerdown', off); } }), 0);
 }
 function sitePopover(s, el) {
   $$('.pop').forEach(p => p.remove());
@@ -360,7 +494,7 @@ function go(name) {
   $$('.pop').forEach(p => p.remove()); $('#calendar').classList.remove('open');
   const idx = ORDER.indexOf(name);
   $$('#progress li').forEach(li => { const k = ORDER.indexOf(li.dataset.step); li.className = k === idx ? 'now' : k < idx ? 'done reach' : (S.data ? 'reach' : ''); });
-  M.controls.enabled = name === 'results'; X.controls.enabled = name === 'explore' && S.view !== 'fp';
+  X.controls.enabled = name === 'explore' && S.view !== 'fp';
   if (POSE[name]) { leaveMap(); [M.tiltTo, M.distTo, M.offTo] = POSE[name]; M.ring.material.opacity = name === 'mission' ? 0.9 : 0; }
   if (name === 'results') { if (M.map) backToMap(); else flyToPole(); }
   if (name === 'explore') scene = 'site';
@@ -368,39 +502,37 @@ function go(name) {
   setPlaying(false);
 }
 function leaveMap() {
-  anim = null; scene = 'moon'; M.map = false; M.full.visible = true; M.holed.visible = false; if (M.cap) M.cap.visible = false; M.tintTo = 0;
-  M.sun.position.set(-3, 1.4, 2.2); M.hemi.intensity = 0.04;
+  anim = null; scene = 'moon'; M.map = false; M.full.visible = true; M.holed.visible = false; if (M.cap) M.cap.visible = false; M.tintTo = 0; M.lightTo = null; M.sun.castShadow = false; M.sun.intensity = 3.4;
+  M.sun.position.set(-3, 1.4, 2.2); M.hemi.intensity = 0.04; M.camera.up.set(0, 1, 0); $('#tour').classList.remove('on'); TOUR.i = -1; if (S.whenTimer) $('#whenPlay').click();
 }
-// globe -> south pole map without a cut: the Moon turns its pole up and the camera comes down over the real terrain
+// globe -> south pole map without a cut: the Moon turns its pole up, then the camera descends over the real terrain
 function flyToPole() {
   scene = 'moon'; buildCap(); M.full.visible = false; M.holed.visible = true; if (M.cap) M.cap.visible = true;
-  const from = { tilt: M.tilt, spin: M.spin % (Math.PI * 2), cam: M.camera.position.clone() }, t0 = performance.now(), dur = REDUCED ? 1 : 2400;
-  const end = mapFrame(); M.ring.material.opacity = 0; M.offY = 0; M.offX = 0;
+  const from = { tilt: M.tilt, spin: M.spin % (Math.PI * 2), cam: M.camera.position.clone() }, t0 = performance.now(), dur = REDUCED ? 1 : 1800;
+  const high = { t: new THREE.Vector3(0, 1, 0), d: 1.6, head: 0, tiltU: 0 }, hp = navPose(high);
+  M.ring.material.opacity = 0; M.offY = 0; M.offX = 0; setMapLight(false);
+  const l0 = M.sun.position.clone();
   anim = now => {
     const k = Math.min(1, (now - t0) / dur), e = ease(k);
     M.tilt = M.tiltTo = from.tilt + (-Math.PI - from.tilt) * e; M.pivot.rotation.set(M.tilt, 0, 0);
     M.moon.rotation.y = from.spin * (1 - e); M.spin = M.moon.rotation.y;
-    M.camera.position.lerpVectors(from.cam, end.cam, e); M.camera.lookAt(new THREE.Vector3().lerpVectors(new THREE.Vector3(), end.target, e));
-    M.sun.position.lerpVectors(new THREE.Vector3(-3, 1.4, 2.2), end.light, e); M.hemi.intensity = 0.04 + 0.5 * e;
-    if (k > 0.55) M.tintTo = 1;
-    if (k >= 1) { anim = null; M.map = true; M.controls.target.copy(end.target); M.controls.update(); }
+    M.camera.position.lerpVectors(from.cam, hp.pos, e); M.camera.up.set(0, 1, 0).lerp(hp.up, e); M.camera.lookAt(new THREE.Vector3().lerpVectors(new THREE.Vector3(), hp.surf, e));
+    M.sun.position.lerpVectors(l0, M.lightTo.pos, e); M.hemi.intensity = 0.04 + (M.hemiTo - 0.04) * e;
+    if (k > 0.5) M.tintTo = 1;
+    if (k >= 1) {
+      anim = null; M.map = true; M.pivot.updateMatrixWorld(true);
+      NAV.cur = { t: high.t.clone(), d: high.d, head: 0, tiltU: 0 }; const f = mapFrame(); flyTo(f.t, f.d, 0); NAV.tiltU = 0;
+    }
   };
 }
 function mapFrame() {
-  // camera position over the pole that frames the three options (computed with the Moon in its final pose)
-  const keep = [M.pivot.rotation.x, M.moon.rotation.y];
-  M.pivot.rotation.set(-Math.PI, 0, 0); M.moon.rotation.y = 0; M.pivot.updateMatrixWorld(true);
+  // where to look so the three options fit on screen (the Moon is in its final pose, south pole up)
   const w = S.data.options.map(o => siteWorld(S.index.sites.find(s => s.id === o.site)));
   const c = w.reduce((a, v) => a.add(v), new THREE.Vector3()).multiplyScalar(1 / w.length);
-  const spread = Math.max(0.02, ...w.map(v => v.distanceTo(c)));
-  const d = spread * 4.6 + 0.03, up = c.clone().normalize();
-  const cam = c.clone().addScaledVector(up, d).add(new THREE.Vector3(0, 0, d * 0.32));
-  const s0 = S.sites[S.data.options[0].site], dv = dirFromAzEl(s0, S.data.options[0].landing.sun_azimuth_deg, 25);
-  const light = new THREE.Vector3(-dv.z, dv.y, dv.x).multiplyScalar(3); // map frame -> world at the pole (south pole up)
-  M.pivot.rotation.x = keep[0]; M.moon.rotation.y = keep[1]; M.pivot.updateMatrixWorld(true);
-  return { cam, target: c, light };
+  const spread = Math.max(0.012, ...w.map(v => v.distanceTo(c)));
+  return { t: c.normalize(), d: spread * 3.6 + 0.02 };
 }
-function backToMap() { scene = 'moon'; if (M.saved) { M.camera.position.copy(M.saved.cam); M.controls.target.copy(M.saved.target); M.controls.update(); } }
+function backToMap() { scene = 'moon'; if (M.saved) { NAV.cur = { t: M.saved.t.clone(), d: M.saved.d * 0.35, head: M.saved.head, tiltU: M.saved.tiltU }; flyTo(M.saved.t, M.saved.d, M.saved.head); NAV.fly = true; } }
 
 /* ================= step 1: who ================= */
 $$('#roles .choice').forEach(b => b.onclick = () => {
@@ -560,21 +692,29 @@ function drawWhen() {
   sets[0].forEach((m, k) => { const d = toDate(m.utc); if (d.getUTCMonth() !== lastM && d.getUTCDate() <= 2) { lastM = d.getUTCMonth(); g.fillText(MON[lastM], x(k) + 3, 11); } });
   g.textAlign = 'right'; g.fillText(S.metric === 'cost' ? usd(max) : '100%', w - 2, 11);
 }
-$('#whenSlider').oninput = e => { S.whenIdx = +e.target.value; const m = S.when && S.when[S.data.options[0].site]; $('#whenDate').textContent = m ? `Land on ${dateTime(m[S.whenIdx].utc)}` : ''; renderResults(); drawWhen(); };
-$('#toBest').onclick = () => { S.whenIdx = null; $('#whenSlider').value = S.bestIdx; $('#whenDate').textContent = 'Each site at its best date'; renderResults(); drawWhen(); };
+function setWhen(i) { S.whenIdx = i; $('#whenSlider').value = i; const m = S.when && S.when[S.data.options[0].site]; $('#whenDate').textContent = m && m[i] ? `${dateTime(m[i].utc)}, Sun ${level(m[i].sunEl)}` : ''; renderResults(); drawWhen(); setMapLight(); }
+$('#whenSlider').oninput = e => setWhen(+e.target.value);
+$('#whenPlay').onclick = () => {
+  if (S.whenTimer) { clearInterval(S.whenTimer); S.whenTimer = null; $('#whenPlay').textContent = '▶'; return; }
+  $('#whenPlay').textContent = '❚❚'; const n = +$('#whenSlider').max;
+  S.whenTimer = setInterval(() => { const i = ((S.whenIdx ?? S.bestIdx) + 1) % (n + 1); setWhen(i); }, 140);
+};
+$$('#lightMode button').forEach(b => b.onclick = () => { S.lightMode = b.dataset.l; $$('#lightMode button').forEach(x => x.setAttribute('aria-pressed', x === b)); setMapLight(); });
+$('#tourBtn').onclick = () => tourStep(TOUR.i < 0 ? 0 : TOUR.i + 1);
+mapButtons();
+$('#toBest').onclick = () => { if (S.whenTimer) $('#whenPlay').click(); S.whenIdx = null; $('#whenSlider').value = S.bestIdx; $('#whenDate').textContent = 'Each site at its best date'; renderResults(); drawWhen(); setMapLight(); };
 $$('#metric button').forEach(b => b.onclick = () => { S.metric = b.dataset.m; $$('#metric button').forEach(x => x.setAttribute('aria-pressed', x === b)); drawWhen(); });
 $('#dockToggle').onclick = () => { const d = $('#dock'), c = d.classList.toggle('closed'); document.body.classList.toggle('wide', c); $('#dockToggle').textContent = c ? 'Show options' : 'Hide options'; $('#dockToggle').setAttribute('aria-expanded', !c); setTimeout(drawWhen, 480); };
 
 /* ================= step 4: explore ================= */
 async function openExplore(i) {
   S.opt = i; S.t = 0; S.hw = 'none'; X.walked = false;
-  if (S.screen === 'results' && M.map && !REDUCED) {
-    // enter: the map camera dives toward the site, then the 3D site takes over
-    M.saved = { cam: M.camera.position.clone(), target: M.controls.target.clone() };
-    const s = S.index.sites.find(x => x.id === opt().site), p = siteWorld(s), from = M.camera.position.clone(), ft = M.controls.target.clone(), t0 = performance.now();
-    const to = p.clone().addScaledVector(p.clone().normalize(), 0.004).add(new THREE.Vector3(0, 0, 0.002));
-    M.controls.enabled = false;
-    await new Promise(res => { anim = now => { const k = Math.min(1, (now - t0) / 1100), e = ease(k); M.camera.position.lerpVectors(from, to, e); const tg = new THREE.Vector3().lerpVectors(ft, p, e); M.camera.lookAt(tg); $('#fade').style.opacity = k > 0.7 ? (k - 0.7) * 3.3 : 0; if (k >= 1) { anim = null; res(); } }; });
+  if (S.screen === 'results' && M.map && !REDUCED && NAV.cur) {
+    // enter: the camera dives toward the site, then the 3D site takes over
+    M.saved = { t: NAV.cur.t.clone(), d: NAV.cur.d, head: NAV.cur.head, tiltU: NAV.cur.tiltU };
+    flyTo(siteWorld(S.index.sites.find(x => x.id === opt().site)), D_MIN); NAV.tiltU = 0.1;
+    const t0 = performance.now();
+    await new Promise(res => { const tick = () => { const k = (performance.now() - t0) / 1300; $('#fade').style.opacity = k > 0.6 ? Math.min(1, (k - 0.6) * 2.5) : 0; if (k >= 1) res(); else requestAnimationFrame(tick); }; tick(); });
   }
   go('explore');
   $('#optTabs').innerHTML = S.data.options.map((o, k) => `<button data-k="${k}" aria-pressed="${k === i}">${k + 1} ${esc(o.site_name)}</button>`).join('');
@@ -738,25 +878,29 @@ function openCalendar(highlight) {
 function renderCompare() {
   const o = S.data.options, rr = (x, k) => x.ranges && x.ranges[k] ? x.ranges[k] : null, darkW = x => (rr(x, 'longest_dark_h') || [0, x.light.longest_dark_h])[1];
   const rows = [
-    ['Landing time', x => date(x.landing_utc), x => dateTime(x.landing_utc)],
-    ['Verdict', x => `<span class="dotw" style="--c:${VC[verdictOf(x)]}"></span>${VSIMPLE[verdictOf(x)]}`, x => `<span class="dotw" style="--c:${VC[verdictOf(x)]}"></span>${vx(verdictOf(x))}`],
-    ['Sunlight', x => W.sun(x.light.sun_pct), x => range(rr(x, 'sun_pct') || [x.light.sun_pct, x.light.sun_pct], pct), x => (rr(x, 'sun_pct') || [x.light.sun_pct])[0], 'max'],
-    ['Longest darkness', x => W.dark(darkW(x)), x => range(rr(x, 'longest_dark_h') || [x.light.longest_dark_h, x.light.longest_dark_h], hrs), darkW, 'min'],
-    ['Contact with Earth', x => W.earth(x.comms.contact_pct), x => range(rr(x, 'contact_pct') || [x.comms.contact_pct, x.comms.contact_pct], pct), x => (rr(x, 'contact_pct') || [x.comms.contact_pct])[0], 'max'],
-    ['Longest silence', x => hrs(x.comms.longest_gap_h), x => hrs(x.comms.longest_gap_h), x => x.comms.longest_gap_h, 'min'],
-    ['Cost of darkness', x => darkW(x) > 0 ? `at least ${usd(costDark(darkW(x)))}` : 'None', x => darkW(x) > 0 ? `${usd(costDark(darkW(x)))} (${fmt(battKg(darkW(x)), 1)} kg)` : 'None', x => costDark(darkW(x)), 'min'],
-    ['Paid time you cannot fully use', x => lostHours(x) ? usd(valueLost(lostHours(x), x.duration_h)) : 'None', x => lostHours(x) ? `${usd(valueLost(lostHours(x), x.duration_h))} (${hrs(lostHours(x))})` : 'None', x => lostHours(x), 'min'],
-    ['Ground', x => W.ground(x.terrain) || '–', x => x.terrain ? `${fmt(x.terrain.median_deg, 1)}° typical, ${pct(x.terrain.safe_fraction * 100)} within limit` : '–', x => x.terrain && x.terrain.median_deg, 'min'],
-    ['Ice nearby', x => x.resources ? `${fmt(x.resources['nearest_over_0.01km2_km'], 1)} km away` : '–', x => x.resources ? `${fmt(x.resources['nearest_over_0.01km2_km'], 1)} km` : '–', x => x.resources && x.resources['nearest_over_0.01km2_km'], 'min'],
-    ['Can land late by', x => x.slip_tolerance_days != null ? `${fmt(x.slip_tolerance_days)} days` : '–', x => x.slip_tolerance_days != null ? `${fmt(x.slip_tolerance_days)} days` : '–', x => x.slip_tolerance_days, 'max'],
-    ['Backup site', x => x.backup_site ? esc(x.backup_site.site_name) : '–', x => x.backup_site ? `${esc(x.backup_site.site_name)}, ${date(x.backup_site.landing_utc)}` : '–'],
+    ['Landing time', x => date(x.landing_utc), x => dateTime(x.landing_utc), null, null, 'The best time inside your window.'],
+    ['Verdict', x => `<span class="dotw" style="--c:${VC[verdictOf(x)]}"></span>${VSIMPLE[verdictOf(x)]}`, x => `<span class="dotw" style="--c:${VC[verdictOf(x)]}"></span>${vx(verdictOf(x))}`, null, null, 'All checks together, for the worst point of the landing area.'],
+    ['Sunlight', x => W.sun(x.light.sun_pct), x => range(rr(x, 'sun_pct') || [x.light.sun_pct, x.light.sun_pct], pct), x => (rr(x, 'sun_pct') || [x.light.sun_pct])[0], 'max', 'Solar power: how much of the stay the panels see the Sun.'],
+    ['Longest darkness', x => W.dark(darkW(x)), x => range(rr(x, 'longest_dark_h') || [x.light.longest_dark_h, x.light.longest_dark_h], hrs), darkW, 'min', 'Sets the battery size and the cold the lander must survive.'],
+    ['Contact with Earth', x => W.earth(x.comms.contact_pct), x => range(rr(x, 'contact_pct') || [x.comms.contact_pct, x.comms.contact_pct], pct), x => (rr(x, 'contact_pct') || [x.comms.contact_pct])[0], 'max', 'Commands, telemetry and science data need a line of sight to Earth.'],
+    ['Longest silence', x => hrs(x.comms.longest_gap_h), x => hrs(x.comms.longest_gap_h), x => x.comms.longest_gap_h, 'min', 'Longest time the team cannot reach the lander.'],
+    ['Sun at touchdown', x => x.landing.sun_elevation_deg >= 0 ? 'Above the horizon' : 'Just below level', x => level(x.landing.sun_elevation_deg), x => x.landing.sun_elevation_deg, 'max', 'Low Sun means long shadows in the landing area and blinding light for cameras.'],
+    ['Earth at touchdown', x => x.landing.earth_visible ? 'In view' : 'Not in view', x => x.landing.earth_visible ? level(x.landing.earth_elevation_deg) : 'Not visible', null, null, 'Most landers report to Earth while they land.'],
+    ['Cost of darkness', x => darkW(x) > 0 ? `at least ${usd(costDark(darkW(x)))}` : 'None', x => darkW(x) > 0 ? `${usd(costDark(darkW(x)))} (${fmt(battKg(darkW(x)), 1)} kg)` : 'None', x => costDark(darkW(x)), 'min', 'Extra battery mass to cross the darkness, at a public delivery price.'],
+    ['Paid time you cannot fully use', x => lostHours(x) ? usd(valueLost(lostHours(x), x.duration_h)) : 'None', x => lostHours(x) ? `${usd(valueLost(lostHours(x), x.duration_h))} (${hrs(lostHours(x))})` : 'None', x => lostHours(x), 'min', 'Hours without Sun or without Earth, as a share of the mission price.'],
+    ['Battery you need', x => x.ranges && x.ranges.battery_needed_wh ? wh(x.ranges.battery_needed_wh[1]) : '–', x => range(rr(x, 'battery_needed_wh'), wh), x => x.ranges && x.ranges.battery_needed_wh && x.ranges.battery_needed_wh[1], 'min', 'For your stated power use, at 80% usable charge.'],
+    ['Data you can send', x => x.comms.data_possible_mb != null ? fmt(x.comms.data_possible_mb / 1000) + ' GB' : '–', x => x.comms.data_possible_mb != null ? fmt(x.comms.data_possible_mb / 1000) + ' GB' : '–', x => x.comms.data_possible_mb, 'max', 'Contact hours times your data rate.'],
+    ['Ground', x => W.ground(x.terrain) || '–', x => x.terrain ? `${fmt(x.terrain.median_deg, 1)}° typical, ${pct(x.terrain.safe_fraction * 100)} within limit` : '–', x => x.terrain && x.terrain.median_deg, 'min', 'Slope inside the landing circle from NASA 5 m terrain. Rocks smaller than the terrain grid are not seen.'],
+    ['Ice nearby', x => x.resources ? `${fmt(x.resources['nearest_over_0.01km2_km'], 1)} km away` : '–', x => x.resources ? `${fmt(x.resources['nearest_over_0.01km2_km'], 1)} km` : '–', x => x.resources && x.resources['nearest_over_0.01km2_km'], 'min', 'Distance to the nearest permanently shadowed area, where water ice can survive.'],
+    ['Can land late by', x => x.slip_tolerance_days != null ? `${fmt(x.slip_tolerance_days)} days` : '–', x => x.slip_tolerance_days != null ? `${fmt(x.slip_tolerance_days)} days` : '–', x => x.slip_tolerance_days, 'max', 'How long the launch can slip with the same result.'],
+    ['Backup site', x => x.backup_site ? esc(x.backup_site.site_name) : '–', x => x.backup_site ? `${esc(x.backup_site.site_name)}, ${date(x.backup_site.landing_utc)}` : '–', null, null, 'Where to go if the first choice is lost.'],
   ];
   let html = '<div class="rh ch"></div>' + o.map((x, i) => `<div class="ch" style="--c:${VC[verdictOf(x)]}"><div class="rank" style="color:${LINE[i]}">${i + 1}</div><h3>${esc(x.site_name)}</h3></div>`).join('');
-  for (const [name, fs, fx, key, best] of rows) {
+  for (const [name, fs, fx, key, best, why] of rows) {
     const vals = key ? o.map(key) : [], ok = vals.filter(v => v != null && isFinite(v));
     if (key && !ok.length) continue;
     const target = ok.length > 1 && !ok.every(v => Math.abs(v - ok[0]) < 1e-9) ? (best === 'max' ? Math.max(...ok) : Math.min(...ok)) : null;
-    html += `<div class="rh">${name}</div>` + o.map((x, i) => `<div class="${target != null && vals[i] === target ? 'best' : ''}"><span class="sp">${fs(x)}</span><span class="xp">${fx(x)}</span></div>`).join('');
+    html += `<div class="rh">${name}${why ? `<em>${why}</em>` : ''}</div>` + o.map((x, i) => `<div class="${target != null && vals[i] === target ? 'best' : ''}"><span class="sp">${fs(x)}</span><span class="xp">${fx(x)}</span></div>`).join('');
   }
   $('#cmp').innerHTML = html;
   $('#costbox').innerHTML = `<h4>Cost scenario: change the numbers</h4>
@@ -789,10 +933,10 @@ function frame(now) {
   if (anim) anim(now);
   renderer.clear();
   if (scene === 'moon') {
-    const k = 1 - Math.pow(0.02, dt);
+    const k = 1 - Math.pow(0.12, dt);
     if (!M.map && !anim) {
-      M.tilt += (M.tiltTo - M.tilt) * k; M.dist += (M.distTo - M.dist) * k; M.off += (M.offTo - M.off) * k; M.spin += dt * 0.05;
-      M.px = (M.px || 0) + (M.mx * 0.18 - (M.px || 0)) * k; M.py = (M.py || 0) + (M.my * 0.12 - (M.py || 0)) * k;
+      M.tilt += (M.tiltTo - M.tilt) * k; M.dist += (M.distTo - M.dist) * k; M.off += (M.offTo - M.off) * k; M.spin += dt * 0.012;
+      const kp = 1 - Math.pow(0.25, dt); M.px = (M.px || 0) + (M.mx * 0.05 - (M.px || 0)) * kp; M.py = (M.py || 0) + (M.my * 0.035 - (M.py || 0)) * kp;
       M.pivot.rotation.set(M.tilt + M.py, M.px, 0); M.moon.rotation.y = M.spin;
       M.camera.position.set(0, 0, M.dist); M.camera.lookAt(0, 0, 0);
       if (VW > 980) M.camera.setViewOffset(VW, VH, -VW * M.off, S.screen === 'hero' ? -VH * 0.06 : 0, VW, VH); else M.camera.clearViewOffset();
@@ -801,7 +945,7 @@ function frame(now) {
       const dockOpen = VW > 980 && S.screen === 'results' && !$('#dock').classList.contains('closed'), wantX = dockOpen ? 210 : 0, wantY = VH * 0.06;
       M.offX = (M.offX ?? 0) + (wantX - (M.offX ?? 0)) * k; M.offY = (M.offY ?? 0) + (wantY - (M.offY ?? 0)) * k; M.camera.setViewOffset(VW, VH, M.offX, M.offY, VW, VH);
     }
-    if (M.map && !anim) M.controls.update();
+    if (M.map && !anim) { navApply(dt); if (M.lightTo) { M.sun.position.lerp(M.lightTo.pos, 1 - Math.pow(0.02, dt)); M.hemi.intensity += (M.hemiTo - M.hemi.intensity) * (1 - Math.pow(0.02, dt)); } }
     if (M.cap && Math.abs(M.tint - M.tintTo) > 0.002) { M.tint += (M.tintTo - M.tint) * Math.min(1, dt * 3); setCapTint(M.tint); }
     M.stars.rotation.y = M.spin * 0.2;
     renderer.toneMappingExposure = M.map ? 1.25 : 1.15; renderer.render(M.scene, M.camera);
@@ -819,6 +963,7 @@ function frame(now) {
       const st = sample(S.t), cp = X.camera.position, sd = dirFromAzEl(X.site, st.sunAz, st.sunEl), ed = dirFromAzEl(X.site, st.earthAz, st.earthEl);
       X.sunGlow.position.copy(cp).addScaledVector(sd, SKY_D); X.sunGlow.scale.setScalar(SKY_D * Math.tan(rad(0.27)) * 28); X.sunGlow.material.opacity = Math.max(0.15, st.frac);
       X.earth.position.copy(cp).addScaledVector(ed, SKY_D); X.earth.scale.setScalar(SKY_D * Math.tan(rad(0.95))); X.earth.visible = st.earthEl > -1.5;
+      X.earth.quaternion.copy(earthQuat(toDate(series().t[0]).getTime() + S.t * 3600e3, ed)); // the face of Earth turned toward the Moon at this hour
       X.skySun.target.position.copy(X.earth.position); X.skySun.position.copy(X.earth.position).addScaledVector(sd, 10); // Earth's phase from the real Sun direction
       if (X.ring) { const age = (now - X.ringBorn) / 1000, grow = REDUCED ? 1 : Math.min(1, age / 1.2); X.ring.scale.set(0.2 + 0.8 * ease(grow), 1, 0.2 + 0.8 * ease(grow)); X.glow.scale.copy(X.ring.scale); X.glow.material.opacity = 0.18 + 0.1 * Math.sin(now / 600) + (1 - grow) * 0.5; }
     }

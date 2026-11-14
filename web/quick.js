@@ -147,7 +147,7 @@ export async function dateMetrics(site, meta, fromUtc, toUtc, durationH, mast, s
       sun += s; con += e; if (!s || !e) lost++;
       if (!s) { run++; if (run > dark) dark = run; } else run = 0;
     }
-    out.push({ utc: new Date((t0 + (k0 + k) * 3600) * 1000).toISOString().slice(0, 16) + 'Z', sunPct: 100 * sun / durationH, longestDark: dark, contactPct: 100 * con / durationH, lostH: lost });
+    out.push({ utc: new Date((t0 + (k0 + k) * 3600) * 1000).toISOString().slice(0, 16) + 'Z', sunPct: 100 * sun / durationH, longestDark: dark, contactPct: 100 * con / durationH, lostH: lost, sunAz: R[k * COLS], sunEl: R[k * COLS + 1] });
   }
   return out;
 }
