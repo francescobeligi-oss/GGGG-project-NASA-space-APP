@@ -1,0 +1,116 @@
+{
+ "sites": [
+  {
+   "id": "Site01",
+   "name": "Connecting ridge",
+   "lat": -89.43893,
+   "lon": -137.09598,
+   "x_m": -11582,
+   "y_m": -12462,
+   "sunlit_pct_2m": 85.1,
+   "earth_pct_2m": 53.4
+  },
+  {
+   "id": "Site04",
+   "name": "Shackleton rim",
+   "lat": -89.76197,
+   "lon": -157.0672,
+   "x_m": -2812,
+   "y_m": -6648,
+   "sunlit_pct_2m": 80.1,
+   "earth_pct_2m": 45.2
+  },
+  {
+   "id": "Site07",
+   "name": "Peak near Shackleton",
+   "lat": -88.80636,
+   "lon": 123.54629,
+   "x_m": 30168,
+   "y_m": -20002,
+   "sunlit_pct_2m": 77.1,
+   "earth_pct_2m": 55.8
+  },
+  {
+   "id": "Site11",
+   "name": "de Gerlache rim",
+   "lat": -88.66826,
+   "lon": -68.37576,
+   "x_m": -37542,
+   "y_m": 14882,
+   "sunlit_pct_2m": 82.7,
+   "earth_pct_2m": 56.5
+  },
+  {
+   "id": "Site23",
+   "name": "Malapert massif",
+   "lat": -86.00183,
+   "lon": 2.17355,
+   "x_m": 4600,
+   "y_m": 121200,
+   "sunlit_pct_2m": 75.1,
+   "earth_pct_2m": 60.3
+  },
+  {
+   "id": "Site06",
+   "name": "Nobile rim 1",
+   "lat": -85.30524,
+   "lon": 37.03884,
+   "x_m": 85800,
+   "y_m": 113700,
+   "sunlit_pct_2m": 80.2,
+   "earth_pct_2m": 55.4
+  },
+  {
+   "id": "DM2",
+   "name": "Nobile rim 2",
+   "lat": -84.0578,
+   "lon": 59.25418,
+   "x_m": 155000,
+   "y_m": 92200,
+   "sunlit_pct_2m": 52.8,
+   "earth_pct_2m": 70.4
+  },
+  {
+   "id": "Site20",
+   "name": "Leibnitz beta plateau",
+   "lat": -85.44406,
+   "lon": 32.17235,
+   "x_m": 73600,
+   "y_m": 117000,
+   "sunlit_pct_2m": 73.4,
+   "earth_pct_2m": 53.5
+  },
+  {
+   "id": "Haworth",
+   "name": "Haworth rim",
+   "lat": -86.61376,
+   "lon": -21.29383,
+   "x_m": -37300,
+   "y_m": 95700,
+   "sunlit_pct_2m": 32.3,
+   "earth_pct_2m": 35.9
+  },
+  {
+   "id": "Shoemaker",
+   "name": "Shoemaker rim",
+   "lat": -87.20728,
+   "lon": 61.58929,
+   "x_m": 74500,
+   "y_m": 40300,
+   "sunlit_pct_2m": 55.4,
+   "earth_pct_2m": 40.4
+  },
+  {
+   "id": "MonsMouton",
+   "name": "Mons Mouton plateau (IM-2 target)",
+   "lat": -84.78,
+   "lon": 29.13,
+   "x_m": 77107,
+   "y_m": 138363,
+   "sunlit_pct_2m": 44.8,
+   "earth_pct_2m": 81.1
+  }
+ ],
+ "period": "2026-11-01 to 2032-12-31 UTC",
+ "source": "Lunar Site Scout engine v2 (validated vs JPL Horizons)"
+}

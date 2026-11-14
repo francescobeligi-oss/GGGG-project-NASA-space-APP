@@ -1,0 +1,57 @@
+{
+  "_labels": "declared = from a cited public source | derived = calculated from declared values | asked = to be confirmed by the customer | estimated = last resort. null = unknown: the tool computes the requirement instead of guessing.",
+  "IM-2_Athena": {
+    "title": "IM-2 Athena (Intuitive Machines Nova-C) - validation case",
+    "mission_type": {"v": "robotic_lander", "l": "declared", "src": "NASA IM-2 press kit"},
+    "landing_site": {"v": [-84.7906, 29.1957], "l": "declared", "src": "Wikipedia/IM-2 (actual landing point)"},
+    "landing_date_utc": {"v": "2025-03-06T17:30", "l": "declared", "src": "NASA: touchdown approx. 11:30 a.m. CST"},
+    "surface_duration_days": {"v": 14, "l": "declared", "src": "Nova-C design life 14 days after landing (Wikipedia)"},
+    "landing_accuracy_m": {"v": 50, "l": "declared", "src": "Space.com: 50 m landing zone"},
+    "array_peak_w": {"v": 200, "l": "declared", "src": "Nova-C: 200 W on the lunar surface (Wikipedia)"},
+    "array_type": {"v": "body_and_top_deck", "l": "declared", "src": "three panels: top deck + two body panels"},
+    "array_height_m": {"v": 2, "l": "derived", "src": "lander height approx. 3-4 m"},
+    "battery_wh": {"v": 700, "l": "derived", "src": "25 Ah battery on 28 VDC bus -> 700 Wh"},
+    "load_ops_w": {"v": null, "l": "asked"},
+    "load_survival_w": {"v": null, "l": "asked"},
+    "comms_mode": {"v": "DTE", "l": "declared", "src": "Nova-C direct-to-Earth"},
+    "outcome": {"v": "Landed in a 20 m crater, on its side; no sunlight on panels; mission ended after about 13 hours", "l": "declared", "src": "SpacePolicyOnline, NASA"}
+  },
+  "Griffin-1_FLIP": {
+    "title": "Griffin-1 with Astrolab FLIP rover (Astrobotic, NASA Moon Base II)",
+    "mission_type": {"v": "robotic_lander_with_rover", "l": "declared", "src": "Astrobotic / Astrolab"},
+    "target_region": {"v": "Nobile crater region near Mons Mouton", "l": "declared", "src": "SatNews Jun 2026"},
+    "landing_date_utc": {"v": null, "l": "asked", "src": "launch NET late 2026 (Falcon Heavy)"},
+    "payload_kg": {"v": 625, "l": "declared", "src": "Astrobotic Griffin: 625 kg"},
+    "payload_power_w_per_kg": {"v": 1.0, "l": "declared", "src": "Astrobotic: 1.0 W/kg"},
+    "payload_bandwidth_kbps_per_kg": {"v": 10, "l": "declared", "src": "Astrobotic: 10 kbps/kg"},
+    "rover_mass_kg": {"v": 500, "l": "declared", "src": "FLIP approx. 500 kg"},
+    "surface_duration_days": {"v": null, "l": "asked"},
+    "battery_wh": {"v": null, "l": "asked"},
+    "comms_mode": {"v": "DTE", "l": "declared", "src": "Griffin transponder, direct-to-Earth"}
+  },
+  "Artemis_crewed_reference": {
+    "title": "Artemis crewed landing - NASA site criteria",
+    "mission_type": {"v": "crewed", "l": "declared", "src": "NASA"},
+    "surface_duration_days": {"v": 6.5, "l": "declared", "src": "NASA: continuous sunlight for the 6.5-day surface stay"},
+    "continuous_sun_required": {"v": true, "l": "declared", "src": "NASA Lunar Site Selection white paper"},
+    "landing_site_radius_m": {"v": 100, "l": "declared", "src": "NASA: landing site approx. 100 m radius"},
+    "comms_mode": {"v": "DTE", "l": "declared", "src": "Earth must be visible for DTE in early missions"},
+    "near_psr": {"v": true, "l": "declared", "src": "NASA: close enough to a shadowed region for a moonwalk"}
+  },
+  "ESA_Argonaut_M1": {
+    "title": "ESA Argonaut mission 1 (long-duration cargo lander)",
+    "mission_type": {"v": "long_duration_lander", "l": "declared", "src": "ESA"},
+    "landing_accuracy_m": {"v": 250, "l": "declared", "src": "ESA/Thales Alenia Space: 250 m"},
+    "payload_kg": {"v": 1500, "l": "declared", "src": "ESA: 1,500 kg to the surface"},
+    "design_lifetime_years": {"v": 5, "l": "declared", "src": "ESA: five-year surface lifetime"},
+    "first_landing": {"v": "end of 2030", "l": "declared", "src": "ESA target"},
+    "battery_wh": {"v": null, "l": "asked"}
+  },
+  "LUPEX": {
+    "title": "JAXA/ISRO LUPEX (Chandrayaan-5) water-ice rover",
+    "mission_type": {"v": "rover_prospecting", "l": "declared", "src": "JAXA"},
+    "rover_mass_kg": {"v": 350, "l": "declared", "src": "JAXA rover approx. 350 kg"},
+    "needs": {"v": ["illumination for rover power", "Earth visibility for commands", "several 100 m-scale shadowed regions nearby"], "l": "declared", "src": "JAXA LUPEX leaflet; India Strategic"},
+    "launch": {"v": "2027-2028", "l": "declared", "src": "ISRO/JAXA"}
+  }
+}
