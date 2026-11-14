@@ -72,14 +72,8 @@ def _val(p, *keys, default=None):
 
 # ---------------- static site checks ----------------
 def slope_in_ellipse(sid, radius, max_slope):
-    import core as Cc
-    s = _sites()[sid]; g = Cc.best_near_grid(s["x"], s["y"], half=radius + 200)
-    k = int(radius / g.res) + 2; off = np.arange(-k, k + 1) * g.res
-    X, Y = np.meshgrid(s["x"] + off, s["y"] + off); z = g.sample(X.ravel(), Y.ravel()).reshape(X.shape)
-    gy, gx = np.gradient(z, g.res); slope = np.degrees(np.arctan(np.hypot(gx, gy)))
-    inside = (X - s["x"]) ** 2 + (Y - s["y"]) ** 2 <= radius ** 2; sl = slope[inside]
-    return dict(resolution_m=g.res, median_deg=float(np.median(sl)), p90_deg=float(np.percentile(sl, 90)),
-                safe_fraction=(float((sl <= max_slope).mean()) if max_slope else None))
+    import terrain_view as TV
+    return TV.ellipse_slope(sid, radius, max_slope)
 
 def psr_access(sid, rover_km=None):
     s, P = _sites()[sid], _psr(); d = np.hypot(P["x"] - s["x"], P["y"] - s["y"]) / 1000
