@@ -1205,7 +1205,12 @@ function storyChapter() {
   $$('.story-dots i').forEach((d, k) => d.classList.toggle('on', k === c)); $('#scrollCue').classList.toggle('off', STORY.to >= STORY.n - 0.05);
 }
 function storyGo(delta) { if (S.screen !== 'hero') return; STORY.to = Math.max(0, Math.min(STORY.n, STORY.to + delta)); GQ.dirty = true; }
-addEventListener('wheel', e => { if (S.screen === 'hero' && !$('#how').classList.contains('on')) { e.preventDefault(); storyGo(Math.max(-0.5, Math.min(0.5, e.deltaY / 500))); } }, { passive: false });
+addEventListener('wheel', e => { if (S.screen === 'hero' && !$('#how').classList.contains('on')) { e.preventDefault();
+  // past the last chapter, a fresh scroll down (not the tail of the one that got there) moves on to the app
+  const end = STORY.p > STORY.n - 0.02, now = performance.now();
+  if (end && e.deltaY > 20 && STORY.endAt && now - STORY.endAt > 900 && now - (STORY.lastWheel || 0) > 250) { STORY.lastWheel = now; go('who'); return; }
+  if (end && !STORY.endAt) STORY.endAt = now; if (!end) STORY.endAt = 0; STORY.lastWheel = now;
+  storyGo(Math.max(-0.5, Math.min(0.5, e.deltaY / 500))); } }, { passive: false });
 addEventListener('keydown', e => { if (S.screen !== 'hero' || e.target.closest('input')) return; const k = e.key; if (['ArrowDown', 'PageDown', ' '].includes(k)) { e.preventDefault(); storyGo(1 - (STORY.to % 1 || 0) || 1); STORY.to = Math.round(STORY.to); } else if (['ArrowUp', 'PageUp'].includes(k)) { e.preventDefault(); STORY.to = Math.max(0, Math.ceil(STORY.to) - 1); } });
 { let ty = null; addEventListener('touchstart', e => { if (S.screen === 'hero') ty = e.touches[0].clientY; }, { passive: true }); addEventListener('touchmove', e => { if (S.screen === 'hero' && ty != null) { storyGo((ty - e.touches[0].clientY) / 400); ty = e.touches[0].clientY; } }, { passive: true }); }
 $('#storyNext').onclick = () => { STORY.to = Math.min(STORY.n, Math.floor(STORY.to) + 1); GQ.dirty = true; };
@@ -1372,7 +1377,6 @@ $('#play').onclick = () => { if (S.t >= series().t.length - 1) S.t = 0; setPlayi
 $('#scrub').oninput = e => { S.t = +e.target.value; applyTime(); };
 $$('#speed button').forEach(b => b.onclick = () => { S.speed = +b.dataset.s; $$('#speed button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
 $$('#views button').forEach(b => b.onclick = () => setView(b.dataset.view));
-addEventListener('wheel', e => { if (S.screen === 'hero' && e.deltaY > 30) go('who'); }, { passive: true });
 addEventListener('keydown', e => { if (e.key === 'Escape') $('#calendar').classList.remove('open'); if (e.key === ' ' && S.screen === 'explore' && e.target === document.body) { e.preventDefault(); $('#play').click(); } });
 
 async function openHow() {
