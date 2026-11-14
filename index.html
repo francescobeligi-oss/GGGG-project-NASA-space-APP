@@ -19,6 +19,7 @@
   <ol class="progress" id="progress" aria-label="Your progress">
     <li data-step="who">You</li><li data-step="mission">Mission</li><li data-step="results">Results</li><li data-step="explore">Explore</li><li data-step="compare">Compare</li>
   </ol>
+  <button class="howbtn" id="howBtn">How it works</button>
   <div class="mode" role="group" aria-label="Detail level">
     <button data-mode="simple" aria-pressed="true">Simple</button><button data-mode="expert" aria-pressed="false">Expert</button>
   </div>
@@ -30,7 +31,7 @@
     <p>Sunlight, contact with Earth and safe ground for every site near the Moon's south pole, worked out from NASA data.</p>
     <button class="btn primary" data-go="who">Start</button>
   </div>
-  <div class="hero-foot">Data: NASA LOLA terrain, JPL ephemeris, NASA Deep Space Network</div>
+  <div class="hero-foot">Data: NASA LOLA terrain, JPL ephemeris, NASA Deep Space Network<div class="loadbar" id="loadBar"><i></i></div></div>
 </section>
 
 <section class="screen" id="who">
@@ -53,6 +54,7 @@
     <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button><button class="btn" id="tourBtn">Discover the south pole</button></div></div>
   <div class="navctl" aria-label="Map controls"><button id="compass" aria-label="Face north"><i>N</i></button><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="tiltBtn" aria-label="Switch between 3D and top view">2D</button><button id="homeBtn" aria-label="Back to my options">⌂</button></div>
   <div class="tour" id="tour"></div>
+  <div class="maphint" id="maphint"><b>Explore the map</b><span>Drag to move</span><span>Scroll to zoom</span><span>Right-drag to turn and tilt</span><span>Click a name to fly there</span></div>
   <div class="map-key">
     <span class="tabs light" id="lightMode"><button data-l="real" aria-pressed="true">Real sunlight</button><button data-l="readable" aria-pressed="false">Easy to read</button></span>
     <span><i style="background:var(--sun)"></i>Often in sunlight</span>
@@ -109,7 +111,9 @@
   <canvas id="calCanvas"></canvas>
   <div class="legend"><span><i style="background:var(--go)"></i>Good to land</span><span><i style="background:var(--care)"></i>Possible, with care</span><span><i style="background:var(--nogo)"></i>Not possible</span></div>
 </div>
+<div class="how" id="how" role="dialog" aria-label="How it works"><div class="how-wrap"><div class="how-head"><h2>How it works</h2><button class="btn ghost" id="howClose">Close</button></div><div class="how-body"></div></div></div>
 <div id="fade"></div>
+<div class="gpu-note" id="gpuNote">Your graphics card needed a moment. Switching to light graphics.</div>
 <script type="module" src="web/main.js"></script>
 </body>
 </html>
