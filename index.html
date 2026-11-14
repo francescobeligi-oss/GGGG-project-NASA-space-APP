@@ -58,14 +58,15 @@
 <section class="screen" id="results">
   <div class="res-head"><h2 id="answer"></h2><p class="lead" id="answerSub"></p>
     <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button><button class="btn" id="tourBtn">Discover the south pole</button></div></div>
-  <div class="navctl" aria-label="Map controls"><button id="compass" aria-label="Face north"><i>N</i></button><div class="pad" aria-label="Move the map"><button data-p="up" aria-label="Move north">▲</button><button data-p="left" aria-label="Move west">◀</button><button data-p="right" aria-label="Move east">▶</button><button data-p="down" aria-label="Move south">▼</button></div><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="tiltBtn" aria-label="Switch between 3D and top view">2D</button><button id="homeBtn" aria-label="Back to my options">⌂</button><button id="helpBtn" aria-label="How to move on the map">?</button></div>
+  <div class="navctl" aria-label="Map controls"><button id="compass" aria-label="North up, back to the three sites" title="North up, back to the three sites"><i>N</i></button><div class="pad" aria-label="Move the map"><button data-p="up" aria-label="Move north">▲</button><button data-p="left" aria-label="Move west">◀</button><button data-p="right" aria-label="Move east">▶</button><button data-p="down" aria-label="Move south">▼</button></div><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="tiltBtn" aria-label="Switch between 3D and top view">2D</button><button id="homeBtn" aria-label="Back to my options">⌂</button><button id="helpBtn" aria-label="How to move on the map">?</button></div>
   <div class="tour" id="tour"></div>
-  <div class="maphint" id="maphint"><b>Fly over the south pole</b><span>Drag to move, scroll to zoom</span><span>Right-drag (or Shift-drag) to turn and tilt</span><span>W A S D to fly, Q E to turn, R F to rise and sink</span><span>Click a name to fly there</span></div>
+  <div class="maphint" id="maphint"><b>Fly over the south pole</b><span>Drag to move · scroll or pinch to zoom · double-click to dive in</span><span>Right-drag or Shift-drag to turn and tilt</span></div>
+  <div class="edgetoast" id="edgeToast">For now you can fly over the south pole. The rest of the Moon comes next.</div>
   <div class="map-key">
     <span class="tabs light" id="lightMode"><button data-l="photo" aria-pressed="true">Photo</button><button data-l="date" aria-pressed="false">Sunlight on the date</button></span>
     <button class="layer" data-layer="sun" aria-pressed="true"><i style="background:var(--sun)"></i>Often sunlit</button>
     <button class="layer" data-layer="ice" aria-pressed="true"><i style="background:var(--ice)"></i>Always dark, may hold ice</button>
-    <button class="layer" id="placesT" aria-pressed="true"><i class="dia"></i>Places</button>
+    <button class="layer" id="placesT" aria-pressed="true"><i class="dia"></i>Places</button><button class="layer disc-t invite" id="discT" aria-pressed="false" title="Water, hazards and history near the pole"><i class="spark"></i>Discover</button>
     <span class="credit xp">Photo: NASA LRO camera (LROC WAC). Heights: NASA LOLA.</span>
   </div>
   <div class="whenbar">
@@ -82,7 +83,7 @@
   <div class="ex-left">
     <div class="ex-top">
       <div class="tabs" id="optTabs"></div>
-      <div class="tabs views" id="views"><button data-view="fp"><b>On the ground</b><small>eye level</small></button><button data-view="drone" aria-pressed="true"><b>Above the lander</b><small>150 m up</small></button><button data-view="region"><b>The whole area</b><small>10 km around</small></button><button data-view="orbit"><b>From space</b><small>40 km up</small></button></div>
+      <div class="tabs views" id="views"><button data-view="fp"><b>On the ground</b><small>eye level</small></button><button data-view="drone" aria-pressed="true"><b>Above the lander</b><small>150 m up</small></button><button data-view="region"><b>The whole area</b><small>10 km around</small></button><button data-view="orbit"><b>From space</b><small>100 km away</small></button></div>
     </div>
     <p class="viewhint" id="viewHint"></p>
     <div class="status" id="status"></div>

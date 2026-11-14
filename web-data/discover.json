@@ -1,0 +1,113 @@
+{
+ "note": "Points of interest near the lunar south pole, each from a published NASA or peer-reviewed source. Positions in degrees (Mean Earth frame).",
+ "cats": {
+  "ice": "Water and ice",
+  "hazard": "Hazard",
+  "history": "History",
+  "wonder": "Worth knowing"
+ },
+ "items": [
+  {
+   "id": "lcross",
+   "cat": "ice",
+   "name": "LCROSS water find",
+   "lat": -84.6796,
+   "lon": -48.7093,
+   "title": "Where NASA hit water",
+   "what": "In October 2009 NASA steered the spent upper stage of the LCROSS mission into the permanently dark floor of Cabeus crater. The plume it threw up held water: about 5.6% of the soil by mass, plus other frozen gases.",
+   "why": "It is the best-measured water deposit near the pole. Water can become drinking water, oxygen to breathe and rocket fuel, made on the Moon instead of launched from Earth. The catch: this floor averages about 37 K (−236 °C), one of the coldest places measured near the pole, and it never sees the Sun.",
+   "source": {
+    "label": "Colaprete et al., Science 2010; impact point: Marshall et al. 2011",
+    "url": "https://arxiv.org/abs/1103.1687"
+   }
+  },
+  {
+   "id": "lp",
+   "cat": "history",
+   "name": "Lunar Prospector",
+   "lat": -87.7,
+   "lon": 42.1,
+   "title": "Lunar Prospector's last landing",
+   "what": "On 31 July 1999 NASA crashed Lunar Prospector into the dark floor of Shoemaker crater, hoping telescopes on Earth would see a puff of water vapour. None was seen. On board were some of the ashes of geologist Eugene Shoemaker, after whom the crater is named.",
+   "why": "Years later, NASA's LRO neutron detector found one of the clearest signs of hydrogen at the south pole inside Shoemaker, together with Cabeus. Hydrogen in the soil most likely means water ice.",
+   "source": {
+    "label": "NASA Science: Lunar Prospector",
+    "url": "https://science.nasa.gov/mission/lunar-prospector"
+   }
+  },
+  {
+   "id": "shackfloor",
+   "cat": "ice",
+   "name": "Shackleton's floor",
+   "lat": -89.66,
+   "lon": 108.0,
+   "title": "A crater floor that may hold frost",
+   "what": "Shackleton is 21 km wide and about 4 km deep, and its floor has not seen sunlight for billions of years. NASA's LRO laser, which lights the ground itself, found the floor brighter than the floors of nearby craters.",
+   "why": "A thin layer of frost mixed into the soil is one explanation, so the crater is a prime target for ice prospecting. Scientists still debate it: fresh, unweathered soil could also look bright.",
+   "source": {
+    "label": "Zuber et al., Nature 2012 (NASA LOLA)",
+    "url": "https://doi.org/10.1038/nature11216"
+   }
+  },
+  {
+   "id": "shackwall",
+   "cat": "hazard",
+   "name": "Shackleton's walls",
+   "lat": -89.84,
+   "lon": 154.0,
+   "title": "Walls as steep as loose sand allows",
+   "what": "The inner walls of Shackleton are uniformly steep: NASA's laser altimeter measured slopes close to the angle at which loose soil starts to slide, and a very rugged surface inside.",
+   "why": "No lander or rover can safely work on those slopes. Missions land on the sunlit rim and would need special vehicles, or cables, to reach the ice below.",
+   "source": {
+    "label": "Zuber et al., Nature 2012 (NASA LOLA)",
+    "url": "https://doi.org/10.1038/nature11216"
+   }
+  },
+  {
+   "id": "mip",
+   "cat": "history",
+   "name": "Chandrayaan-1 probe",
+   "lat": -89.55,
+   "lon": -122.93,
+   "title": "India's first object on the Moon",
+   "what": "On 14 November 2008 India's Chandrayaan-1 released the Moon Impact Probe, which took pictures as it descended and struck the ridge that joins Shackleton and de Gerlache craters. The spot is called Jawahar Point.",
+   "why": "That ridge is now one of the most sought-after landing zones near the pole, because it is sunlit most of the time and often sees Earth.",
+   "source": {
+    "label": "Stooke et al., LPSC 2021: impact location refined",
+    "url": "https://ui.adsabs.harvard.edu/abs/2021LPI....52.1013S/abstract"
+   }
+  },
+  {
+   "id": "athena",
+   "cat": "hazard",
+   "name": "IM-2 Athena",
+   "lat": -84.7906,
+   "lon": 29.1957,
+   "title": "A landing that tipped over",
+   "what": "Intuitive Machines' Athena touched down on 6 March 2025 on Mons Mouton, about 250 m from its target, came down too fast inside a small crater about 20 m wide and ended up on its side. NASA's LRO photographed it the next day.",
+   "why": "Near the pole the Sun is so low that shadows are 25 to 50 times longer than what casts them, hiding small craters and boulders. It is why the slope and darkness checks in this tool look at the whole landing area, not just its centre.",
+   "source": {
+    "label": "LROC (NASA/GSFC/Arizona State University): IM-2 landing region",
+    "url": "https://www.lroc.asu.edu/images/1401"
+   },
+   "source2": {
+    "label": "NASA: 9 phenomena astronauts will encounter at the south pole",
+    "url": "https://science.nasa.gov/solar-system/moon/phenomena-nasa-astronauts-will-encounter-at-moons-south-pole/"
+   }
+  },
+  {
+   "id": "pole",
+   "cat": "wonder",
+   "name": "The south pole",
+   "lat": -90.0,
+   "lon": 0.0,
+   "title": "The Moon's south pole",
+   "what": "The pole itself sits on the rim of Shackleton crater. Standing here, the Sun is never more than about 1.5° above or below the horizon: instead of rising and setting, it travels all the way around the horizon.",
+   "why": "Earth also stays close to the horizon, wobbling a few degrees up and down, so a small hill can block it for days. That is why choosing the exact spot matters so much here, and what this tool checks hour by hour.",
+   "source": {
+    "label": "NASA Scientific Visualization Studio: Earth and Sun from the Moon's South Pole",
+    "url": "https://svs.gsfc.nasa.gov/4944"
+   }
+  }
+ ]
+}

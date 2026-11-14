@@ -570,3 +570,35 @@ body.wide #results .map-key { max-width: calc(100vw - 120px); }
 #results .whenbar > * { pointer-events: auto; }
 #results .map-key { z-index: 3; }
 .maphint, .maphint * { pointer-events: none !important; }
+
+/* map controls: only the compass; moving is drag, scroll and pinch, as on Google Earth */
+.navctl .pad, #zoomIn, #zoomOut, #tiltBtn, #homeBtn, #helpBtn { display: none !important; }
+.edgetoast { position: fixed; left: 50%; bottom: 150px; transform: translate(-50%, 12px); background: rgba(0,0,0,.85); border: 1px solid var(--line); padding: 12px 18px; font-size: 14px; color: #e6e7ea; opacity: 0; pointer-events: none; transition: opacity .4s, transform .4s; z-index: 6; }
+.edgetoast.on { opacity: 1; transform: translate(-50%, 0); }
+/* Discover layer: small glowing icons that open a short explanation */
+.pin.disc { --k: #8fd8ff; background: none; border: 0; padding: 0; cursor: pointer; }
+.pin.disc.c-hazard { --k: #ff8a5c; } .pin.disc.c-history { --k: #e8d9a8; } .pin.disc.c-wonder { --k: #f5c84a; }
+.pin.disc .dic { width: 28px; height: 28px; margin-left: -14px; border-radius: 50%; display: grid; place-items: center; background: rgba(6,8,12,.72); border: 1.5px solid var(--k); box-shadow: 0 0 0 4px rgba(0,0,0,.35), 0 0 16px color-mix(in srgb, var(--k) 55%, transparent); position: relative; transition: transform .2s; }
+.pin.disc .dic::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 1px solid var(--k); opacity: 0; animation: discPulse 3.2s ease-out infinite; }
+.pin.disc .dic svg { width: 15px; height: 15px; fill: none; stroke: var(--k); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pin.disc .dl { font-family: var(--head); text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: #fff; background: rgba(0,0,0,.78); padding: 4px 8px; white-space: nowrap; opacity: 0; transform: translateX(-4px); transition: opacity .2s, transform .2s; pointer-events: none; }
+.pin.disc:hover .dl, .pin.disc:focus-visible .dl { opacity: 1; transform: none; }
+.pin.disc:hover .dic { transform: scale(1.12); }
+@keyframes discPulse { 0% { opacity: .7; transform: scale(.8); } 70%, 100% { opacity: 0; transform: scale(1.6); } }
+.layer.disc-t .spark { width: 10px; height: 10px; display: inline-block; margin-right: 6px; background: #f5c84a; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+.layer.disc-t.invite { animation: discInvite 2.4s ease-in-out 3; }
+@keyframes discInvite { 0%, 100% { box-shadow: 0 0 0 0 rgba(245,200,74,0); } 50% { box-shadow: 0 0 0 4px rgba(245,200,74,.35); } }
+.pop.dcard { width: 340px; gap: 10px; border-top: 2px solid var(--k, #8fd8ff); }
+.pop.dcard.c-ice { --k: #8fd8ff; } .pop.dcard.c-hazard { --k: #ff8a5c; } .pop.dcard.c-history { --k: #e8d9a8; } .pop.dcard.c-wonder { --k: #f5c84a; }
+.pop.dcard b { font-family: var(--head); text-transform: uppercase; letter-spacing: .04em; font-size: 20px; line-height: 1.15; padding-right: 22px; }
+.dchip { display: flex; align-items: center; gap: 8px; font-family: var(--head); text-transform: uppercase; letter-spacing: .12em; font-size: 12px; color: var(--k); }
+.dchip .dic svg { width: 14px; height: 14px; fill: none; stroke: var(--k); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: block; }
+.dsec { font-size: 14px; line-height: 1.45; color: #d7dade; }
+.dsec span { display: block; font-family: var(--head); text-transform: uppercase; letter-spacing: .1em; font-size: 11px; color: rgba(255,255,255,.55); margin-bottom: 2px; }
+.pop.dcard .small a { color: #cfd6e0; }
+.dclose { position: absolute; top: 8px; right: 10px; background: none; border: 0; color: #aaa; font-size: 22px; line-height: 1; cursor: pointer; }
+.pop.dcard { position: fixed; }
+@media (prefers-reduced-motion: reduce) { .pin.disc .dic::after, .layer.disc-t.invite { animation: none; } }
+#results .navctl { top: 132px; transform: none; }
+#results .map-key .layer.disc-t[aria-pressed="false"] { opacity: 1; text-decoration: none; color: #f5d27a; border-color: rgba(245,200,74,.45); }
+#results .map-key .layer.disc-t[aria-pressed="true"] { background: rgba(245,200,74,.16); border-color: #f5c84a; }
