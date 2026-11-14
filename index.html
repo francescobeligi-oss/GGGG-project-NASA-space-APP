@@ -40,7 +40,7 @@
     <div class="choices" id="roles">
       <button class="choice" data-role="project"><b>I have a mission document</b><span>Upload it. We read your values and check every site.</span></button>
       <button class="choice" data-role="agency"><b>I'm planning a mission</b><span>Answer a few short questions instead.</span></button>
-      <button class="choice" data-role="past"><b>Show me a real mission</b><span>See the results for Griffin-1, Artemis and others.</span></button>
+      <button class="choice" data-role="past"><b>Show me real missions</b><span>Upcoming landings by NASA, China and companies, from public sources.</span></button>
       <button class="choice" data-role="student"><b>I'm a student or just curious</b><span>The simple version, explained in plain words.</span></button>
     </div>
   </div>
@@ -49,32 +49,51 @@
 <section class="screen" id="mission"><div class="col" id="missionBody"></div></section>
 
 <section class="screen" id="results">
-  <div class="res-head"><h2 id="answer"></h2><p class="lead" id="answerSub"></p></div>
-  <div class="map-key"><span><i style="background:var(--sun)"></i>Often in sunlight</span><span><i style="background:var(--ice)"></i>Always dark, may hold ice</span></div>
-  <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button></div>
-  <div class="cards" id="cards"></div>
+  <div class="res-head"><h2 id="answer"></h2><p class="lead" id="answerSub"></p>
+    <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button></div></div>
+  <div class="map-key">
+    <span><i style="background:var(--sun)"></i>Often in sunlight</span>
+    <span><i style="background:var(--ice)"></i>Always dark, may hold ice</span>
+    <span><i style="background:transparent;border:1.5px solid #fff;transform:rotate(45deg);width:9px;height:9px"></i>Places to discover <button class="toggle" id="placesT" aria-pressed="true" aria-label="Show places to discover" style="transform:scale(.8);vertical-align:middle"></button></span>
+    <span class="small">Drag to move, scroll to zoom, right-drag to tilt</span>
+  </div>
+  <div class="whenbar">
+    <div class="when-head"><b>When to land</b><span id="whenDate" class="num"></span>
+      <div class="tabs metric" id="metric"><button data-m="sun" aria-pressed="true">Sunlight</button><button data-m="earth">Earth contact</button><button data-m="cost">Cost of darkness</button></div>
+      <button class="btn ghost" id="toBest">Back to best date</button>
+    </div>
+    <div class="when-track"><canvas id="whenChart"></canvas><input type="range" id="whenSlider" min="0" max="1" value="0" step="1" aria-label="Landing date"></div>
+  </div>
+  <div class="dock" id="dock"><button class="dock-toggle" id="dockToggle" aria-expanded="true">Hide options</button><div class="cards" id="cards"></div></div>
 </section>
 
 <section class="screen" id="explore">
   <div class="ex-top">
     <div class="tabs" id="optTabs"></div>
-    <div class="tabs" id="views"><button data-view="fp">Stand there</button><button data-view="drone" aria-pressed="true">Fly over</button><button data-view="region">Whole area</button></div>
+    <div class="tabs" id="views"><button data-view="fp">Stand there</button><button data-view="drone" aria-pressed="true">Fly over</button><button data-view="region">Whole area</button><button data-view="orbit">From orbit</button></div>
   </div>
   <div class="status" id="status"></div>
+  <div class="look"><button class="btn ghost" id="lookSun">Look at the Sun</button><button class="btn ghost" id="lookEarth">Look at Earth</button></div>
+  <div class="walkhint" id="walkhint">Use the arrow keys or W A S D to walk. Hold Shift to run.</div>
   <aside class="panel" id="panel"></aside>
   <div class="time">
     <button class="play" id="play" aria-label="Play">▶</button>
-    <div class="track"><input type="range" id="scrub" min="0" max="1" value="0" step="any" aria-label="Time after landing"><canvas id="bars"></canvas></div>
+    <div class="track"><input type="range" id="scrub" min="0" max="1" value="0" step="any" aria-label="Time after landing"><canvas id="bars"></canvas><div class="days" id="days"></div></div>
     <div class="clock" id="clock"></div>
     <div class="speed" id="speed"><button data-s="2">Slow</button><button data-s="8" aria-pressed="true">Normal</button><button data-s="36">Fast</button></div>
   </div>
+  <div class="loading" id="loading"><b>Loading the terrain</b><p id="loadFact"></p></div>
 </section>
 
 <section class="screen" id="compare">
   <div class="cmp-wrap">
     <h2>Your options side by side</h2>
     <div class="cmp" id="cmp"></div>
-    <div class="actions"><button class="btn primary" id="pdf">Download report (PDF)</button><button class="btn" id="csv">Download operations timeline (CSV)</button></div>
+    <div class="costbox" id="costbox"></div>
+    <div class="actions">
+      <button class="btn primary" id="pdf">Download report (PDF)</button>
+      <button class="btn" id="xlsx">Download data (Excel)</button>
+    </div>
   </div>
 </section>
 
@@ -86,7 +105,6 @@
   <div class="legend"><span><i style="background:var(--go)"></i>Good to land</span><span><i style="background:var(--care)"></i>Possible, with care</span><span><i style="background:var(--nogo)"></i>Not possible</span></div>
 </div>
 <div id="fade"></div>
-<div id="report"></div>
 <script type="module" src="web/main.js"></script>
 </body>
 </html>

@@ -133,3 +133,21 @@ export function extract(pages) {
   if (found._ellipse_m && found._ellipse_m.v) out.fields.ellipseM = { v: Math.min(...found._ellipse_m.v) / 2, src: found._ellipse_m.src + ', radius = half the short side' };
   return out;
 }
+
+/* ---------- metrics for every landing time in a range (centre point), for the date slider ---------- */
+// returns rows of { utc, sunPct, longestDark, contactPct, lostH } every stepH hours; same rules as assess()
+export async function dateMetrics(site, meta, fromUtc, toUtc, durationH, mast, stepH = 6) {
+  const t0 = meta.time.start_unix, k0 = Math.max(0, Math.ceil((Date.parse(fromUtc) / 1000 - t0) / 3600));
+  const k1 = Math.min(meta.time.count - durationH - 1, Math.floor((Date.parse(toUtc) / 1000 - t0) / 3600));
+  const R = await rows(site, k0, k1 + durationH), hi = mast ? 6 : 4, ei = mast ? 7 : 5, out = [];
+  for (let k = 0; k <= k1 - k0; k += stepH) {
+    let sun = 0, con = 0, lost = 0, run = 0, dark = 0;
+    for (let i = 0; i < durationH; i++) {
+      const o = (k + i) * COLS, s = R[o + hi] > 0.5, e = R[o + ei] > 0 && R[o + 8] > 0.5;
+      sun += s; con += e; if (!s || !e) lost++;
+      if (!s) { run++; if (run > dark) dark = run; } else run = 0;
+    }
+    out.push({ utc: new Date((t0 + (k0 + k) * 3600) * 1000).toISOString().slice(0, 16) + 'Z', sunPct: 100 * sun / durationH, longestDark: dark, contactPct: 100 * con / durationH, lostH: lost });
+  }
+  return out;
+}
