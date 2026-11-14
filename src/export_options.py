@@ -19,16 +19,25 @@ def export_terrain():
     import rasterio
     from rasterio.enums import Resampling
     from rasterio.windows import from_bounds
-    H, PX = 210000, 600; N = 2 * H // PX + 1
+    H, PX = 270000, 600; N = 2 * H // PX + 1
     with rasterio.open(f"{ROOT}/dem/LDEM_80S_80MPP_ADJ.TIF") as d:  # area-average the 80 m DEM to 600 m
         z = d.read(1, window=from_bounds(-H - PX / 2, -H - PX / 2, H + PX / 2, H + PX / 2, d.transform), out_shape=(N, N), resampling=Resampling.average)
     h = {"z": z.astype("<f4")}; h["z"].tofile(f"{OUT}/terrain/region_600m.bin")
+    from rasterio.warp import reproject
+    from rasterio.transform import from_origin
+    with rasterio.open(f"{ROOT}/AVGVISIB_85S_060M_201608.TIF") as d:  # NASA average Sun visibility, same 600 m grid
+        src = d.read(1).astype("f4"); src[src == d.nodata] = np.nan; src *= d.scales[0]; sun = np.full((N, N), np.nan, "f4")
+        reproject(src, sun, src_transform=d.transform, src_crs=d.crs, dst_transform=from_origin(-H - PX / 2, H + PX / 2, PX, PX), dst_crs=d.crs,
+                  resampling=Resampling.average, src_nodata=np.nan, dst_nodata=np.nan)
+    np.where(np.isnan(sun), 255, np.clip(np.round(sun * 100), 0, 100)).astype("u1").tofile(f"{OUT}/terrain/region_sun_600m.bin")
     json.dump(dict(sites=dict(file="<id>_10m.bin", shape=[901, 901], pixel_m=10, half_width_m=4500, origin="row 0 = north edge (map +y), col 0 = west edge (map -x)",
                               note="centre pixel = landing point; heights in m relative to the 1737.4 km lunar sphere"),
-                   region=dict(file="region_600m.bin", shape=list(h["z"].shape), pixel_m=600, half_width_m=210000, centre="south pole",
+                   region=dict(file="region_600m.bin", shape=list(h["z"].shape), pixel_m=600, half_width_m=270000, centre="south pole",
                                note="south polar stereographic; row 0 = map +y edge; heights m relative to the 1737.4 km sphere"),
+                   region_sun=dict(file="region_sun_600m.bin", shape=[N, N], dtype="uint8", same_grid_as="region",
+                                   units="percent of time the Sun is visible (NASA LOLA AVGVISIB_85S_060M, area-averaged to 600 m); 255 = outside the NASA map"),
                    dtype="float32 little-endian"), open(f"{OUT}/terrain/terrain.json", "w"), indent=1)
-    P = np.load(f"{ROOT}/psr.npz"); m = (P["area_km2"] > 0.01) & (np.abs(P["x"]) < 210000) & (np.abs(P["y"]) < 210000)
+    P = np.load(f"{ROOT}/psr.npz"); m = (P["area_km2"] > 0.01) & (np.abs(P["x"]) < 270000) & (np.abs(P["y"]) < 270000)
     json.dump(dict(note="NASA LOLA permanently shadowed regions (Barker et al. 2023), area > 0.01 km2, centroids in south polar stereographic m",
                    x_m=np.round(P["x"][m]).astype(int).tolist(), y_m=np.round(P["y"][m]).astype(int).tolist(),
                    area_km2=np.round(P["area_km2"][m], 4).tolist()), open(f"{OUT}/psr.json", "w"))

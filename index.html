@@ -3,89 +3,89 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lunar Site Scout</title>
+<title>Lunar Site Scout: choose where to land on the Moon</title>
+<meta name="description" content="Find where and when to land near the lunar south pole: sunlight, Earth contact and terrain from NASA data.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="web/style.css">
 <script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 </head>
-<body>
+<body data-screen="hero">
 <canvas id="gl"></canvas>
+<div id="shade"></div>
 
 <header class="bar">
-  <div class="brand">Lunar Site Scout<small>where and when to land at the lunar south pole</small></div>
-  <nav class="steps" aria-label="Steps">
-    <button data-go="brief" aria-current="step">Mission</button>
-    <button data-go="options" disabled>Options</button>
-    <button data-go="explore" disabled>Explore</button>
-    <button data-go="compare" disabled>Compare</button>
-  </nav>
-  <div class="spacer"></div>
-  <div class="switch">Explain simply <button class="toggle" id="explain" aria-pressed="false" aria-label="Explain simply"></button></div>
+  <button class="logo" data-go="hero">Lunar Site Scout</button>
+  <ol class="progress" id="progress" aria-label="Your progress">
+    <li data-step="who">You</li><li data-step="mission">Mission</li><li data-step="results">Results</li><li data-step="explore">Explore</li><li data-step="compare">Compare</li>
+  </ol>
+  <div class="mode" role="group" aria-label="Detail level">
+    <button data-mode="simple" aria-pressed="true">Simple</button><button data-mode="expert" aria-pressed="false">Expert</button>
+  </div>
 </header>
 
-<section class="screen on" id="brief">
-  <div class="live glass">
-    <h1>Where should your mission land?</h1>
-    <p class="lede" data-plain="Tell us about your mission. We look at every landing site and date near the Moon's south pole and show you where you will have sunlight for power and a view of Earth to talk home.">Describe your mission once. We test every candidate site and landing date near the south pole against real NASA terrain and tell you which ones work, and why.</p>
-    <div class="presets" id="presets"></div>
-    <div class="fields" id="fields"></div>
-    <button class="cta" id="find">Find my landing options</button>
+<section class="screen" id="hero">
+  <div class="hero-text">
+    <h1>Choose where<br>to land.</h1>
+    <p>Sunlight, contact with Earth and safe ground for every site near the Moon's south pole, worked out from NASA data.</p>
+    <button class="btn primary" data-go="who">Start</button>
+  </div>
+  <div class="hero-foot">Data: NASA LOLA terrain, JPL ephemeris, NASA Deep Space Network</div>
+</section>
+
+<section class="screen" id="who">
+  <div class="col">
+    <h2>Who are you?</h2>
+    <p class="lead">We show you the path that fits.</p>
+    <div class="choices" id="roles">
+      <button class="choice" data-role="project"><b>I have a mission document</b><span>Upload it. We read your values and check every site.</span></button>
+      <button class="choice" data-role="agency"><b>I'm planning a mission</b><span>Answer a few short questions instead.</span></button>
+      <button class="choice" data-role="past"><b>Show me a real mission</b><span>See the results for Griffin-1, Artemis and others.</span></button>
+      <button class="choice" data-role="student"><b>I'm a student or just curious</b><span>The simple version, explained in plain words.</span></button>
+    </div>
   </div>
 </section>
 
-<section class="screen" id="options">
-  <div class="answer glass live"><p id="summary"></p><div class="trust" id="trust"></div></div>
-  <div class="cards live" id="cards"></div>
-  <div class="foot live"><button class="ghost" id="openCal">Landing calendar</button><button class="ghost" id="toCompare">Compare side by side</button></div>
+<section class="screen" id="mission"><div class="col" id="missionBody"></div></section>
+
+<section class="screen" id="results">
+  <div class="res-head"><h2 id="answer"></h2><p class="lead" id="answerSub"></p></div>
+  <div class="map-key"><span><i style="background:var(--sun)"></i>Often in sunlight</span><span><i style="background:var(--ice)"></i>Always dark, may hold ice</span></div>
+  <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button></div>
+  <div class="cards" id="cards"></div>
 </section>
 
 <section class="screen" id="explore">
-  <div class="top glass live">
-    <div class="seg" id="optTabs"></div>
-    <div class="divider"></div>
-    <div class="seg" id="views">
-      <button data-view="fp">First person</button>
-      <button data-view="drone" aria-pressed="true">Drone</button>
-      <button data-view="region">Region</button>
-    </div>
+  <div class="ex-top">
+    <div class="tabs" id="optTabs"></div>
+    <div class="tabs" id="views"><button data-view="fp">Stand there</button><button data-view="drone" aria-pressed="true">Fly over</button><button data-view="region">Whole area</button></div>
   </div>
-  <div class="hint glass live" id="hint">Drag to look around. Press play to watch the Sun move and the shadows sweep across the landing site.</div>
-  <aside class="panel glass live" id="panel"></aside>
-  <div class="time glass live">
+  <div class="status" id="status"></div>
+  <aside class="panel" id="panel"></aside>
+  <div class="time">
     <button class="play" id="play" aria-label="Play">▶</button>
-    <div class="track">
-      <input type="range" id="scrub" min="0" max="1" value="0" aria-label="Time after landing">
-      <div class="bars"><canvas id="bars" height="20"></canvas></div>
-    </div>
-    <div>
-      <div class="clock num" id="clock"></div>
-      <div class="speed" id="speed"><button data-s="1">1 h/s</button><button data-s="6" aria-pressed="true">6 h/s</button><button data-s="24">1 day/s</button></div>
-    </div>
+    <div class="track"><input type="range" id="scrub" min="0" max="1" value="0" step="any" aria-label="Time after landing"><canvas id="bars"></canvas></div>
+    <div class="clock" id="clock"></div>
+    <div class="speed" id="speed"><button data-s="2">Slow</button><button data-s="8" aria-pressed="true">Normal</button><button data-s="36">Fast</button></div>
   </div>
 </section>
 
 <section class="screen" id="compare">
-  <div class="live glass">
-    <h1 style="font-size:32px">Your options, side by side</h1>
-    <p class="lede">The best value in each row is marked. Ranges go from the worst to the best point of the landing area.</p>
+  <div class="cmp-wrap">
+    <h2>Your options side by side</h2>
     <div class="cmp" id="cmp"></div>
-    <div class="actions">
-      <button class="cta" style="width:auto;padding:13px 26px" id="pdf">Download PDF report</button>
-      <button class="ghost" id="csv">Export operations timeline</button>
-      <button class="ghost" data-go="explore">Back to explore</button>
-    </div>
+    <div class="actions"><button class="btn primary" id="pdf">Download report (PDF)</button><button class="btn" id="csv">Download operations timeline (CSV)</button></div>
   </div>
 </section>
 
-<div class="sheet glass" id="calendar" role="dialog" aria-label="Landing calendar">
-  <div style="display:flex;justify-content:space-between;align-items:start">
-    <div><h2>Landing calendar</h2><div class="sub" id="calSub"></div></div>
-    <button class="ghost" id="closeCal">Close</button>
-  </div>
-  <canvas id="calCanvas"></canvas>
-  <div class="legend"><span><i style="background:var(--go)"></i>Works, even in the worst case</span><span><i style="background:var(--caution)"></i>Works with caveats</span><span><i style="background:var(--stop)"></i>Does not work</span></div>
-</div>
+<nav class="nav" id="nav"><button class="btn ghost" id="back">Back</button></nav>
 
-<div id="fade" aria-hidden="true"></div>
+<div class="sheet" id="calendar" role="dialog" aria-label="Landing calendar">
+  <div class="sheet-head"><div><h3>When can you land?</h3><p class="lead" id="calSub"></p></div><button class="btn ghost" id="closeCal">Close</button></div>
+  <canvas id="calCanvas"></canvas>
+  <div class="legend"><span><i style="background:var(--go)"></i>Good to land</span><span><i style="background:var(--care)"></i>Possible, with care</span><span><i style="background:var(--nogo)"></i>Not possible</span></div>
+</div>
+<div id="fade"></div>
 <div id="report"></div>
 <script type="module" src="web/main.js"></script>
 </body>

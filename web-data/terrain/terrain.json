@@ -13,13 +13,23 @@
  "region": {
   "file": "region_600m.bin",
   "shape": [
-   701,
-   701
+   901,
+   901
   ],
   "pixel_m": 600,
-  "half_width_m": 210000,
+  "half_width_m": 270000,
   "centre": "south pole",
   "note": "south polar stereographic; row 0 = map +y edge; heights m relative to the 1737.4 km sphere; area-averaged from LOLA 80 m DEM"
  },
- "dtype": "float32 little-endian"
+ "dtype": "float32 little-endian",
+ "region_sun": {
+  "file": "region_sun_600m.bin",
+  "shape": [
+   901,
+   901
+  ],
+  "dtype": "uint8",
+  "units": "percent of time the Sun is visible (NASA LOLA average visibility map AVGVISIB_85S_060M, area-averaged to 600 m); 255 = outside the NASA map",
+  "same_grid_as": "region"
+ }
 }
