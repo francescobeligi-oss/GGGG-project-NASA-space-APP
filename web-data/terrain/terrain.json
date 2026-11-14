@@ -11,15 +11,15 @@
   "note": "centre pixel = landing point; heights in m relative to the 1737.4 km lunar sphere"
  },
  "region": {
-  "file": "region_400m.bin",
+  "file": "region_600m.bin",
   "shape": [
-   751,
-   751
+   701,
+   701
   ],
-  "pixel_m": 400,
-  "half_width_m": 150000,
+  "pixel_m": 600,
+  "half_width_m": 210000,
   "centre": "south pole",
-  "note": "south polar stereographic; row 0 = map +y edge"
+  "note": "south polar stereographic; row 0 = map +y edge; heights m relative to the 1737.4 km sphere; area-averaged from LOLA 80 m DEM"
  },
  "dtype": "float32 little-endian"
 }

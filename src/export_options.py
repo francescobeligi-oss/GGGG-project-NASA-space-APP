@@ -16,16 +16,22 @@ def export_terrain():
     sites = E._sites()
     for sid in sites:
         t = np.load(f"{ROOT}/v2/{sid}_terrain.npz"); t["viz"].astype("<f4").tofile(f"{OUT}/terrain/{sid}_10m.bin")
-    h = np.load(f"{ROOT}/hillshade.npz"); h["z"].astype("<f4").tofile(f"{OUT}/terrain/region_400m.bin")
+    import rasterio
+    from rasterio.enums import Resampling
+    from rasterio.windows import from_bounds
+    H, PX = 210000, 600; N = 2 * H // PX + 1
+    with rasterio.open(f"{ROOT}/dem/LDEM_80S_80MPP_ADJ.TIF") as d:  # area-average the 80 m DEM to 600 m
+        z = d.read(1, window=from_bounds(-H - PX / 2, -H - PX / 2, H + PX / 2, H + PX / 2, d.transform), out_shape=(N, N), resampling=Resampling.average)
+    h = {"z": z.astype("<f4")}; h["z"].tofile(f"{OUT}/terrain/region_600m.bin")
     json.dump(dict(sites=dict(file="<id>_10m.bin", shape=[901, 901], pixel_m=10, half_width_m=4500, origin="row 0 = north edge (map +y), col 0 = west edge (map -x)",
                               note="centre pixel = landing point; heights in m relative to the 1737.4 km lunar sphere"),
-                   region=dict(file="region_400m.bin", shape=list(h["z"].shape), pixel_m=400, half_width_m=150000, centre="south pole",
-                               note="south polar stereographic; row 0 = map +y edge"),
+                   region=dict(file="region_600m.bin", shape=list(h["z"].shape), pixel_m=600, half_width_m=210000, centre="south pole",
+                               note="south polar stereographic; row 0 = map +y edge; heights m relative to the 1737.4 km sphere"),
                    dtype="float32 little-endian"), open(f"{OUT}/terrain/terrain.json", "w"), indent=1)
-    P = np.load(f"{ROOT}/psr.npz"); m = (P["area_km2"] > 0.01) & (np.abs(P["x"]) < 150000) & (np.abs(P["y"]) < 150000)
+    P = np.load(f"{ROOT}/psr.npz"); m = (P["area_km2"] > 0.01) & (np.abs(P["x"]) < 210000) & (np.abs(P["y"]) < 210000)
     json.dump(dict(note="NASA LOLA permanently shadowed regions (Barker et al. 2023), area > 0.01 km2, centroids in south polar stereographic m",
                    x_m=np.round(P["x"][m]).astype(int).tolist(), y_m=np.round(P["y"][m]).astype(int).tolist(),
-                   area_km2=np.round(P["area_km2"][m], 3).tolist()), open(f"{OUT}/psr.json", "w"))
+                   area_km2=np.round(P["area_km2"][m], 4).tolist()), open(f"{OUT}/psr.json", "w"))
 
 # ---------- presets ----------
 def val(v, l, src=None): return {"v": v, "l": l, **({"src": src} if src else {})}

@@ -61,7 +61,7 @@ To show terrain uncertainty, draw the band between the min and max of `meta.hori
 | `presets/<mission>.json` | 1 | Mission Profile of 4 real missions: `griffin1`, `novac`, `artemis`, `argonaut`. Every field is `{v, l, src}`: value, label (declared / derived / asked / estimated) and source |
 | `options/<mission>.json` | 2, 3, 4 | `summary` (recommendation sentence), `options` (top 3), `calendar`, `landing_windows`, `provenance`, `assumptions`, `not_evaluated`, `trust_badge` |
 | `terrain/<id>_10m.bin` | 3 | Height map 901 × 901, 10 m pixels, ±4.5 km around the landing point (centre pixel), row 0 = north edge (map +y). See `terrain/terrain.json` |
-| `terrain/region_400m.bin` | 2, 3 | Height map 751 × 751, 400 m pixels, ±150 km around the south pole |
+| `terrain/region_600m.bin` | 2, 3 | Height map 701 × 701, 600 m pixels (area-averaged from the LOLA 80 m DEM), ±210 km around the south pole |
 | `psr.json` | 3 (ice layer) | Permanently shadowed regions > 0.01 km²: `x_m`, `y_m` (south polar stereographic), `area_km2` |
 
 Each element of `options[]` contains:
