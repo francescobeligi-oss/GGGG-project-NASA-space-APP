@@ -747,6 +747,10 @@ function cardFacts(x, m) {
     ${dark > 0 ? fact('cost', `Darkness: at least ${usd(costDark(dark))}`, `${fmt(battKg(dark), 1)} kg of battery for ${fmt(COST.loadW)} W, at ${usd(priceNow().usdPerKg)}/kg`) : fact('cost', 'No extra battery for darkness')}`;
   return `<div class="facts sp">${simple}</div><div class="facts xp">${expert}</div>`;
 }
+// On a chosen date the full check may be green because the battery need is reported as a requirement.
+// When the centre of the site stays dark for more than two days we show it as "with care" and say why: no contradiction on screen.
+const dateVerdict = (v, m) => v === 'green' && m && m.longestDark > 48 ? 'yellow' : v;
+const darkNote = m => m && m.longestDark > 48 ? `Needs a battery for ${hrs(m.longestDark)} of darkness.` : '';
 function renderResults() {
   const o = S.data.options, best = o[0], v = verdictOf(best), common = S.whenIdx != null && S.when;
   const head = { green: `Land at ${best.site_name}.`, yellow: `${best.site_name} is your best option.`, red: 'No site fully meets your needs.' };
@@ -755,13 +759,13 @@ function renderResults() {
   const cal = S.data.calendar;
   $('#cards').innerHTML = o.map((x, i) => {
     let vv = verdictOf(x), when = date(x.landing_utc), m = null;
-    if (common && S.when[x.site]) { m = S.when[x.site][S.whenIdx]; const row = cal.sites[x.site] && cal.sites[x.site][S.whenIdx]; if (row) vv = row[2]; when = date(m.utc); }
+    if (common && S.when[x.site]) { m = S.when[x.site][S.whenIdx]; const row = cal.sites[x.site] && cal.sites[x.site][S.whenIdx]; if (row) vv = dateVerdict(row[2], m); when = date(m.utc); }
     return `<article class="card" style="--c:${VC[vv]}">
       <div class="top"><span class="rank" style="color:${LINE[i]}">${i + 1}</span><div><h3>${esc(x.site_name)}</h3><div class="cwhen">${common ? 'If you land on ' : 'Best: '}${when}</div></div></div>
       <div class="verdict" style="color:${VC[vv]}"><span class="sp">${VSIMPLE[vv]}</span><span class="xp">${vx(vv)}</span></div>
       ${cardFacts(x, m)}
       ${!common && x.reasons && x.reasons.length ? `<p class="why">${esc(x.reasons[0])}</p>` : ''}
-      ${common ? `<p class="why">${vv !== 'green' && m && m.sunPct >= 99 && m.contactPct >= 90 ? 'The centre of the site is fine on this date, but part of the landing area fails the checks.' : '<span class="xp">Numbers at the centre of the site; the verdict covers the whole landing area.</span>'}</p>` : ''}
+      ${common ? `<p class="why">${darkNote(m) && vv === 'yellow' ? darkNote(m) : vv !== 'green' && m && m.sunPct >= 99 && m.contactPct >= 90 ? 'The centre of the site is fine on this date, but part of the landing area fails the checks.' : '<span class="xp">Numbers at the centre of the site; the verdict covers the whole landing area.</span>'}</p>` : ''}
       <button class="btn go3d" data-open="${i}">See it in 3D</button></article>`;
   }).join('');
   $$('[data-open]').forEach(b => b.onclick = () => openExplore(+b.dataset.open));
@@ -994,10 +998,10 @@ function openCalendar(highlight) {
 /* ================= step 5: compare ================= */
 function renderCompare() {
   const cal = S.data.calendar, common = S.whenIdx != null && S.when, mm = x => common && S.when[x.site] ? S.when[x.site][S.whenIdx] : null;
-  const cv = x => { const row = common && cal.sites[x.site] && cal.sites[x.site][S.whenIdx]; return row ? row[2] : verdictOf(x); };
+  const cv = x => { const row = common && cal.sites[x.site] && cal.sites[x.site][S.whenIdx]; return row ? dateVerdict(row[2], mm(x)) : verdictOf(x); };
   const stale = '<i class="stale">at its best date</i>';
   const why = x => { const q = mm(x); if (!q || cv(x) === 'green') return ''; // a short reason when a site fails on the chosen date
-    const r = q.sunPct < 50 ? 'Dark for most of the stay' : q.longestDark > 24 ? `Dark for up to ${hrs(q.longestDark)}` : q.contactPct < 50 ? 'Earth out of view much of the time' : 'Part of the landing area fails the checks';
+    const r = darkNote(q) && q.sunPct >= 50 ? darkNote(q) : q.sunPct < 50 ? 'Dark for most of the stay' : q.longestDark > 24 ? `Dark for up to ${hrs(q.longestDark)}` : q.contactPct < 50 ? 'Earth out of view much of the time' : 'Part of the landing area fails the checks';
     return `<i class="stale">${r}</i>`; };
   const prev = S.cmpPrev || {}; S.cmpPrev = {};
   const o = S.data.options, rr = (x, k) => x.ranges && x.ranges[k] ? x.ranges[k] : null, darkW = x => (rr(x, 'longest_dark_h') || [0, x.light.longest_dark_h])[1];
