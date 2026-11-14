@@ -336,11 +336,12 @@ function tourStep(i) {
   const P = (S.places && S.places.places) || []; if (!P.length) return;
   TOUR.i = (i + P.length) % P.length; const p = P[TOUR.i];
   const v = M.moon.localToWorld(globePoint(p.lat, p.lon, 1)); flyTo(v, Math.max(0.012, p.diam_km / 1737.4 * 2.6), NAV.head + 0.5);
+  if (!$('#tour').classList.contains('on')) { TOUR.dockWas = !$('#dock').classList.contains('closed'); if (TOUR.dockWas) $('#dockToggle').click(); }
   $('#tour').classList.add('on');
   $('#tour').innerHTML = `<div class="small">Discover the south pole, ${TOUR.i + 1} of ${P.length}</div><b>${esc(p.name)}</b><p>${esc(p.fact)}</p><div class="small">${esc(p.type.split(',')[0])}, ${fmt(p.diam_km)} km across. Named after ${esc(p.namesake)}</div>
     <div class="trow"><button class="btn" id="tPrev">Back</button><button class="btn primary" id="tNext">Next place</button><button class="btn ghost" id="tEnd">End tour</button></div>`;
   $('#tPrev').onclick = () => tourStep(TOUR.i - 1); $('#tNext').onclick = () => tourStep(TOUR.i + 1);
-  $('#tEnd').onclick = () => { $('#tour').classList.remove('on'); TOUR.i = -1; const f = mapFrame(); flyTo(f.t, f.d); };
+  $('#tEnd').onclick = () => { $('#tour').classList.remove('on'); TOUR.i = -1; const f = mapFrame(); flyTo(f.t, f.d); if (TOUR.dockWas && $('#dock').classList.contains('closed')) $('#dockToggle').click(); };
 }
 
 /* ================= Earth as seen from the Moon: which face, which way up ================= */
@@ -600,7 +601,7 @@ function mapFrame() {
   const w = S.data.options.map(o => siteWorld(S.index.sites.find(s => s.id === o.site)));
   const c = w.reduce((a, v) => a.add(v), new THREE.Vector3()).multiplyScalar(1 / w.length);
   const spread = Math.max(0.012, ...w.map(v => v.distanceTo(c)));
-  return { t: c.normalize(), d: spread * 3.6 + 0.02 };
+  return { t: c.normalize(), d: spread * 4.1 + 0.02 };
 }
 function backToMap() { scene = 'moon'; if (M.saved) { NAV.cur = { t: M.saved.t.clone(), d: M.saved.d * 0.35, head: M.saved.head, tiltU: M.saved.tiltU }; flyTo(M.saved.t, M.saved.d, M.saved.head); NAV.fly = true; } }
 
@@ -621,7 +622,7 @@ function renderMission() {
   } else if (S.role === 'past') {
     const U = S.upcoming || { missions: [] };
     el.innerHTML = `<h2>Pick a mission</h2><p class="lead">Planned landings at the south pole. Dates often slip.</p>
-      <div class="choices compact">${U.missions.map((u, i) => `<button class="choice" data-u="${i}"><b>${esc(u.name)}</b><span>${esc(u.short || u.agency)}</span></button>`).join('')}</div>
+      <div class="choices compact">${U.missions.map((u, i) => `<button class="choice owned" data-u="${i}"><b>${esc(u.name)}</b><em>${esc(u.owner || u.agency)}</em><span>${esc(u.short || '')}</span></button>`).join('')}</div>
       <p class="small xp" style="margin-top:16px">Sources: ${U.missions.map(u => `<a href="${u.source}" target="_blank" rel="noopener">${esc(u.name)}</a>`).join(', ')}. ${esc(U.note || '')}</p>`;
     $$('#missionBody [data-m]').forEach(b => b.onclick = () => loadPreset(b.dataset.m, b));
     $$('#missionBody [data-u]').forEach(b => b.onclick = () => { const u = U.missions[+b.dataset.u];
@@ -639,7 +640,7 @@ function renderMission() {
     $('#example').onclick = () => { S.role = 'past'; loadPreset('griffin1'); };
   } else if (S.role === 'project' && S.doc && S.q < 0) {
     const F = S.doc.fields, names = { durationDays: ['Time on the surface', v => `${v} days`], batteryWh: ['Battery', wh], loadW: ['Power use', watts], dte: ['Talks directly to Earth', () => 'Yes'], maxSlope: ['Steepest safe slope', v => `${v}°`], ellipseM: ['Landing accuracy', v => `within ${v} m`] };
-    const rows = Object.entries(F).filter(([k]) => names[k]).map(([k, f]) => `<div><span>${names[k][0]}</span><span>${f.v == null ? 'Two different values, we will ask you' : esc(names[k][1](f.v))}</span></div>`).join('');
+    const rows = Object.entries(F).filter(([k]) => names[k]).map(([k, f]) => `<div><span>${f.note ? 'Power for payloads' : names[k][0]}</span><span>${f.v == null ? 'Two different values, we will ask you' : esc(names[k][1](f.v))}</span>${f.src ? `<small>${esc(f.src.replace(/^page (\d+): /, 'Page $1: '))}</small>` : ''}</div>`).join('');
     el.innerHTML = `<h2>${rows ? 'Here is what we found' : 'We could not find values'}</h2><p class="lead">${rows ? `We read ${S.doc.pages} pages. Check these, then answer a few questions for what is missing.` : 'This document has none of the values we look for. Answer a few short questions instead.'}</p>
       ${rows ? `<div class="found">${rows}</div>` : ''}<div class="qnav"><button class="btn primary" id="toQ">Continue</button></div>`;
     $('#toQ').onclick = () => { S.q = 0; renderMission(); };
@@ -793,7 +794,7 @@ async function openExplore(i) {
   for (const k of ['ring', 'glow', 'sunPath', 'earthPath']) if (X[k]) { X.scene.remove(X[k]); X[k].geometry.dispose(); X[k] = null; }
   setRing(opt().ellipse_radius_m || 50); setPaths(); X.ring.visible = X.glow.visible = S.view !== 'fp';
   $('#scrub').max = series().t.length - 1;
-  renderPanel(); drawBars(); setView(S.view, true); L.classList.remove('on'); $('#fade').style.opacity = 0;
+  renderPanel(); drawBars(); setView(S.view, true); L.classList.remove('on'); $('#fade').style.opacity = 0; showExHint();
 }
 const VIEW = {
   drone: back => ({ pos: new THREE.Vector3(back.x * 120, 55, back.z * 120), target: new THREE.Vector3(0, 2, 0), fov: 50 }),
@@ -818,6 +819,8 @@ function setView(v, instant) {
     X.camera.fov = fromFov + (to.fov - fromFov) * e; X.camera.updateProjectionMatrix();
     if (k >= 1) { anim = null; done(); } };
 }
+function hideExHint() { $('#exhint').classList.remove('on'); }
+function showExHint() { let seen = false; try { seen = localStorage.getItem('lss_exhint') === '1'; localStorage.setItem('lss_exhint', '1'); } catch (e) {} if (!seen) { $('#exhint').classList.add('on'); setTimeout(hideExHint, 7000); } }
 function lookFP() { X.camera.lookAt(X.camera.position.clone().add(dirFromAzEl(X.site, X.yaw, X.pitch))); }
 // look at the Sun or Earth: turn to it and zoom in, so Earth's real phase is visible
 function lookAt(which) {
@@ -829,14 +832,17 @@ function lookAt(which) {
 $('#lookSun').onclick = () => lookAt('sun'); $('#lookEarth').onclick = () => lookAt('earth');
 {
   let drag = null;
-  canvas.addEventListener('pointerdown', e => { if (S.screen === 'explore' && S.view === 'fp') { drag = { x: e.clientX, y: e.clientY, yaw: X.yaw, pitch: X.pitch }; canvas.setPointerCapture(e.pointerId); if (X.camera.fov < 50) { X.camera.fov = 60; X.camera.updateProjectionMatrix(); } } });
+  canvas.addEventListener('pointerdown', e => { if (S.screen === 'explore') hideExHint(); if (S.screen === 'explore' && S.view === 'fp') { drag = { x: e.clientX, y: e.clientY, yaw: X.yaw, pitch: X.pitch }; canvas.setPointerCapture(e.pointerId); if (X.camera.fov < 50) { X.camera.fov = 60; X.camera.updateProjectionMatrix(); } } });
   canvas.addEventListener('pointermove', e => { if (!drag) return; X.yaw = drag.yaw - (e.clientX - drag.x) * 0.25; X.pitch = Math.max(-60, Math.min(70, drag.pitch + (e.clientY - drag.y) * 0.25)); lookFP(); });
   addEventListener('pointerup', () => drag = null);
   // the wheel moves time (scroll through the days); with Shift it zooms
   canvas.addEventListener('wheel', e => {
     if (S.screen !== 'explore' || !S.data || !X.site) return; e.preventDefault();
-    if (e.shiftKey && S.view !== 'fp') { const d = X.camera.position.clone().sub(X.controls.target); d.multiplyScalar(Math.exp((e.deltaY || e.deltaX) * 0.001)); X.camera.position.copy(X.controls.target).add(d); return; }
-    const n = series().t.length - 1; S.t = Math.max(0, Math.min(n, S.t + e.deltaY * 0.02)); applyTime();
+    hideExHint();
+    if (e.shiftKey) { const n = series().t.length - 1; S.t = Math.max(0, Math.min(n, S.t + (e.deltaY || e.deltaX) * 0.02)); applyTime(); return; }
+    if (S.view === 'fp') { X.camera.fov = Math.max(8, Math.min(75, X.camera.fov * Math.exp(e.deltaY * 0.001))); X.camera.updateProjectionMatrix(); GQ.dirty = true; return; }
+    const d = X.camera.position.clone().sub(X.controls.target), len = Math.max(15, Math.min(60000, d.length() * Math.exp(e.deltaY * 0.0012)));
+    X.camera.position.copy(X.controls.target).add(d.setLength(len)); GQ.dirty = true;
   }, { passive: false });
   addEventListener('keydown', e => { if (S.screen === 'explore' && S.view === 'fp' && !e.target.closest('input')) { X.walk[e.key.toLowerCase()] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } });
   addEventListener('keyup', e => { X.walk[e.key.toLowerCase()] = false; });
@@ -884,7 +890,7 @@ function renderPanel() {
     </div>
     ${o.reasons && o.reasons.length ? `<div class="sec"><h4>Watch out</h4><ul class="reasons">${o.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul></div>` : ''}
     ${whatIf}
-    <div class="sec"><h4>What you are seeing</h4><p class="small" style="margin:0">Real NASA terrain around the landing spot. The glowing circle is where the lander can touch down. In Fly over, gold dots trace the Sun's path across the sky during your stay and blue dots trace Earth. Scroll to move through the days.</p></div>
+    <div class="sec"><h4>What you are seeing</h4><p class="small" style="margin:0">Real NASA terrain around the landing spot. The glowing circle is where the lander can touch down. In Fly over, gold dots trace the Sun's path across the sky during your stay and blue dots trace Earth. Drag to turn, scroll to zoom, and use the timeline to move through the days.</p></div>
     <div class="sec xp"><h4>Sunlight</h4><div class="rows">
       ${row('Time in sunlight', range(sunR, pct), 'Share of the stay with more than half of the Sun above the terrain, seen by panels 2 m up.')}
       ${row('Longest darkness', range(darkR, hrs), 'The battery must carry the lander through this.')}
@@ -1028,7 +1034,7 @@ function frame(now) {
       if (VW > 980) M.camera.setViewOffset(VW, VH, -VW * M.off, S.screen === 'hero' ? -VH * 0.06 : 0, VW, VH); else M.camera.clearViewOffset();
     } else if (M.map || anim) {
       // the options dock covers the lower part of the screen: centre the map in the space above it
-      const dockOpen = VW > 980 && S.screen === 'results' && !$('#dock').classList.contains('closed'), wantX = dockOpen ? 210 : 0, wantY = VH * 0.06;
+      const dockOpen = VW > 980 && S.screen === 'results' && !$('#dock').classList.contains('closed'), wantX = dockOpen ? 210 : 0, wantY = S.screen === 'results' && VW > 980 ? VH / 2 - (($('.res-tools').getBoundingClientRect().bottom || 210) + ($('.map-key').getBoundingClientRect().top || VH - 130)) / 2 : VH * 0.06; // centre the map in the free space between the headline and the legend
       M.offX = (M.offX ?? 0) + (wantX - (M.offX ?? 0)) * k; M.offY = (M.offY ?? 0) + (wantY - (M.offY ?? 0)) * k; M.camera.setViewOffset(VW, VH, M.offX, M.offY, VW, VH);
     }
     if (M.map && !anim) { navApply(dt); if (M.lightTo) { M.sun.position.lerp(M.lightTo.pos, 1 - Math.pow(0.02, dt)); M.hemi.intensity += (M.hemiTo - M.hemi.intensity) * (1 - Math.pow(0.02, dt)); } }
@@ -1037,17 +1043,20 @@ function frame(now) {
     if (M.map && M.sun.castShadow && (lerping || NAV.fly)) renderer.shadowMap.needsUpdate = true;
     renderer.toneMappingExposure = M.map ? 1.25 : 1.15; renderer.render(M.scene, M.camera); GQ.sig = M.camera.matrixWorld.elements.join(',') + M.camera.projectionMatrix.elements[0];
     const showPins = M.map && S.screen === 'results', dr = $('#dock').getBoundingClientRect(), cardLeft = showPins && VW > 980 && !$('#dock').classList.contains('closed') ? dr.left - 8 : VW, barTop = $('.whenbar').getBoundingClientRect().top - 6;
-    const boxes = showPins ? ['.map-key', '.navctl', '.res-head', '.tour.on', '#dockToggle'].map(s => document.querySelector(s)).filter(Boolean).map(e => { const r = e.getBoundingClientRect(); return [r.left - 6, r.top - 6, r.right + 6, r.bottom + 6]; }).filter(b => b[2] > b[0]) : [];
+    const boxes = showPins ? ['.map-key', '.navctl', '.res-head h2', '.res-head .lead', '.res-tools', '.tour.on', '#dockToggle'].map(s => document.querySelector(s)).filter(Boolean).map(e => { const r = e.getBoundingClientRect(); return [r.left - 6, r.top - 6, r.right + 6, r.bottom + 6]; }).filter(b => b[2] > b[0]) : [];
     for (const m of markers.slice().sort((a, b) => (a.top ? 0 : a.poi ? 2 : 1) - (b.top ? 0 : b.poi ? 2 : 1))) {
       if (!showPins) { m.el.style.display = 'none'; continue; }
-      v3.copy(siteWorld(m.site)).project(M.camera); const px = (v3.x + 1) / 2 * VW, py = (1 - v3.y) / 2 * VH;
-      let vis = v3.z < 1 && px > 0 && px < cardLeft && py > 80 && py < barTop && (!m.poi || S.showPlaces);
-      if (vis) { // labels never overlap: lower-priority ones step aside
-        const w = (m.w ||= m.el.textContent.length * (m.top ? 9.5 : 7.4) + 30), bx = [px - 16, py - 15, px + w, py + 15];
-        vis = px + w < cardLeft;
-        if (vis && boxes.some(b => bx[0] < b[2] && bx[2] > b[0] && bx[1] < b[3] && bx[3] > b[1])) vis = false; else if (vis) boxes.push(bx);
+      v3.copy(siteWorld(m.site)).project(M.camera); const px = (v3.x + 1) / 2 * VW, py = (1 - v3.y) / 2 * VH; m.el.__raw = [Math.round(px), Math.round(py)];
+      let vis = v3.z < 1 && px > 0 && px < cardLeft && py > 80 && py < barTop - 40 && (!m.poi || S.showPlaces);
+      let side = 'r';
+      if (vis) { // labels never overlap: a recommended site tries its label on the right, then on the left, then shows its number alone; others step aside
+        const w = (m.w ||= m.el.textContent.length * (m.top ? 9.5 : 7.4) + 30), hit = bx => bx[2] > cardLeft || boxes.some(b => bx[0] < b[2] && bx[2] > b[0] && bx[1] < b[3] && bx[3] > b[1]);
+        const tries = m.top ? [['r', [px - 16, py - 15, px + w, py + 15]], ['l', [px - w, py - 15, px + 16, py + 15]], ['n', [px - 16, py - 15, px + 16, py + 15]]] : [['r', [px - 16, py - 15, px + w, py + 15]]];
+        const ok = tries.find(([, bx]) => !hit(bx));
+        if (ok) { side = ok[0]; boxes.push(ok[1]); } else if (m.top) { side = 'n'; boxes.push(tries[2][1]); } else vis = false;
       }
-      m.el.style.display = vis ? '' : 'none'; if (vis) m.el.style.transform = `translate(${px}px, ${py}px)`; m.el.__p = vis ? [px, py] : null;
+      m.el.style.display = vis ? '' : 'none';
+      if (vis) { m.el.classList.toggle('flip', side === 'l'); m.el.classList.toggle('bare', side === 'n'); m.el.style.transform = `translate(${px}px, ${py}px)${side === 'l' ? ' translateX(-100%)' : ''}`; } m.el.__p = vis ? [px, py] : null;
     }
     const pop = document.querySelector('.pop'); // the open card follows its pin while the map moves
     if (pop && pop.__anchor) { const q = pop.__anchor.__p; pop.style.visibility = q ? '' : 'hidden'; if (q) { pop.style.left = Math.max(8, Math.min(cardLeft - 310, q[0] - 14)) + 'px'; pop.style.top = Math.max(84, Math.min(barTop - pop.offsetHeight - 8, q[1] + 22)) + 'px'; } }
@@ -1108,6 +1117,7 @@ async function openHow() {
     <section><h3>What we do not check</h3><p>Rocks smaller than the terrain grid, the approach trajectory, a full thermal model and other landers nearby. A mission team should confirm the chosen spot with 1 m imagery hazard maps.</p></section>`;
   el.classList.add('on');
 }
+$('#helpBtn').onclick = () => { const h = $('#maphint'); h.classList.add('on'); setTimeout(() => h.classList.remove('on'), 5000); };
 $('#howBtn').onclick = openHow; $('#howClose').onclick = () => $('#how').classList.remove('on');
 window.__lss = { M, NAV, GQ, X }; // for automated checks
 (async function init() {

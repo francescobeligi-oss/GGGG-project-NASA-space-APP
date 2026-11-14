@@ -88,12 +88,17 @@ export async function quickCheck(p, index, siteMeta, onProgress) {
 
 /* ---------- reading a mission document (same rules as intake/extract.py) ---------- */
 const NUM = String.raw`(\d{1,3}(?:,\d{3})*(?:\.\d+)?)`;
+const WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, twenty: 20, thirty: 30 };
+const NW = String.raw`(\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|twenty|thirty)`;
 const RULES = [
-  ['duration_days', String.raw`(?:surface operations? duration|mission duration|operate)[^\n]{0,40}?(?:up to )?${NUM}\s*(?:earth )?days`],
+  // time on the surface: "Surface Operations: Approximately 10 days", "Ops Duration 10 – 14 days", "14 days of lunar surface operations", "on the surface for about seven Earth days"
+  ['duration_days', String.raw`(?:surface operations?|surface ops|ops duration|operations? duration|mission duration|mission lifetime|on the (?:lunar )?surface for|operate)[^\n.]{0,40}?(?:approximately |about |around |up to |~)?${NW}(?:\s*(?:[–-]|to)\s*${NW})?\s*(?:earth |terrestrial )?days`],
+  ['duration_days', String.raw`${NW}(?:\s*(?:[–-]|to)\s*${NW})?\s*(?:earth )?days of (?:lunar )?surface operations`],
   ['_capacity_kg', String.raw`(?:payload (?:delivery )?capacity|payload mass)[^\n]{0,30}?${NUM}\s*kg`],
   ['_w_per_kg', String.raw`${NUM}\s*W(?:atts)?\b[^\n]{0,40}(?:per kilogram|/kg|per kg)|(?:per kilogram|/kg)[^\n]{0,60}?${NUM}\s*W(?:atts)?\b|${NUM}\s*Watts\s+${NUM}\s*kbps`],
+  ['_payload_w', String.raw`${NUM}\s*W(?:atts)?\s+(?:of power\s+)?(?:for|available (?:for|to)) (?:the )?payloads?`],
   ['_ellipse_m', String.raw`${NUM}\s*m\s*x\s*${NUM}\s*m\s*ellipse`],
-  ['max_slope_deg', String.raw`slope\s*(?:of\s*)?(?:≤|<=|less than|below|under)\s*${NUM}\s*°`],
+  ['max_slope_deg', String.raw`slope\s*(?:of\s*)?(?:≤|<=|less than|below|under)\s*${NUM}\s*°|(?:landing|touchdown) slope[^\n]{0,30}?${NUM}\s*(?:°|degrees)`],
   ['battery_wh', String.raw`${NUM}\s*Wh\b`],
   ['_band', String.raw`\b(X-Band|S-Band|Ka-Band)\b`],
 ];
@@ -112,8 +117,8 @@ export function extract(pages) {
   const cand = {};
   pages.forEach((p, i) => {
     for (const [key, rx] of RULES) for (const m of p.matchAll(new RegExp(rx, 'gi'))) {
-      const g = m.slice(1).filter(x => x != null), num = x => parseFloat(x.replace(/,/g, ''));
-      const v = key === '_ellipse_m' ? [num(g[0]), num(g[1])] : key === '_band' ? g[0] : num(g[0]);
+      const g = m.slice(1).filter(x => x != null), num = x => WORDS[x.toLowerCase()] ?? parseFloat(x.replace(/,/g, ''));
+      const v = key === '_ellipse_m' ? [num(g[0]), num(g[1])] : key === '_band' ? g[0] : key === 'duration_days' ? Math.max(...g.map(num)) : num(g[0]); // a range of days: plan for the longer stay
       const quote = p.slice(Math.max(0, m.index - 20), m.index + m[0].length + 10).replace(/\s+/g, ' ').trim().slice(0, 110);
       (cand[key] = cand[key] || []).push({ v, page: i + 1, quote });
     }
@@ -126,7 +131,8 @@ export function extract(pages) {
   const out = { pages: pages.length, fields: {} };
   if (found.duration_days) out.fields.durationDays = found.duration_days;
   if (found.battery_wh) out.fields.batteryWh = found.battery_wh;
-  if (found._capacity_kg && found._w_per_kg && found._capacity_kg.v != null && found._w_per_kg.v != null)
+  if (found._payload_w) out.fields.loadW = { ...found._payload_w, note: 'power available for payloads' };
+  else if (found._capacity_kg && found._w_per_kg && found._capacity_kg.v != null && found._w_per_kg.v != null)
     out.fields.loadW = { v: found._capacity_kg.v * found._w_per_kg.v, src: `${found._w_per_kg.v} W per kg x ${found._capacity_kg.v} kg of payload` };
   if (found._band) out.fields.dte = { v: true, src: found._band.src + ' (direct link with Earth)' };
   if (found.max_slope_deg) out.fields.maxSlope = found.max_slope_deg;

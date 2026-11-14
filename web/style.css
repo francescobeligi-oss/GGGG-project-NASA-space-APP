@@ -103,8 +103,9 @@ body[data-screen="hero"] .progress { opacity: 0; pointer-events: none; }
 .drop.over, .drop:hover { border-color: var(--text); }
 .drop b { font-family: var(--head); text-transform: uppercase; letter-spacing: 0.08em; font-size: 22px; font-weight: 600; }
 .found { margin-top: 26px; border-top: 1px solid var(--line); }
-.found div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
-.found div span:last-child { color: var(--muted); text-align: right; }
+.found div { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
+.found div span:nth-child(2) { color: var(--text); text-align: right; font-weight: 500; }
+.found small { grid-column: 1 / -1; color: var(--muted); font-size: 13px; font-style: italic; }
 .bar-load { height: 2px; background: var(--line); margin-top: 28px; }
 .bar-load i { display: block; height: 100%; width: 0; background: var(--text); transition: width .2s; }
 
@@ -355,3 +356,61 @@ body[data-screen="results"] .map-key { bottom: 168px; }
 .choices.compact .choice b { font-size: 19px; }
 .choices.compact .choice span { font-size: 14.5px; }
 .o-flame { fill: var(--sun); }
+
+/* ---------- HUD v2: lighter overlays; the map and the terrain stay in front ---------- */
+#results .whenbar { left: 0; right: 424px; bottom: 0; background: linear-gradient(to top, rgba(0,0,0,.92) 0, rgba(0,0,0,.78) 62%, rgba(0,0,0,0) 100%); border: 0; padding: 40px 40px 16px; }
+body.wide #results .whenbar { right: 0; }
+#results .when-head { margin-bottom: 4px; gap: 14px; }
+#results .when-head b { font-size: 13px; }
+#results .when-head #whenDate { font-size: 14px; }
+#results .when-track { height: 42px; }
+#results .map-key { left: 40px; bottom: 112px; display: flex; align-items: center; gap: 18px; font-size: 13px; flex-wrap: wrap; max-width: calc(100vw - 520px); }
+body.wide #results .map-key { max-width: calc(100vw - 120px); }
+#results .map-key i { width: 10px; height: 10px; margin-right: 6px; }
+#results .map-key .tabs.light { background: rgba(0,0,0,.45); }
+#results .map-key .tabs.light button { padding: 5px 9px; font-size: 10.5px; }
+#results .kplaces { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+#results .kplaces .toggle { transform: scale(.72); margin: 0 -4px; }
+#results .tour { left: auto; right: 24px; top: 84px; width: 380px; border-left: 0; border-top: 2px solid var(--sun); background: rgba(0,0,0,.86); }
+#results .navctl button { width: 34px; height: 34px; background: rgba(0,0,0,.55); }
+#helpBtn { font-family: var(--head); font-size: 15px; }
+#results .res-tools .btn { padding: 9px 14px; font-size: 12px; background: rgba(0,0,0,.35); }
+#explore .tabs { background: rgba(0,0,0,.45); border-color: rgba(255,255,255,.14); }
+#explore .tabs button { font-size: 12px; padding: 8px 12px; }
+#explore .ex-left { gap: 10px; }
+#explore .status { gap: 8px; }
+#explore .time { left: 0; right: 440px; bottom: 0; background: linear-gradient(to top, rgba(0,0,0,.88) 0, rgba(0,0,0,.7) 60%, rgba(0,0,0,0) 100%); padding: 34px 40px 18px; gap: 16px; }
+#explore .time .play { width: 44px; height: 44px; }
+.exhint { position: absolute; left: calc((100vw - 440px) / 2); top: 46%; transform: translate(-50%, -50%); background: rgba(0,0,0,.78); border: 1px solid var(--line); padding: 16px 22px; display: none; gap: 6px; text-align: center; pointer-events: none; }
+.exhint.on { display: grid; animation: rise .6s var(--ease) both; }
+.exhint b { font-family: var(--head); text-transform: uppercase; letter-spacing: .14em; font-size: 17px; }
+.exhint span { color: #d7dade; font-size: 14.5px; }
+@media (max-height: 760px) {
+  #results .res-head { top: 84px; }
+  #results .res-head h2 { font-size: 38px; }
+  #results .res-head .lead { margin: 6px 0 12px; font-size: 15px; }
+  #results .map-key { bottom: 100px; }
+  #results .when-track { height: 34px; }
+  #results .whenbar { padding-top: 30px; padding-bottom: 12px; }
+  .dock .cards { gap: 10px; }
+  #explore .ex-left { top: 76px; }
+  #explore .time { padding-top: 26px; padding-bottom: 12px; }
+}
+@media (max-width: 980px) {
+  #results .whenbar { right: 0; left: 0; padding: 26px 12px 10px; bottom: 38vh; }
+  #results .map-key { display: none; }
+  #results .tour { left: 12px; right: 12px; width: auto; top: auto; bottom: calc(38vh + 130px); }
+  #explore .time { right: 0; bottom: 45vh; padding: 20px 12px 10px; }
+  .exhint { left: 50%; }
+}
+
+.choice.owned { grid-template-columns: 1fr auto; align-items: baseline; }
+.choice.owned span { grid-column: 1 / -1; }
+.choice.owned em { font-style: normal; font-family: var(--head); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; color: #000; background: #d7dade; padding: 3px 8px; justify-self: end; white-space: nowrap; }
+
+.pin.flip { flex-direction: row-reverse; }
+.pin.flip .rk { margin-left: 0; margin-right: -15px; }
+.pin.bare .pl { display: none; }
+#results .res-head h2, #results .res-head .lead { width: fit-content; }
+#results .tour { right: 92px; top: 128px; }
+@media (max-height: 760px) { .col { top: 96px; bottom: 80px; } #missionBody h2 { font-size: 44px; } #missionBody .lead { margin-top: 8px; } #missionBody .choices.compact { margin-top: 16px; } }
