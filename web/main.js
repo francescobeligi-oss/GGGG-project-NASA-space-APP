@@ -1211,7 +1211,7 @@ addEventListener('wheel', e => { if (S.screen === 'hero' && !$('#how').classList
   if (end && e.deltaY > 20 && STORY.endAt && now - STORY.endAt > 900 && now - (STORY.lastWheel || 0) > 250) { STORY.lastWheel = now; go('who'); return; }
   if (end && !STORY.endAt) STORY.endAt = now; if (!end) STORY.endAt = 0; STORY.lastWheel = now;
   storyGo(Math.max(-0.5, Math.min(0.5, e.deltaY / 500))); } }, { passive: false });
-addEventListener('keydown', e => { if (S.screen !== 'hero' || e.target.closest('input')) return; const k = e.key; if (['ArrowDown', 'PageDown', ' '].includes(k)) { e.preventDefault(); storyGo(1 - (STORY.to % 1 || 0) || 1); STORY.to = Math.round(STORY.to); } else if (['ArrowUp', 'PageUp'].includes(k)) { e.preventDefault(); STORY.to = Math.max(0, Math.ceil(STORY.to) - 1); } });
+addEventListener('keydown', e => { if (S.screen !== 'hero' || e.target.closest('input')) return; const k = e.key; if (['ArrowDown', 'PageDown', ' '].includes(k)) { e.preventDefault(); if (STORY.p > STORY.n - 0.02) { go('who'); return; } storyGo(1 - (STORY.to % 1 || 0) || 1); STORY.to = Math.round(STORY.to); } else if (['ArrowUp', 'PageUp'].includes(k)) { e.preventDefault(); STORY.to = Math.max(0, Math.ceil(STORY.to) - 1); } });
 { let ty = null; addEventListener('touchstart', e => { if (S.screen === 'hero') ty = e.touches[0].clientY; }, { passive: true }); addEventListener('touchmove', e => { if (S.screen === 'hero' && ty != null) { storyGo((ty - e.touches[0].clientY) / 400); ty = e.touches[0].clientY; } }, { passive: true }); }
 $('#storyNext').onclick = () => { STORY.to = Math.min(STORY.n, Math.floor(STORY.to) + 1); GQ.dirty = true; };
 function storyEarth() {
