@@ -304,6 +304,28 @@ function rayToMoon(cx, cy) {
     if (p && f < 1) NAV.t.lerp(p.normalize(), (1 - f) * 0.9).normalize(); // zoom toward the point under the cursor
   }, { passive: false });
 }
+// move the map by a step in screen directions (buttons, arrow keys, W A S D); holding keeps moving
+function panMap(dx, dy) {
+  if (!(S.screen === 'results' && M.map && NAV.cur)) return;
+  const c = NAV.cur, up = c.t.clone().normalize(), step = c.d * 0.25;
+  const right = new THREE.Vector3().setFromMatrixColumn(M.camera.matrixWorld, 0); right.sub(up.clone().multiplyScalar(right.dot(up))).normalize();
+  const fwd = up.clone().cross(right).negate();
+  NAV.t.addScaledVector(right, dx * step).addScaledVector(fwd, -dy * step).normalize(); NAV.fly = true; GQ.dirty = true;
+}
+{
+  const P = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  $$('.pad button').forEach(b => { let t = null; const go = () => panMap(...P[b.dataset.p]);
+    b.addEventListener('pointerdown', e => { e.preventDefault(); go(); t = setInterval(go, 220); });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, () => { clearInterval(t); t = null; }); });
+  const K = { arrowup: [0, -1], w: [0, -1], arrowdown: [0, 1], s: [0, 1], arrowleft: [-1, 0], a: [-1, 0], arrowright: [1, 0], d: [1, 0] };
+  addEventListener('keydown', e => {
+    if (S.screen !== 'results' || !M.map || e.target.closest('input, select, textarea')) return;
+    const k = e.key.toLowerCase();
+    if (K[k]) { e.preventDefault(); panMap(K[k][0] * 0.5, K[k][1] * 0.5); }
+    else if (k === '+' || k === '=') $('#zoomIn').click(); else if (k === '-') $('#zoomOut').click();
+    else if (k === 'q') { NAV.head += 0.15; NAV.fly = true; } else if (k === 'e') { NAV.head -= 0.15; NAV.fly = true; }
+  });
+}
 function mapButtons() {
   $('#zoomIn').onclick = () => { NAV.d = Math.max(D_MIN, NAV.d / 1.8); NAV.fly = true; };
   $('#zoomOut').onclick = () => { NAV.d = Math.min(D_MAX, NAV.d * 1.8); NAV.fly = true; };
@@ -614,16 +636,22 @@ $$('#roles .choice').forEach(b => b.onclick = () => {
 
 /* ================= step 2: mission ================= */
 function renderMission() {
-  const el = $('#missionBody');
+  const el = $('#missionBody'); el.closest('.col').classList.remove('wide');
   if (S.role === 'student') {
     el.innerHTML = `<h2>Pick a mission</h2><p class="lead">We show you where it should land on the Moon, and why.</p>
       <div class="choices">${MISSIONS.map(m => `<button class="choice" data-m="${m.id}"><b>${m.name}</b><span>${m.kid}</span></button>`).join('')}</div>`;
     $$('#missionBody [data-m]').forEach(b => b.onclick = () => loadPreset(b.dataset.m, b));
   } else if (S.role === 'past') {
     const U = S.upcoming || { missions: [] };
-    el.innerHTML = `<h2>Pick a mission</h2><p class="lead">Planned landings at the south pole. Dates often slip.</p>
-      <div class="choices compact">${U.missions.map((u, i) => `<button class="choice owned" data-u="${i}"><b>${esc(u.name)}</b><em>${esc(u.owner || u.agency)}</em><span>${esc(u.short || '')}</span></button>`).join('')}</div>
-      <p class="small xp" style="margin-top:16px">Sources: ${U.missions.map(u => `<a href="${u.source}" target="_blank" rel="noopener">${esc(u.name)}</a>`).join(', ')}. ${esc(U.note || '')}</p>`;
+    const card = (u, i) => `<button class="choice owned" data-u="${i}" title="${esc(u.short || '')}"><b>${esc(u.name)}</b><em>${esc(u.owner || u.agency)}</em><span>${esc(u.short || '')}</span></button>`;
+    const grp = g => U.missions.map((u, i) => u.group === g ? card(u, i) : '').join('');
+    el.closest('.col').classList.add('wide');
+    el.innerHTML = `<h2>Pick a mission</h2><p class="lead">Planned landings at the Moon's south pole, from public sources. Dates often slip.</p>
+      <div class="mgrid"><div><h4>Space agencies</h4><div class="choices compact">${grp('agency')}</div></div>
+      <div><h4>Companies</h4><div class="choices compact">${grp('company')}</div>
+        <h4 class="own">Your mission</h4><div class="choices compact"><button class="choice yours" id="ownMission"><b>No landing-site tool of your own?</b><span>Answer eight short questions. We check every site, hour by hour, from NASA data, and show our sources.</span></button></div></div></div>
+      <p class="small xp" style="margin-top:14px">Sources: ${U.missions.map(u => `<a href="${u.source}" target="_blank" rel="noopener">${esc(u.name)}</a>`).join(', ')}. ${esc(U.note || '')}</p>`;
+    $('#ownMission').onclick = () => { S.role = 'agency'; S.answers = null; S.q = 0; S.doc = null; setMode('expert'); renderMission(); };
     $$('#missionBody [data-m]').forEach(b => b.onclick = () => loadPreset(b.dataset.m, b));
     $$('#missionBody [data-u]').forEach(b => b.onclick = () => { const u = U.missions[+b.dataset.u];
       if (u.preset) { b.querySelector('span').textContent = 'Loading…'; loadPreset(u.preset); }
@@ -739,16 +767,17 @@ function renderResults() {
 // date slider: metrics for every landing time in the calendar range, at the centre of each option's site
 async function loadWhen() {
   const cal = S.data.calendar, first = cal.sites[Object.keys(cal.sites)[0]], dur = Math.round(S.data.options[0].duration_h), mast = !!(S.data.profile && S.data.profile.mast);
-  $('#whenSlider').max = first.length - 1;
-  S.bestIdx = Math.max(0, first.findIndex(r => r[0].slice(0, 13) === S.data.options[0].landing_utc.slice(0, 13))); $('#whenSlider').value = S.bestIdx;
+  $('#whenSlider').max = $('#cmpSlider').max = first.length - 1;
+  S.bestIdx = Math.max(0, first.findIndex(r => r[0].slice(0, 13) === S.data.options[0].landing_utc.slice(0, 13))); $('#whenSlider').value = $('#cmpSlider').value = S.bestIdx; $('#cmpDate').textContent = 'Each site at its best date';
   $('#whenDate').textContent = 'Each site at its best date';
   const W2 = {};
   await Promise.all(S.data.options.map(async o => { W2[o.site] = await dateMetrics(S.index.sites.find(s => s.id === o.site), S.sites[o.site], first[0][0], first[first.length - 1][0], dur, mast, cal.step_hours); }));
   S.when = W2; drawWhen();
 }
 const metricVal = m => S.metric === 'sun' ? m.sunPct : S.metric === 'earth' ? m.contactPct : costDark(m.longestDark);
-function drawWhen() {
-  const c = $('#whenChart'); if (!S.when || !c.clientWidth) return;
+function drawWhen() { drawWhenIn($('#whenChart')); drawWhenIn($('#cmpChart')); }
+function drawWhenIn(c) {
+  if (!S.when || !c || !c.clientWidth) return;
   const dpr = devicePixelRatio, w = c.clientWidth, h = c.clientHeight; c.width = w * dpr; c.height = h * dpr;
   const g = c.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0, 0, w, h);
   const sets = S.data.options.map(o => S.when[o.site] || []), n = sets[0].length; if (n < 2) return;
@@ -761,7 +790,19 @@ function drawWhen() {
   sets[0].forEach((m, k) => { const d = toDate(m.utc); if (d.getUTCMonth() !== lastM && d.getUTCDate() <= 2) { lastM = d.getUTCMonth(); g.fillText(MON[lastM], x(k) + 3, 11); } });
   g.textAlign = 'right'; g.fillText(S.metric === 'cost' ? usd(max) : '100%', w - 2, 11);
 }
-function setWhen(i) { S.whenIdx = i; $('#whenSlider').value = i; const m = S.when && S.when[S.data.options[0].site]; $('#whenDate').textContent = m && m[i] ? `${dateTime(m[i].utc)}, Sun ${level(m[i].sunEl)}` : ''; renderResults(); drawWhen(); setMapLight(); }
+function setWhen(i) {
+  S.whenIdx = i; $('#whenSlider').value = i; $('#cmpSlider').value = i; const m = S.when && S.when[S.data.options[0].site], t = m && m[i] ? `${dateTime(m[i].utc)}, Sun ${level(m[i].sunEl)}` : '';
+  $('#whenDate').textContent = t; $('#cmpDate').textContent = m && m[i] ? `All sites on ${dateTime(m[i].utc)}` : ''; renderResults(); drawWhen(); setMapLight(); if (S.screen === 'compare') renderCompare();
+}
+function toBest() { if (S.whenTimer) $('#whenPlay').click(); if (S.cmpTimer) $('#cmpPlay').click(); S.whenIdx = null; $('#whenSlider').value = $('#cmpSlider').value = S.bestIdx; $('#whenDate').textContent = $('#cmpDate').textContent = 'Each site at its best date'; renderResults(); drawWhen(); setMapLight(); if (S.screen === 'compare') renderCompare(); }
+$('#cmpSlider').oninput = e => setWhen(+e.target.value);
+$('#cmpBest').onclick = toBest;
+$('#cmpPlay').onclick = () => {
+  if (S.cmpTimer) { clearInterval(S.cmpTimer); S.cmpTimer = null; $('#cmpPlay').textContent = '▶'; return; }
+  $('#cmpPlay').textContent = '❚❚'; const n = +$('#cmpSlider').max;
+  S.cmpTimer = setInterval(() => setWhen(((S.whenIdx ?? S.bestIdx) + 1) % (n + 1)), 260);
+};
+$$('#cmpMetric button').forEach(b => b.onclick = () => { S.metric = b.dataset.m; $$('#cmpMetric button, #metric button').forEach(x => x.setAttribute('aria-pressed', x.dataset.m === S.metric)); drawWhen(); });
 $('#whenSlider').oninput = e => setWhen(+e.target.value);
 $('#whenPlay').onclick = () => {
   if (S.whenTimer) { clearInterval(S.whenTimer); S.whenTimer = null; $('#whenPlay').textContent = '▶'; return; }
@@ -771,8 +812,8 @@ $('#whenPlay').onclick = () => {
 $$('#lightMode button').forEach(b => b.onclick = () => { S.lightMode = b.dataset.l; $$('#lightMode button').forEach(x => x.setAttribute('aria-pressed', x === b)); setMapLight(); });
 $('#tourBtn').onclick = () => tourStep(TOUR.i < 0 ? 0 : TOUR.i + 1);
 mapButtons();
-$('#toBest').onclick = () => { if (S.whenTimer) $('#whenPlay').click(); S.whenIdx = null; $('#whenSlider').value = S.bestIdx; $('#whenDate').textContent = 'Each site at its best date'; renderResults(); drawWhen(); setMapLight(); };
-$$('#metric button').forEach(b => b.onclick = () => { S.metric = b.dataset.m; $$('#metric button').forEach(x => x.setAttribute('aria-pressed', x === b)); drawWhen(); });
+$('#toBest').onclick = toBest;
+$$('#metric button').forEach(b => b.onclick = () => { S.metric = b.dataset.m; $$('#cmpMetric button, #metric button').forEach(x => x.setAttribute('aria-pressed', x.dataset.m === S.metric)); drawWhen(); });
 $('#dockToggle').onclick = () => { const d = $('#dock'), c = d.classList.toggle('closed'); document.body.classList.toggle('wide', c); $('#dockToggle').textContent = c ? 'Show options' : 'Hide options'; $('#dockToggle').setAttribute('aria-expanded', !c); setTimeout(drawWhen, 480); };
 
 /* ================= step 4: explore ================= */
@@ -950,33 +991,43 @@ function openCalendar(highlight) {
 
 /* ================= step 5: compare ================= */
 function renderCompare() {
+  const cal = S.data.calendar, common = S.whenIdx != null && S.when, mm = x => common && S.when[x.site] ? S.when[x.site][S.whenIdx] : null;
+  const cv = x => { const row = common && cal.sites[x.site] && cal.sites[x.site][S.whenIdx]; return row ? row[2] : verdictOf(x); };
+  const stale = '<i class="stale">at its best date</i>';
+  const why = x => { const q = mm(x); if (!q || cv(x) === 'green') return ''; // a short reason when a site fails on the chosen date
+    const r = q.sunPct < 50 ? 'Dark for most of the stay' : q.longestDark > 24 ? `Dark for up to ${hrs(q.longestDark)}` : q.contactPct < 50 ? 'Earth out of view much of the time' : 'Part of the landing area fails the checks';
+    return `<i class="stale">${r}</i>`; };
+  const prev = S.cmpPrev || {}; S.cmpPrev = {};
   const o = S.data.options, rr = (x, k) => x.ranges && x.ranges[k] ? x.ranges[k] : null, darkW = x => (rr(x, 'longest_dark_h') || [0, x.light.longest_dark_h])[1];
+  const D = (f, g) => x => mm(x) ? g(mm(x), x) : f(x); // date-aware: centre-point values on the chosen date, full analysis otherwise
+  const S_ = (f) => x => mm(x) ? `${f(x)} ${stale}` : f(x);
   const rows = [
-    ['Landing time', x => date(x.landing_utc), x => dateTime(x.landing_utc), null, null, 'The best time inside your window.'],
-    ['Verdict', x => `<span class="dotw" style="--c:${VC[verdictOf(x)]}"></span>${VSIMPLE[verdictOf(x)]}`, x => `<span class="dotw" style="--c:${VC[verdictOf(x)]}"></span>${vx(verdictOf(x))}`, null, null, 'All checks together, for the worst point of the landing area.'],
-    ['Sunlight', x => W.sun(x.light.sun_pct), x => range(rr(x, 'sun_pct') || [x.light.sun_pct, x.light.sun_pct], pct), x => (rr(x, 'sun_pct') || [x.light.sun_pct])[0], 'max', 'Solar power: how much of the stay the panels see the Sun.'],
-    ['Longest darkness', x => W.dark(darkW(x)), x => range(rr(x, 'longest_dark_h') || [x.light.longest_dark_h, x.light.longest_dark_h], hrs), darkW, 'min', 'Sets the battery size and the cold the lander must survive.'],
-    ['Contact with Earth', x => W.earth(x.comms.contact_pct), x => range(rr(x, 'contact_pct') || [x.comms.contact_pct, x.comms.contact_pct], pct), x => (rr(x, 'contact_pct') || [x.comms.contact_pct])[0], 'max', 'Commands, telemetry and science data need a line of sight to Earth.'],
-    ['Longest silence', x => hrs(x.comms.longest_gap_h), x => hrs(x.comms.longest_gap_h), x => x.comms.longest_gap_h, 'min', 'Longest time the team cannot reach the lander.'],
-    ['Sun at touchdown', x => x.landing.sun_elevation_deg >= 0 ? 'Above the horizon' : 'Just below level', x => level(x.landing.sun_elevation_deg), x => x.landing.sun_elevation_deg, 'max', 'Low Sun means long shadows in the landing area and blinding light for cameras.'],
-    ['Earth at touchdown', x => x.landing.earth_visible ? 'In view' : 'Not in view', x => x.landing.earth_visible ? level(x.landing.earth_elevation_deg) : 'Not visible', null, null, 'Most landers report to Earth while they land.'],
-    ['Cost of darkness', x => darkW(x) > 0 ? `at least ${usd(costDark(darkW(x)))}` : 'None', x => darkW(x) > 0 ? `${usd(costDark(darkW(x)))} (${fmt(battKg(darkW(x)), 1)} kg)` : 'None', x => costDark(darkW(x)), 'min', 'Extra battery mass to cross the darkness, at a public delivery price.'],
-    ['Paid time you cannot fully use', x => lostHours(x) ? usd(valueLost(lostHours(x), x.duration_h)) : 'None', x => lostHours(x) ? `${usd(valueLost(lostHours(x), x.duration_h))} (${hrs(lostHours(x))})` : 'None', x => lostHours(x), 'min', 'Hours without Sun or without Earth, as a share of the mission price.'],
-    ['Battery you need', x => x.ranges && x.ranges.battery_needed_wh ? wh(x.ranges.battery_needed_wh[1]) : '–', x => range(rr(x, 'battery_needed_wh'), wh), x => x.ranges && x.ranges.battery_needed_wh && x.ranges.battery_needed_wh[1], 'min', 'For your stated power use, at 80% usable charge.'],
-    ['Data you can send', x => x.comms.data_possible_mb != null ? fmt(x.comms.data_possible_mb / 1000) + ' GB' : '–', x => x.comms.data_possible_mb != null ? fmt(x.comms.data_possible_mb / 1000) + ' GB' : '–', x => x.comms.data_possible_mb, 'max', 'Contact hours times your data rate.'],
+    ['Landing time', D(x => date(x.landing_utc), m => date(m.utc)), D(x => dateTime(x.landing_utc), m => dateTime(m.utc)), null, null, 'The best time inside your window, or the date you picked above.'],
+    ['Verdict', x => `<span class="dotw" style="--c:${VC[cv(x)]}"></span>${VSIMPLE[cv(x)]}${why(x)}`, x => `<span class="dotw" style="--c:${VC[cv(x)]}"></span>${common ? VSIMPLE[cv(x)] : vx(verdictOf(x))}${why(x)}`, null, null, 'All checks together, for the worst point of the landing area.'],
+    ['Sunlight', D(x => W.sun(x.light.sun_pct), m => W.sun(m.sunPct)), D(x => range(rr(x, 'sun_pct') || [x.light.sun_pct, x.light.sun_pct], pct), m => pct(m.sunPct)), x => mm(x) ? mm(x).sunPct : (rr(x, 'sun_pct') || [x.light.sun_pct])[0], 'max', 'Solar power: how much of the stay the panels see the Sun.'],
+    ['Longest darkness', D(x => W.dark(darkW(x)), m => W.dark(m.longestDark)), D(x => range(rr(x, 'longest_dark_h') || [x.light.longest_dark_h, x.light.longest_dark_h], hrs), m => hrs(m.longestDark)), x => mm(x) ? mm(x).longestDark : darkW(x), 'min', 'Sets the battery size and the cold the lander must survive.'],
+    ['Contact with Earth', D(x => W.earth(x.comms.contact_pct), m => W.earth(m.contactPct)), D(x => range(rr(x, 'contact_pct') || [x.comms.contact_pct, x.comms.contact_pct], pct), m => pct(m.contactPct)), x => mm(x) ? mm(x).contactPct : (rr(x, 'contact_pct') || [x.comms.contact_pct])[0], 'max', 'Commands, telemetry and science data need a line of sight to Earth.'],
+    ['Longest silence', S_(x => hrs(x.comms.longest_gap_h)), S_(x => hrs(x.comms.longest_gap_h)), x => mm(x) ? null : x.comms.longest_gap_h, 'min', 'Longest time the team cannot reach the lander.'],
+    ['Sun at touchdown', D(x => x.landing.sun_elevation_deg >= 0 ? 'Above the horizon' : 'Just below level', m => m.sunEl >= 0 ? 'Above the horizon' : 'Just below level'), D(x => level(x.landing.sun_elevation_deg), m => level(m.sunEl)), x => mm(x) ? mm(x).sunEl : x.landing.sun_elevation_deg, 'max', 'Low Sun means long shadows in the landing area and blinding light for cameras.'],
+    ['Earth at touchdown', S_(x => x.landing.earth_visible ? 'In view' : 'Not in view'), S_(x => x.landing.earth_visible ? level(x.landing.earth_elevation_deg) : 'Not visible'), null, null, 'Most landers report to Earth while they land.'],
+    ['Cost of darkness', D(x => darkW(x) > 0 ? `at least ${usd(costDark(darkW(x)))}` : 'None', m => m.longestDark > 0 ? `at least ${usd(costDark(m.longestDark))}` : 'None'), D(x => darkW(x) > 0 ? `${usd(costDark(darkW(x)))} (${fmt(battKg(darkW(x)), 1)} kg)` : 'None', m => m.longestDark > 0 ? `${usd(costDark(m.longestDark))} (${fmt(battKg(m.longestDark), 1)} kg)` : 'None'), x => costDark(mm(x) ? mm(x).longestDark : darkW(x)), 'min', 'Extra battery mass to cross the darkness, at a public delivery price.'],
+    ['Paid time you cannot fully use', D(x => lostHours(x) ? usd(valueLost(lostHours(x), x.duration_h)) : 'None', (m, x) => m.lostH ? usd(valueLost(m.lostH, x.duration_h)) : 'None'), D(x => lostHours(x) ? `${usd(valueLost(lostHours(x), x.duration_h))} (${hrs(lostHours(x))})` : 'None', (m, x) => m.lostH ? `${usd(valueLost(m.lostH, x.duration_h))} (${hrs(m.lostH)})` : 'None'), x => mm(x) ? mm(x).lostH : lostHours(x), 'min', 'Hours without Sun or without Earth, as a share of the mission price.'],
+    ['Battery you need', D(x => x.ranges && x.ranges.battery_needed_wh ? wh(x.ranges.battery_needed_wh[1]) : '–', m => wh(m.longestDark * COST.loadW / DOD)), D(x => range(rr(x, 'battery_needed_wh'), wh), m => `${wh(m.longestDark * COST.loadW / DOD)} for ${watts(COST.loadW)}`), x => mm(x) ? mm(x).longestDark : x.ranges && x.ranges.battery_needed_wh && x.ranges.battery_needed_wh[1], 'min', 'For your stated power use, at 80% usable charge.'],
+    ['Data you can send', S_(x => x.comms.data_possible_mb != null ? fmt(x.comms.data_possible_mb / 1000) + ' GB' : '–'), S_(x => x.comms.data_possible_mb != null ? fmt(x.comms.data_possible_mb / 1000) + ' GB' : '–'), x => mm(x) ? null : x.comms.data_possible_mb, 'max', 'Contact hours times your data rate.'],
     ['Ground', x => W.ground(x.terrain) || '–', x => x.terrain ? `${fmt(x.terrain.median_deg, 1)}° typical, ${pct(x.terrain.safe_fraction * 100)} within limit` : '–', x => x.terrain && x.terrain.median_deg, 'min', 'Slope inside the landing circle from NASA 5 m terrain. Rocks smaller than the terrain grid are not seen.'],
     ['Ice nearby', x => x.resources ? `${fmt(x.resources['nearest_over_0.01km2_km'], 1)} km away` : '–', x => x.resources ? `${fmt(x.resources['nearest_over_0.01km2_km'], 1)} km` : '–', x => x.resources && x.resources['nearest_over_0.01km2_km'], 'min', 'Distance to the nearest permanently shadowed area, where water ice can survive.'],
     ['Can land late by', x => x.slip_tolerance_days != null ? `${fmt(x.slip_tolerance_days)} days` : '–', x => x.slip_tolerance_days != null ? `${fmt(x.slip_tolerance_days)} days` : '–', x => x.slip_tolerance_days, 'max', 'How long the launch can slip with the same result.'],
     ['Backup site', x => x.backup_site ? esc(x.backup_site.site_name) : '–', x => x.backup_site ? `${esc(x.backup_site.site_name)}, ${date(x.backup_site.landing_utc)}` : '–', null, null, 'Where to go if the first choice is lost.'],
   ];
-  let html = '<div class="rh ch"></div>' + o.map((x, i) => `<div class="ch" style="--c:${VC[verdictOf(x)]}"><div class="rank" style="color:${LINE[i]}">${i + 1}</div><h3>${esc(x.site_name)}</h3></div>`).join('');
+  let html = '<div class="rh ch"></div>' + o.map((x, i) => `<button class="ch" data-x="${i}" style="--c:${VC[cv(x)]}" title="See ${esc(x.site_name)} in 3D"><div class="rank" style="color:${LINE[i]}">${i + 1}</div><h3>${esc(x.site_name)}</h3><span class="go3d">See it in 3D</span></button>`).join('');
   for (const [name, fs, fx, key, best, why] of rows) {
     const vals = key ? o.map(key) : [], ok = vals.filter(v => v != null && isFinite(v));
-    if (key && !ok.length) continue;
+    if (key && !ok.length && !common) continue;
     const target = ok.length > 1 && !ok.every(v => Math.abs(v - ok[0]) < 1e-9) ? (best === 'max' ? Math.max(...ok) : Math.min(...ok)) : null;
-    html += `<div class="rh">${name}${why ? `<em>${why}</em>` : ''}</div>` + o.map((x, i) => `<div class="${target != null && vals[i] === target ? 'best' : ''}"><span class="sp">${fs(x)}</span><span class="xp">${fx(x)}</span></div>`).join('');
+    html += `<div class="rh">${name}${why ? `<em>${why}</em>` : ''}</div>` + o.map((x, i) => { const v = fx(x), k = name + i, ch = prev[k] != null && prev[k] !== v; S.cmpPrev[k] = v; return `<div class="${target != null && vals[i] === target ? 'best' : ''}${ch ? ' changed' : ''}"><span class="sp">${fs(x)}</span><span class="xp">${v}</span></div>`; }).join('');
   }
-  $('#cmp').innerHTML = html;
+  $('#cmp').innerHTML = html; $$('#cmp [data-x]').forEach(b => b.onclick = () => openExplore(+b.dataset.x));
+  $('#cmpNote').textContent = common ? 'Centre-point values on this date for every site. Rows marked "at its best date" need the full analysis and keep their best-date value.' : 'Move the date: sunlight, contact, darkness and cost change for every site. Click a site name to see it in 3D.'; drawWhen();
   $('#costbox').innerHTML = `<h4>Cost scenario: change the numbers</h4>
     <div class="cost-in">
       <label>Delivery price<select id="cPrice">${PRICES.map(p => `<option value="${p.id}" ${p.id === COST.price ? 'selected' : ''}>${esc(p.label)}</option>`).join('')}</select></label>
@@ -1120,6 +1171,13 @@ async function openHow() {
 $('#helpBtn').onclick = () => { const h = $('#maphint'); h.classList.add('on'); setTimeout(() => h.classList.remove('on'), 5000); };
 $('#howBtn').onclick = openHow; $('#howClose').onclick = () => $('#how').classList.remove('on');
 window.__lss = { M, NAV, GQ, X }; // for automated checks
+if (/[?&]debug/.test(location.search)) { // diagnostics for testing on other computers: add ?debug to the address
+  const el = $('#dbg'); el.hidden = false; let frames = 0, lastEv = '-', gpu = '?';
+  try { const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); gpu = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); } catch (e) {}
+  for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown']) addEventListener(ev, e => { const t = e.target; lastEv = `${ev} on ${t.tagName.toLowerCase()}${t.id ? '#' + t.id : ''}${t.className && typeof t.className === 'string' ? '.' + t.className.split(' ')[0] : ''}`; }, { capture: true, passive: true });
+  const r0 = renderer.render.bind(renderer); renderer.render = (...a) => { frames++; return r0(...a); };
+  setInterval(() => { el.textContent = `GPU: ${gpu}\nframes/s: ${frames * 2}  light graphics: ${GQ.low}  pixel ratio: ${renderer.getPixelRatio()}\nscreen: ${S.screen}  map: ${!!M.map}  animating: ${!!anim}  zoom: ${NAV.cur ? NAV.cur.d.toFixed(4) : '-'}\nlast input: ${lastEv}`; frames = 0; }, 500);
+}
 (async function init() {
   setMode('simple'); resize(); requestAnimationFrame(frame);
   $$('.screen').forEach(s => s.classList.toggle('on', s.id === 'hero'));

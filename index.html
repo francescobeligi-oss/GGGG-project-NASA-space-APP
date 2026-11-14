@@ -52,7 +52,7 @@
 <section class="screen" id="results">
   <div class="res-head"><h2 id="answer"></h2><p class="lead" id="answerSub"></p>
     <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button><button class="btn" id="tourBtn">Discover the south pole</button></div></div>
-  <div class="navctl" aria-label="Map controls"><button id="compass" aria-label="Face north"><i>N</i></button><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="tiltBtn" aria-label="Switch between 3D and top view">2D</button><button id="homeBtn" aria-label="Back to my options">⌂</button><button id="helpBtn" aria-label="How to move on the map">?</button></div>
+  <div class="navctl" aria-label="Map controls"><button id="compass" aria-label="Face north"><i>N</i></button><div class="pad" aria-label="Move the map"><button data-p="up" aria-label="Move north">▲</button><button data-p="left" aria-label="Move west">◀</button><button data-p="right" aria-label="Move east">▶</button><button data-p="down" aria-label="Move south">▼</button></div><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="tiltBtn" aria-label="Switch between 3D and top view">2D</button><button id="homeBtn" aria-label="Back to my options">⌂</button><button id="helpBtn" aria-label="How to move on the map">?</button></div>
   <div class="tour" id="tour"></div>
   <div class="maphint" id="maphint"><b>Explore the map</b><span>Drag to move</span><span>Scroll to zoom</span><span>Right-drag to turn and tilt</span><span>Click a name to fly there</span></div>
   <div class="map-key">
@@ -97,6 +97,13 @@
 <section class="screen" id="compare">
   <div class="cmp-wrap">
     <h2>Your options side by side</h2>
+    <div class="cmp-when">
+      <div class="when-head"><button class="play small-play" id="cmpPlay" aria-label="Play through the dates">▶</button><b>Landing date</b><span id="cmpDate" class="num">Each site at its best date</span>
+        <div class="tabs metric" id="cmpMetric"><button data-m="sun" aria-pressed="true">Sunlight</button><button data-m="earth">Earth contact</button><button data-m="cost">Cost of darkness</button></div>
+        <button class="btn ghost" id="cmpBest">Back to best date</button></div>
+      <div class="when-track"><canvas id="cmpChart"></canvas><input type="range" id="cmpSlider" min="0" max="1" value="0" step="1" aria-label="Landing date for all sites"></div>
+      <p class="small" id="cmpNote">Move the date: the sunlight, contact, darkness and cost rows change for every site. Click a site name to see it in 3D.</p>
+    </div>
     <div class="cmp" id="cmp"></div>
     <div class="costbox" id="costbox"></div>
     <div class="actions">
@@ -115,6 +122,7 @@
 </div>
 <div class="how" id="how" role="dialog" aria-label="How it works"><div class="how-wrap"><div class="how-head"><h2>How it works</h2><button class="btn ghost" id="howClose">Close</button></div><div class="how-body"></div></div></div>
 <div id="fade"></div>
+<pre class="dbg" id="dbg" hidden></pre>
 <div class="gpu-note" id="gpuNote">Your graphics card needed a moment. Switching to light graphics.</div>
 <script type="module" src="web/main.js"></script>
 </body>

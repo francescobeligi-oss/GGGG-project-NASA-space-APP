@@ -11,31 +11,8 @@
    "earliest": "2028-01-15",
    "source": "https://www.nasa.gov/mission/artemis-iv/",
    "short": "Crewed landing. Early 2028.",
-   "owner": "NASA"
-  },
-  {
-   "name": "Griffin Mission One",
-   "agency": "Astrobotic (Voyager Technologies) for NASA CLPS",
-   "goal": "Delivers more than 1,100 pounds of cargo, including the FLIP rover.",
-   "when": "Launch no earlier than January 2027 (reported)",
-   "target": "Nobile crater",
-   "preset": "griffin1",
-   "earliest": "2027-01-15",
-   "source": "https://www.nasa.gov/event/clps-flight-astrobotics-griffin-mission-one/",
-   "short": "Robotic lander and rover. From January 2027.",
-   "owner": "Astrobotic, for NASA"
-  },
-  {
-   "name": "IM-4 (NASA task order CP-22)",
-   "agency": "Intuitive Machines for NASA CLPS",
-   "goal": "Six NASA payloads, 79 kg in total, to the south polar region.",
-   "when": "2027",
-   "target": "South polar region",
-   "preset": "novac",
-   "earliest": "2027-06-01",
-   "source": "https://spacenews.com/?p=505012",
-   "short": "Six NASA instruments. 2027.",
-   "owner": "Intuitive Machines, for NASA"
+   "owner": "NASA",
+   "group": "agency"
   },
   {
    "name": "Chang'e-7",
@@ -48,7 +25,21 @@
    "earliest": "2027-01-15",
    "source": "https://www.scientificamerican.com/article/chinas-change-7-moonshot-will-seek-water-ice-at-the-lunar-south-pole/",
    "short": "Lander, rover and hopper. 2027, near Shackleton crater.",
-   "owner": "CNSA, China"
+   "owner": "CNSA, China",
+   "group": "agency"
+  },
+  {
+   "name": "Chandrayaan-4",
+   "agency": "ISRO (India)",
+   "owner": "ISRO, India",
+   "short": "Sample return. Around 2027 to 2028, near Mons Mouton studied.",
+   "group": "agency",
+   "goal": "First Indian lunar sample return, from the south polar region.",
+   "when": "2027-2028 (planned)",
+   "target": "South polar region; a site near Mons Mouton is under study",
+   "preset": null,
+   "earliest": "2027-12-01",
+   "source": "https://spacenews.com/?p=507567"
   },
   {
    "name": "Chang'e-8",
@@ -61,7 +52,86 @@
    "earliest": "2028-01-15",
    "source": "https://en.wikipedia.org/wiki/Chang%27e_8",
    "short": "Tests with lunar soil. 2028, near Mons Mouton.",
-   "owner": "CNSA, China"
+   "owner": "CNSA, China",
+   "group": "agency"
+  },
+  {
+   "name": "Chandrayaan-5 / LUPEX",
+   "agency": "ISRO (India) and JAXA (Japan)",
+   "owner": "ISRO and JAXA",
+   "short": "Lander and rover that drill for ice. Target 2028.",
+   "group": "agency",
+   "goal": "Study water ice near a permanently shadowed region.",
+   "when": "2028 (target)",
+   "target": "Lunar south pole, near a permanently shadowed region",
+   "preset": null,
+   "earliest": "2028-06-01",
+   "source": "https://www.civilsdaily.com/?p=796318"
+  },
+  {
+   "name": "Luna-27A",
+   "agency": "Roscosmos (Russia)",
+   "owner": "Roscosmos, Russia",
+   "short": "Resource prospecting lander. Moved to 2029.",
+   "group": "agency",
+   "goal": "Prospect for water ice and other volatiles; about one year on the surface.",
+   "when": "2029 (reported)",
+   "target": "Lunar south pole (reported)",
+   "preset": null,
+   "earliest": "2029-06-01",
+   "source": "https://interfax.com/newsroom/top-stories/113182/"
+  },
+  {
+   "name": "Argonaut Mission 1",
+   "agency": "ESA (Europe)",
+   "owner": "ESA, Europe",
+   "short": "First European cargo lander. Launch by the end of 2030.",
+   "group": "agency",
+   "goal": "Demonstrate Europe's end-to-end delivery of cargo to the south polar region.",
+   "when": "By the end of 2030",
+   "target": "South polar region (near side)",
+   "preset": "argonaut",
+   "earliest": "2030-11-15",
+   "source": "https://www.esa.int/Science_Exploration/Human_and_Robotic_Exploration/Exploration/Argonaut"
+  },
+  {
+   "name": "Blue Moon MK1 Endurance",
+   "agency": "Blue Origin for NASA CLPS",
+   "owner": "Blue Origin, for NASA",
+   "short": "Cargo lander pathfinder near Shackleton crater. Planned 2026, not yet launched.",
+   "group": "company",
+   "goal": "Pathfinder flight of the MK1 cargo lander, carrying NASA payloads.",
+   "when": "2026 (planned)",
+   "target": "Lunar south pole, near Shackleton crater",
+   "preset": null,
+   "earliest": "2026-12-01",
+   "source": "https://www.nasa.gov/?p=888289"
+  },
+  {
+   "name": "Griffin Mission One",
+   "agency": "Astrobotic (Voyager Technologies) for NASA CLPS",
+   "goal": "Delivers more than 1,100 pounds of cargo, including the FLIP rover.",
+   "when": "Launch no earlier than January 2027 (reported)",
+   "target": "Nobile crater",
+   "preset": "griffin1",
+   "earliest": "2027-01-15",
+   "source": "https://www.nasa.gov/event/clps-flight-astrobotics-griffin-mission-one/",
+   "short": "Robotic lander and rover. From January 2027.",
+   "owner": "Astrobotic, for NASA",
+   "group": "company"
+  },
+  {
+   "name": "IM-4 (CP-22)",
+   "agency": "Intuitive Machines for NASA CLPS",
+   "goal": "Six NASA payloads, 79 kg in total, to the south polar region.",
+   "when": "2027",
+   "target": "South polar region",
+   "preset": "novac",
+   "earliest": "2027-06-01",
+   "source": "https://spacenews.com/?p=505012",
+   "short": "Six NASA instruments. 2027.",
+   "owner": "Intuitive Machines, for NASA",
+   "group": "company"
   }
  ]
 }
