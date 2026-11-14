@@ -168,15 +168,20 @@ function psrMask(map, m) {
 // one material for the whole polar terrain: the photo, softened when the real sunlight of the chosen date is shown,
 // times the vertex colours (gold = often sunlit, blue = permanently dark), times the light.
 const TERR = { photo: null, u: { uPhoto: { value: 1 }, uDetail: { value: null } }, ux: { uPhoto: { value: 0.55 } } };
-function terrainMaterial(extra = {}, U = TERR.u) {
+function terrainMaterial(extra = {}, U = TERR.u, local = false) {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, map: TERR.photo, ...extra });
+  mat.customProgramCacheKey = () => local ? 'terr-local' : 'terr';
   mat.onBeforeCompile = sh => { sh.uniforms.uPhoto = U.uPhoto; sh.uniforms.uDetail = TERR.u.uDetail;
+    if (local) { // close to the ground: two more grain sizes, measured in metres on the site so they stay sharp
+      sh.vertexShader = sh.vertexShader.replace('void main() {', 'varying vec2 vLoc;\nvoid main() {').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLoc = position.xz;');
+    }
     // the photo, plus fine regolith texture at two scales (it fades out by itself in the distance through mipmaps)
     sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#ifdef USE_MAP
       vec4 sampledDiffuseColor = texture2D( map, vMapUv ); sampledDiffuseColor.rgb = mix( vec3( 0.42 ), sampledDiffuseColor.rgb, uPhoto ) * 1.25;
       float d1 = texture2D( uDetail, vMapUv * 1200.0 ).r, d2 = texture2D( uDetail, vMapUv * 9000.0 ).r;
       sampledDiffuseColor.rgb *= ( 0.7 + 0.6 * d1 ) * ( 0.8 + 0.4 * d2 ); diffuseColor *= sampledDiffuseColor;
-      #endif`).replace('void main() {', 'uniform float uPhoto;\nuniform sampler2D uDetail;\nvoid main() {'); };
+      #endif`).replace('void main() {', 'uniform float uPhoto;\nuniform sampler2D uDetail;\nvoid main() {');
+    if (local) sh.fragmentShader = sh.fragmentShader.replace('diffuseColor *= sampledDiffuseColor;', 'sampledDiffuseColor.rgb *= ( 0.72 + 0.56 * texture2D( uDetail, vLoc / 23.0 ).r ) * ( 0.84 + 0.32 * texture2D( uDetail, vLoc / 3.1 ).r ); diffuseColor *= sampledDiffuseColor;').replace('void main() {', 'varying vec2 vLoc;\nvoid main() {'); };
   return mat;
 }
 function loadPhoto() {
@@ -585,7 +590,7 @@ async function buildSite(sid) {
   const g = gridGeometry(z, n, t.pixel_m, half, GQ.low ? 4 : 2, { gcx: ox, gcy: oy, ox, oy, h0, hole: ih + 1 }); siteColours(g, 0.74);
   const gi = gridGeometry(isub, inn, t.pixel_m, ih, GQ.low ? 2 : 1, { gcx: ox, gcy: oy, ox, oy, h0 }); siteColours(gi, 0.74);
   if (!TERR.photo) loadPhoto();
-  X.mesh = new THREE.Mesh(g, terrainMaterial({ roughness: 0.95 }, TERR.ux)); X.mesh.castShadow = X.mesh.receiveShadow = true; X.scene.add(X.mesh);
+  X.mesh = new THREE.Mesh(g, terrainMaterial({ roughness: 0.95 }, TERR.ux, true)); X.mesh.castShadow = X.mesh.receiveShadow = true; X.scene.add(X.mesh);
   X.inner = new THREE.Mesh(gi, X.mesh.material); X.inner.castShadow = X.inner.receiveShadow = true; X.mesh.add(X.inner);
   const rt = S.info.region, rn = rt.shape[0], sn = 181, hw = 90, sub = new Float32Array(sn * sn);
   const ci = Math.round((rt.half_width_m - oy) / rt.pixel_m), cj = Math.round((ox + rt.half_width_m) / rt.pixel_m);
@@ -934,7 +939,7 @@ async function openExplore(i) {
   $('#panel').innerHTML = '';
   await buildSite(opt().site);
   for (const k of ['ring', 'glow', 'sunPath', 'earthPath']) if (X[k]) { X.scene.remove(X[k]); X[k].geometry.dispose(); X[k] = null; }
-  setRing(opt().ellipse_radius_m || 50); setPaths(); X.ring.visible = X.glow.visible = S.view !== 'fp';
+  setRing(opt().ellipse_radius_m || 50); setPaths(); X.sunPath.visible = X.earthPath.visible = false; X.ring.visible = X.glow.visible = S.view !== 'fp';
   $('#scrub').max = series().t.length - 1;
   renderPanel(); drawBars(); setView(S.view, true); L.classList.remove('on'); $('#fade').style.opacity = 0; showExHint();
 }
@@ -946,7 +951,7 @@ const VIEW = {
 function setView(v, instant) {
   S.view = v; $$('#views button').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
   $('#viewHint').textContent = { fp: 'You are standing where the lander touches down. Drag to look around, W A S D to walk, scroll to zoom in on the Sun or Earth.', drone: 'Looking down at the landing circle. Drag to circle around it, scroll to come closer or go higher, right-drag to slide.', region: 'The 10 km around the site, with the hills that cast its shadows. Drag to turn, scroll to zoom.', orbit: 'The site seen from 40 km up, with the craters around it. Drag to turn, scroll to zoom.' }[v];
-  X.lander.visible = v !== 'fp'; if (X.sunPath) X.sunPath.visible = X.earthPath.visible = v === 'drone'; if (X.ring) X.ring.visible = X.glow.visible = v !== 'fp';
+  X.lander.visible = v !== 'fp'; if (X.sunPath) X.sunPath.visible = X.earthPath.visible = false; if (X.ring) X.ring.visible = X.glow.visible = v !== 'fp';
   $('#walkhint').classList.toggle('on', v === 'fp'); $('#walkhint').textContent = 'Use the arrow keys or W A S D to walk. Hold Shift to run. Drag to look around.';
   const st = sample(S.t), back = dirFromAzEl(X.site, st.sunAz + 150, 0);
   X.controls.enabled = false;
@@ -1276,7 +1281,7 @@ function frame(now) {
   GQ.dirty = false;
   if (anim) anim(now);
   renderer.clear();
-  if (scene === 'moon') {
+  if (scene === 'moon') { const xp0 = $('#xPin'); if (xp0) xp0.style.display = 'none';
     const k = 1 - Math.pow(0.12, dt);
     if (S.screen === 'hero' && !anim && !M.map && storyApply(dt)) { storyChapter(); }
     else if (!M.map && !anim) {
@@ -1339,6 +1344,9 @@ function frame(now) {
       if (X.ring) { const age = (now - X.ringBorn) / 1000, grow = REDUCED ? 1 : Math.min(1, age / 1.2); X.ring.scale.set(0.2 + 0.8 * ease(grow), 1, 0.2 + 0.8 * ease(grow)); X.glow.scale.copy(X.ring.scale); X.glow.material.opacity = 0.22 + (1 - grow) * 0.5; }
     }
     renderer.toneMappingExposure = 1.3;
+    { const xp = $('#xPin'), far = S.view === 'region' || S.view === 'orbit'; // label the landing spot when it is too small to see
+      if (xp && far && X.ring && S.screen === 'explore') { v3.set(0, localH(0, 0) + 2, 0).project(X.camera); const px = (v3.x + 1) / 2 * innerWidth, py = (1 - v3.y) / 2 * innerHeight; const ok = v3.z < 1 && px > 0 && px < innerWidth && py > 0 && py < innerHeight; xp.style.display = ok ? '' : 'none'; if (ok) xp.style.transform = `translate(${px}px, ${py}px)`; }
+      else if (xp) xp.style.display = 'none'; }
     renderer.render(X.sky, X.camera); renderer.clearDepth(); renderer.render(X.scene, X.camera); GQ.sig = X.camera.matrixWorld.elements.join(',') + X.camera.projectionMatrix.elements[0];
   }
   requestAnimationFrame(frame);

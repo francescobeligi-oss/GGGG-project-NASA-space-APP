@@ -561,3 +561,7 @@ body.wide #results .map-key { max-width: calc(100vw - 120px); }
 .cring.hot { width: 54px; height: 54px; margin: -27px 0 0 -27px; border-color: #fff; background: rgba(255,255,255,.08); }
 .cring span { position: absolute; top: 100%; left: 50%; transform: translate(-50%, 6px); font-family: var(--head); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: #fff; white-space: nowrap; }
 @media (hover: none) { .cring { display: none; } }
+
+/* label for the landing spot in the far views */
+.xpin { position: fixed; left: 0; top: 0; z-index: 4; pointer-events: none; display: flex; align-items: center; gap: 8px; margin: -7px 0 0 -7px; font: 600 12px/1 var(--display, inherit); letter-spacing: .12em; text-transform: uppercase; color: #ffd27a; text-shadow: 0 1px 6px #000; }
+.xpin i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #ffd27a; box-shadow: 0 0 0 4px rgba(255,210,122,.18), 0 0 14px rgba(255,210,122,.6); }
