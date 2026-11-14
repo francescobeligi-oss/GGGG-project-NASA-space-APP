@@ -1,0 +1,47 @@
+{
+ "_title": "ESA Argonaut mission 1 (long-duration cargo lander)",
+ "mission": {
+  "type": {
+   "v": "long_duration_lander",
+   "l": "declared",
+   "src": "ESA"
+  },
+  "duration_days": {
+   "v": 30,
+   "l": "asked",
+   "src": "first month of a 5-year design life"
+  }
+ },
+ "timing": {
+  "earliest_landing_utc": {
+   "v": "2030-11-15T00:00",
+   "l": "asked",
+   "src": "ESA target: end of 2030"
+  },
+  "max_slip_days": {
+   "v": 60,
+   "l": "asked"
+  }
+ },
+ "landing": {
+  "ellipse_radius_m": {
+   "v": 250,
+   "l": "declared",
+   "src": "250 m landing accuracy"
+  },
+  "max_slope_deg": {
+   "v": 10,
+   "l": "asked"
+  }
+ },
+ "comms": {
+  "mode": {
+   "v": "DTE",
+   "l": "asked"
+  },
+  "ground_stations": {
+   "v": "DSN",
+   "l": "asked"
+  }
+ }
+}

@@ -232,6 +232,8 @@ def _verdict(r, prof):
         red.append(f"Not continuously sunlit (dark for {r['light']['longest_dark_h']:.0f} h)")
     if P.get("survives") is False: red.append(f"Battery empty after {P['dead_after_h']:.0f} h")
     elif P.get("min_soc") is not None and P["min_soc"] < 0.2: yel.append("Battery falls below 20% (survival mode)")
+    if not P and r["light"]["longest_dark_h"] > 0:
+        yel.append(f"No power data given: the battery must cover up to {r['light']['longest_dark_h']:.0f} h of darkness")
     if "max_sustainable_load_w" in P: yel.append(f"Power use not given: max sustainable load {P['max_sustainable_load_w']:.0f} W")
     need = _val(prof, "comms", "data_volume_mb")
     if need and C.get("data_possible_mb") is not None and C["data_possible_mb"] < need: red.append("Not enough contact time to send the data")

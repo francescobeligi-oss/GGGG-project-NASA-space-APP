@@ -53,3 +53,25 @@ To show terrain uncertainty, draw the band between the min and max of `meta.hori
 1. Show **ranges** when available (landing ellipse, terrain clones), never a single "exact" number.
 2. When a mission value is unknown, show the **requirement** (battery needed, max sustainable load), never a guess.
 3. Show what is **not evaluated** (craters smaller than 2× the terrain resolution, rocks, thermal model).
+
+## Mission flow files (for Screens 1–4 of the product spec)
+
+| File | Screen | Content |
+|---|---|---|
+| `presets/<mission>.json` | 1 | Mission Profile of 4 real missions: `griffin1`, `novac`, `artemis`, `argonaut`. Every field is `{v, l, src}`: value, label (declared / derived / asked / estimated) and source |
+| `options/<mission>.json` | 2, 3, 4 | `summary` (recommendation sentence), `options` (top 3), `calendar`, `landing_windows`, `provenance`, `assumptions`, `not_evaluated`, `trust_badge` |
+| `terrain/<id>_10m.bin` | 3 | Height map 901 × 901, 10 m pixels, ±4.5 km around the landing point (centre pixel), row 0 = north edge (map +y). See `terrain/terrain.json` |
+| `terrain/region_400m.bin` | 2, 3 | Height map 751 × 751, 400 m pixels, ±150 km around the south pole |
+| `psr.json` | 3 (ice layer) | Permanently shadowed regions > 0.01 km²: `x_m`, `y_m` (south polar stereographic), `area_km2` |
+
+Each element of `options[]` contains:
+
+- `site`, `site_name`, `landing_utc`, `verdict`, `worst_case_verdict`, `reasons` (plain-English list)
+- `landing` (Sun elevation and azimuth, Earth visible, `shadow_risk` sentence), `light`, `comms`, `power`, `terrain` (slope in the ellipse), `resources` (distance to ice), `terrain_uncertainty`
+- `ranges`: worst-to-best across the landing ellipse, lander orientations and terrain clones
+- `series_hourly`: `t`, Sun and Earth az/el, `sun_frac_worst_median_best` (3 arrays), `earth_contact`, `power_w`, `battery_soc` (null when not computable)
+- `timeline_events`: sunrise/sunset and contact start/end → the **operations timeline export** (CSV / calendar)
+- `hardware_toggles`: `mast_10m` and `tracking_panels`, each `[without, with]` for sunlight %, contact %, longest dark, battery needed, verdict
+- `slip_tolerance_days`, `backup_site` (available if wanted later)
+
+`calendar.sites[<id>]` = list of `[landing_utc, verdict, worst_case_verdict, score]` every 6 hours → the **landing-window calendar** (date × site grid).

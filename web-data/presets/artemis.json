@@ -1,0 +1,62 @@
+{
+ "_title": "Artemis crewed landing (NASA site criteria)",
+ "mission": {
+  "type": {
+   "v": "crewed",
+   "l": "declared",
+   "src": "NASA"
+  },
+  "duration_days": {
+   "v": 6.5,
+   "l": "declared",
+   "src": "6.5-day surface stay"
+  },
+  "continuous_sun_required": {
+   "v": true,
+   "l": "declared",
+   "src": "NASA Lunar Site Selection white paper"
+  },
+  "max_distance_to_psr_km": {
+   "v": 5,
+   "l": "asked",
+   "src": "moonwalk to a shadowed region"
+  }
+ },
+ "timing": {
+  "earliest_landing_utc": {
+   "v": "2028-01-15T00:00",
+   "l": "asked",
+   "src": "example date"
+  },
+  "max_slip_days": {
+   "v": 90,
+   "l": "asked"
+  }
+ },
+ "landing": {
+  "ellipse_radius_m": {
+   "v": 100,
+   "l": "declared",
+   "src": "landing site radius about 100 m"
+  },
+  "max_slope_deg": {
+   "v": 8,
+   "l": "asked"
+  },
+  "earth_visible_at_landing": {
+   "v": true,
+   "l": "declared"
+  }
+ },
+ "comms": {
+  "mode": {
+   "v": "DTE",
+   "l": "declared",
+   "src": "Earth must be visible in early missions"
+  },
+  "ground_stations": {
+   "v": "DSN",
+   "l": "declared"
+  }
+ }
+}

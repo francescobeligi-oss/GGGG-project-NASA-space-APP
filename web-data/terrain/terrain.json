@@ -1,0 +1,25 @@
+{
+ "sites": {
+  "file": "<id>_10m.bin",
+  "shape": [
+   901,
+   901
+  ],
+  "pixel_m": 10,
+  "half_width_m": 4500,
+  "origin": "row 0 = north edge (map +y), col 0 = west edge (map -x)",
+  "note": "centre pixel = landing point; heights in m relative to the 1737.4 km lunar sphere"
+ },
+ "region": {
+  "file": "region_400m.bin",
+  "shape": [
+   751,
+   751
+  ],
+  "pixel_m": 400,
+  "half_width_m": 150000,
+  "centre": "south pole",
+  "note": "south polar stereographic; row 0 = map +y edge"
+ },
+ "dtype": "float32 little-endian"
+}

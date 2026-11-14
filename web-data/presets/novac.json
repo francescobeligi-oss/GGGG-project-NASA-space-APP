@@ -1,0 +1,82 @@
+{
+ "_title": "Nova-C class lander (IM-2 Athena hardware)",
+ "mission": {
+  "type": {
+   "v": "robotic_lander",
+   "l": "declared",
+   "src": "NASA IM-2 press kit"
+  },
+  "duration_days": {
+   "v": 14,
+   "l": "declared",
+   "src": "Nova-C design life 14 days"
+  }
+ },
+ "timing": {
+  "earliest_landing_utc": {
+   "v": "2027-06-01T00:00",
+   "l": "asked",
+   "src": "example date"
+  },
+  "max_slip_days": {
+   "v": 45,
+   "l": "asked"
+  }
+ },
+ "landing": {
+  "ellipse_radius_m": {
+   "v": 50,
+   "l": "declared",
+   "src": "50 m landing zone"
+  },
+  "max_slope_deg": {
+   "v": 10,
+   "l": "asked"
+  },
+  "earth_visible_at_landing": {
+   "v": true,
+   "l": "asked"
+  }
+ },
+ "power": {
+  "panels": {
+   "v": [
+    {
+     "peak_w": 100,
+     "tilt_deg": 90,
+     "azimuth_deg": 0
+    },
+    {
+     "peak_w": 100,
+     "tilt_deg": 90,
+     "azimuth_deg": 180
+    },
+    {
+     "peak_w": 200,
+     "tilt_deg": 0
+    }
+   ],
+   "l": "derived",
+   "src": "200 W max from a top-deck panel and two body panels; directions not public"
+  },
+  "battery_wh": {
+   "v": 700,
+   "l": "derived",
+   "src": "25 Ah on a 28 V bus"
+  },
+  "load_operations_w": {
+   "v": null,
+   "l": "asked"
+  }
+ },
+ "comms": {
+  "mode": {
+   "v": "DTE",
+   "l": "declared"
+  },
+  "ground_stations": {
+   "v": "DSN",
+   "l": "asked"
+  }
+ }
+}
