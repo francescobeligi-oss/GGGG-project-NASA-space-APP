@@ -202,7 +202,7 @@ function tintArrays(map, nv, m, rimFade) {
     tintNoIce.set([1 + (r - 1) * fade, 1 + (gg - 1) * fade, 1 + (b - 1) * fade], k * 3);
     if (ice[k]) { r = r * 0.3 + 0.25; gg = gg * 0.3 + 0.55; b = b * 0.3 + 1.1; }
     tint.set([1 + (r - 1) * fade, 1 + (gg - 1) * fade, 1 + (b - 1) * fade], k * 3);
-    if (rimFade) alpha[k] = 0.42 + 0.58 * Math.min(1, Math.max(0, (RHO_MAX - Math.hypot(mx, my)) / 30000)); // rim darkens to match the dimmed globe
+    if (rimFade) alpha[k] = 0.26 + 0.74 * Math.min(1, Math.max(0, (RHO_MAX - Math.hypot(mx, my)) / 30000)); // rim darkens to match the dimmed globe
   }
   return { plain, tint, tintNoIce, alpha };
 }
@@ -243,7 +243,7 @@ function buildCap() {
 }
 function setCapTint(f) {
   for (const ms of [M.cap, M.mid, M.tile]) if (ms) applyTint(ms, f);
-  M.holed.material.color.setScalar(1 - 0.58 * f); // the rest of the Moon dims while the pole map is open
+  M.holed.material.color.setScalar(1 - 0.74 * f); // the rest of the Moon dims while the pole map is open
   GQ.dirty = true;
 }
 // a terrain grid laid on the globe: heights z (n x n, pixel px, centred on gcx, gcy in map metres), edges blended into `under`
@@ -323,6 +323,9 @@ function navPose(st) {
 }
 function navApply(dt) {
   const c = NAV.cur; if (!c) return;
+  { // stay over the detailed polar terrain: past its edge there is only the coarse globe
+    const pole = M.moon.localToWorld(globePoint(-90, 0, 1)).sub(M.moon.getWorldPosition(new THREE.Vector3())).normalize(), lim = Math.max(0.01, (RHO_MAX - 40000) / R_MOON - NAV.d * 0.35), a = NAV.t.angleTo(pole);
+    if (a > lim) { const ax = new THREE.Vector3().crossVectors(pole, NAV.t).normalize(); if (ax.lengthSq() > 0.5) NAV.t.copy(pole).applyAxisAngle(ax, lim); }}
   const k = 1 - Math.pow(NAV.fly ? 0.08 : 0.0004, dt);
   c.t.lerp(NAV.t, k).normalize(); c.d = Math.exp(Math.log(c.d) + (Math.log(NAV.d) - Math.log(c.d)) * k);
   c.head += (((NAV.head - c.head + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * k; c.tiltU += (NAV.tiltU - c.tiltU) * k;
@@ -1229,7 +1232,7 @@ function storyApply(dt) {
     M.camera.near = 0.01; M.camera.far = 200; M.camera.updateProjectionMatrix(); return false;
   }
   M.full.visible = false; M.holed.visible = true; M.cap.visible = true; TERR.u.uPhoto.value = 0.5; TERR.photoTo = null;
-  if (!STORY.dimmed) { const L = S.layers; S.layers = { sun: false, ice: false }; applyTint(M.cap, 1); S.layers = L; M.holed.material.color.setScalar(0.42); M.tint = M.tintTo = 0; STORY.dimmed = true; } // the rest of the Moon dims: the pole stands out, no visible edge
+  if (!STORY.dimmed) { const L = S.layers; S.layers = { sun: false, ice: false }; applyTint(M.cap, 1); S.layers = L; M.holed.material.color.setScalar(0.26); M.tint = M.tintTo = 0; STORY.dimmed = true; } // the rest of the Moon dims: the pole stands out, no visible edge
   const e = ease(Math.min(1, p)); M.pivot.rotation.set(M.tilt + (-Math.PI - M.tilt) * e, 0, 0); M.moon.rotation.y = (M.spin % (Math.PI * 2)) * (1 - e); M.pivot.updateMatrixWorld(true);
   // the Sun circles the pole a degree and a half above the horizon; its shadows turn with it
   STORY.sunAz += dt * (p > 0.9 ? 9 : 0); const az = rad(STORY.sunAz), el = rad(1.6), sd = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el));
