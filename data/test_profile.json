@@ -1,0 +1,10 @@
+{
+ "mission": {"type": {"v": "robotic_lander", "l": "declared"}, "duration_days": {"v": 14, "l": "declared"}, "max_distance_to_psr_km": {"v": 5, "l": "asked"}},
+ "timing": {"earliest_landing_utc": {"v": "2027-03-01T00:00", "l": "asked"}, "max_slip_days": {"v": 45, "l": "asked"}},
+ "landing": {"ellipse_radius_m": {"v": 100, "l": "declared"}, "max_slope_deg": {"v": 10, "l": "asked"}, "min_sun_elevation_deg": {"v": 0.0, "l": "asked"}, "earth_visible_at_landing": {"v": true, "l": "asked"}},
+ "power": {"panels": {"v": [{"peak_w": 100, "tilt_deg": 90, "azimuth_deg": 0}, {"peak_w": 100, "tilt_deg": 90, "azimuth_deg": 180}, {"peak_w": 200, "tilt_deg": 0}], "l": "derived"},
+           "panel_height_m": {"v": 2, "l": "derived"}, "battery_wh": {"v": 700, "l": "derived"}, "battery_dod": {"v": 0.8, "l": "asked"},
+           "load_operations_w": {"v": null, "l": "asked"}, "load_survival_w": {"v": null, "l": "asked"}},
+ "comms": {"mode": {"v": "DTE", "l": "declared"}, "ground_stations": {"v": "DSN", "l": "declared"}, "min_earth_elevation_deg": {"v": 0.5, "l": "asked"}, "min_pass_hours": {"v": 1, "l": "asked"}, "data_rate_kbps": {"v": 100, "l": "asked"}, "data_volume_mb": {"v": 2000, "l": "asked"}},
+ "mobility": {"rover_range_km": {"v": null, "l": "asked"}}
+}

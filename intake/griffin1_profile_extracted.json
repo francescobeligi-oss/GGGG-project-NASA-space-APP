@@ -1,0 +1,38 @@
+{
+ "_extracted_from": "Astrobotic Lunar Landers Payload User's Guide (2021), https://science.nasa.gov/wp-content/uploads/2023/11/astrobotic-lunar-landers-pug.pdf",
+ "_method": "AI-assisted extraction (Claude) with page citation for every value, then human review. Values not in the document are left null and returned by the engine as requirements.",
+ "mission": {
+  "type": {"v": "robotic_lander", "l": "declared", "src": "PUG p24, polar configuration"},
+  "duration_days": {"v": 14, "l": "declared", "src": "PUG p24: surface operations duration up to 14 days"},
+  "max_distance_to_psr_km": {"v": null, "l": "asked"}
+ },
+ "timing": {
+  "earliest_landing_utc": {"v": "2027-01-15T00:00", "l": "asked", "src": "press: launch NET late 2026; cruise 3-33 d + lunar orbit 4-25 d (PUG p52) - to confirm"},
+  "max_slip_days": {"v": 60, "l": "asked"}
+ },
+ "landing": {
+  "ellipse_radius_m": {"v": 50, "l": "derived", "src": "PUG p51: OPAL improves accuracy to a 100 m x 100 m ellipse"},
+  "max_slope_deg": {"v": 10, "l": "declared", "src": "PUG p51: sites selected with effective slope <= 10 deg"},
+  "max_rock_size_m": {"v": 0.3, "l": "declared", "src": "PUG p51: max expected rock height 0.3 m preferred"},
+  "min_sun_elevation_deg": {"v": null, "l": "asked"},
+  "earth_visible_at_landing": {"v": true, "l": "derived", "src": "PUG p30: lander-Earth link in X-band (direct to Earth)"}
+ },
+ "power": {
+  "panels": {"v": [{"peak_w": null, "tilt_deg": 90, "azimuth_deg": 0}, {"peak_w": null, "tilt_deg": 90, "azimuth_deg": 90},
+                   {"peak_w": null, "tilt_deg": 90, "azimuth_deg": 180}, {"peak_w": null, "tilt_deg": 90, "azimuth_deg": 270}],
+             "l": "derived", "src": "PUG p24: side-mounted solar panels for polar missions; four sides assumed from the square deck - power not given"},
+  "battery_wh": {"v": null, "l": "asked", "src": "PUG p28: lithium-ion battery, capacity not given"},
+  "load_operations_w": {"v": 625, "l": "derived", "src": "PUG p5: 1.0 W per kg of payload x 625 kg (p24) - payload power only"},
+  "load_survival_w": {"v": null, "l": "asked"}
+ },
+ "comms": {
+  "mode": {"v": "DTE", "l": "declared", "src": "PUG p30: X-band uplink and downlink with Earth"},
+  "ground_stations": {"v": "DSN", "l": "asked", "src": "PUG p48: ground stations, network to confirm"},
+  "data_rate_kbps": {"v": 6250, "l": "derived", "src": "PUG p5/p56: 10 kbps per kg x 625 kg"},
+  "data_volume_mb": {"v": null, "l": "asked"}
+ },
+ "thermal": {
+  "surface_range_c": {"v": [-30, 80], "l": "declared", "src": "PUG p36: lunar surface -30 C to 80 C (excludes lunar night)"}
+ },
+ "mobility": {"rover_range_km": {"v": null, "l": "asked"}}
+}

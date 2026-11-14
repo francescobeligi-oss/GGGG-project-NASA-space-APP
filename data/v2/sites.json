@@ -1,0 +1,112 @@
+{
+ "Site01": {
+  "name": "Connecting ridge",
+  "x": -11582.5,
+  "y": -12462.5,
+  "lat": -89.43892646479243,
+  "lon": -137.09597807377773,
+  "height_m": 1958.3211669921875,
+  "terrain": "LOLA 5 m site DEM Site01",
+  "point": "NASA region of interest (PGDA)"
+ },
+ "Site04": {
+  "name": "Shackleton rim",
+  "x": -2812.5,
+  "y": -6647.5,
+  "lat": -89.76196621436534,
+  "lon": -157.06719662433576,
+  "height_m": 1729.12060546875,
+  "terrain": "LOLA 5 m site DEM Site04",
+  "point": "NASA region of interest (PGDA)"
+ },
+ "Site07": {
+  "name": "Peak near Shackleton",
+  "x": 30167.5,
+  "y": -20002.5,
+  "lat": -88.8063630090039,
+  "lon": 123.54628783207221,
+  "height_m": 1647.65771484375,
+  "terrain": "LOLA 5 m site DEM Site07",
+  "point": "NASA region of interest (PGDA)"
+ },
+ "Site11": {
+  "name": "de Gerlache rim",
+  "x": -37542.5,
+  "y": 14882.5,
+  "lat": -88.6682562366009,
+  "lon": -68.37576419326456,
+  "height_m": 1814.18994140625,
+  "terrain": "LOLA 5 m site DEM Site11",
+  "point": "NASA region of interest (PGDA)"
+ },
+ "Site23": {
+  "name": "Malapert massif",
+  "x": 4600.0,
+  "y": 121200.0,
+  "lat": -86.00182565696335,
+  "lon": 2.1735490333780745,
+  "height_m": 5154.93603515625,
+  "terrain": "LOLA 5 m site DEM Site23",
+  "point": "most illuminated high point of the tile (search: 75% sunlit 2027-28)"
+ },
+ "Site06": {
+  "name": "Nobile rim 1",
+  "x": 85800.0,
+  "y": 113700.0,
+  "lat": -85.30523795473125,
+  "lon": 37.03884006128432,
+  "height_m": 6750.4052734375,
+  "terrain": "LOLA 5 m site DEM Site06",
+  "point": "most illuminated high point of the tile (search: 85% sunlit 2027-28)"
+ },
+ "DM2": {
+  "name": "Nobile rim 2",
+  "x": 155000.0,
+  "y": 92200.0,
+  "lat": -84.05779596821762,
+  "lon": 59.25417995781033,
+  "height_m": 1460.728515625,
+  "terrain": "LOLA 5 m site DEM DM2",
+  "point": "most illuminated high point of the tile (search: 53% sunlit 2027-28)"
+ },
+ "Site20": {
+  "name": "Leibnitz beta plateau",
+  "x": 73600.0,
+  "y": 117000.0,
+  "lat": -85.44405647374805,
+  "lon": 32.17234896410039,
+  "height_m": 6382.02880859375,
+  "terrain": "LOLA 5 m site DEM Site20",
+  "point": "most illuminated high point of the tile (search: 81% sunlit 2027-28)"
+ },
+ "Haworth": {
+  "name": "Haworth rim",
+  "x": -37300.0,
+  "y": 95700.0,
+  "lat": -86.61375733426287,
+  "lon": -21.293830431713207,
+  "height_m": 2027.489990234375,
+  "terrain": "LOLA 5 m site DEM Haworth",
+  "point": "most illuminated high point of the tile (search: 36% sunlit 2027-28)"
+ },
+ "Shoemaker": {
+  "name": "Shoemaker rim",
+  "x": 74500.0,
+  "y": 40300.0,
+  "lat": -87.2072774136921,
+  "lon": 61.58928925076819,
+  "height_m": 677.4630737304688,
+  "terrain": "LOLA 5 m site DEM Shoemaker",
+  "point": "most illuminated high point of the tile (search: 65% sunlit 2027-28)"
+ },
+ "MonsMouton": {
+  "name": "Mons Mouton plateau (IM-2 target)",
+  "x": 77106.74964669519,
+  "y": 138362.95289725414,
+  "lat": -84.77999999999999,
+  "lon": 29.130000000000006,
+  "height_m": 5312.5791015625,
+  "terrain": "LOLA 10 m (83S-pole)",
+  "point": "published target coordinates"
+ }
+}

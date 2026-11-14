@@ -1,0 +1,92 @@
+{
+ "_payload": {
+  "power_w_per_kg": {
+   "v": null,
+   "l": "conflict",
+   "candidates": [
+    {
+     "v": 1.0,
+     "page": 5,
+     "quote": "and bandwidth are  1.0 Watts 10 kbps available"
+    },
+    {
+     "v": 1.0,
+     "page": 55,
+     "quote": "payloads.   NOMINAL 1.0 W per kilogram of payloa"
+    },
+    {
+     "v": 2.5,
+     "page": 55,
+     "quote": "of payload.   PEAK 2.5 W per kilogram of payloa"
+    }
+   ]
+  },
+  "kbps_per_kg": {
+   "v": 10.0,
+   "l": "declared",
+   "src": "p5: \"bandwidth are  1.0 Watts 10 kbps available\""
+  },
+  "capacity_kg": {
+   "v": 625.0,
+   "l": "declared",
+   "src": "p24: \"OLAR  Lunar Surface Payload Delivery Capacity 625 kg   Surface\" (chosen: matches 'Griffin'; other values in the document: [('100.0', 14), ('90.0', 13)])"
+  }
+ },
+ "mission": {
+  "duration_days": {
+   "v": null,
+   "l": "conflict",
+   "candidates": [
+    {
+     "v": 14.0,
+     "page": 24,
+     "quote": "y Capacity 625 kg   Surface Operations Duration Up to 14 Days     NOTE:"
+    },
+    {
+     "v": 8.0,
+     "page": 51,
+     "quote": "Peregrine nominally operates for 192 hours, or 8 Earth days, followin"
+    }
+   ]
+  }
+ },
+ "thermal": {
+  "surface_range_c": {
+   "v": [
+    -30.0,
+    80.0
+   ],
+   "l": "declared",
+   "src": "p36: \"nutes in shadow     LUNAR SURFACE (-30\u00b0C TO 80\u00b0C) The ther\""
+  }
+ },
+ "landing": {
+  "max_slope_deg": {
+   "v": 10.0,
+   "l": "declared",
+   "src": "p51: \"d with an effective slope \u226410\u00b0. Sites wi\""
+  },
+  "max_rock_size_m": {
+   "v": 0.3,
+   "l": "declared",
+   "src": "p51: \"a maximum expected rock height of 0.3 m are prefe\""
+  },
+  "ellipse_radius_m": {
+   "v": 50.0,
+   "l": "derived",
+   "src": "p51: \"x 6 km ellipse to a 100 m x 100 m ellipse. Since GP\" -> radius = half the short side"
+  }
+ },
+ "comms": {
+  "data_rate_kbps": {
+   "v": 6250.0,
+   "l": "derived",
+   "src": "10.0 kbps/kg x 625.0 kg"
+  },
+  "mode": {
+   "v": "DTE",
+   "l": "derived",
+   "src": "p20: \"quencies within the X-Band range for\" (direct link with Earth ground stations)"
+  }
+ }
+}

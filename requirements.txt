@@ -1,0 +1,8 @@
+streamlit
+plotly
+numpy
+scipy
+rasterio
+pyproj
+skyfield
+pyshp

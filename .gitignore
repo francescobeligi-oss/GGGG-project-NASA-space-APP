@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.log
+data/dem/
+data/kernels/
+data/AVGVISIB*
+data/LPSR_*
+intake/*.pdf

@@ -1,0 +1,828 @@
+{
+ "product": "Lunar Site Scout - Site Assessment Report v1",
+ "generated_utc": "2026-11-14T10:33:24",
+ "summary": "Best option: land at Nobile rim 2 on 2027-02-07 12:00 UTC (GREEN, worst case GREEN). Sunlight 100-100% of the mission, Earth contact 99%, longest darkness 0 h.",
+ "best_options": [
+  {
+   "site": "DM2",
+   "site_name": "Nobile rim 2",
+   "landing_utc": "2027-02-07T12:00:00+00:00",
+   "verdict": "green",
+   "worst_case_verdict": "green",
+   "reasons": [],
+   "landing": {
+    "sun_elevation_deg": -1.713265061378479,
+    "sun_azimuth_deg": 107.61137390136719,
+    "sun_visible": true,
+    "earth_visible": true,
+    "earth_elevation_deg": 3.261273145675659,
+    "shadow_risk": "Sun -1.7 deg, below the local horizontal (visible only because the site is high): any local depression is in shadow. Craters smaller than about 10 m are not resolved by the 5 m terrain: check the ellipse with 1 m imagery (IM-2 Athena, 2025, ended in a 20 m crater)."
+   },
+   "light": {
+    "sun_hours": 336.0,
+    "sun_pct": 100.0,
+    "hours_to_sunset": 336.0,
+    "longest_dark_h": 0.0,
+    "dark_periods": 0
+   },
+   "comms": {
+    "contact_hours": 334.0,
+    "contact_pct": 99.40476190476191,
+    "passes": 5,
+    "longest_gap_h": 0.5,
+    "hours_to_earthset": 21.0,
+    "hours_to_earthrise": 0.0,
+    "data_possible_mb": 939375.0
+   },
+   "power": {
+    "array_needed_w": 1971.4116948301576,
+    "battery_needed_wh": 5874.925081680122
+   },
+   "ranges": {
+    "sun_pct": [
+     100.0,
+     100.0
+    ],
+    "longest_dark_h": [
+     0.0,
+     0.0
+    ],
+    "contact_pct": [
+     99.40476190476191,
+     99.40476190476191
+    ],
+    "battery_needed_wh": [
+     5646.587749676962,
+     6117.180390638557
+    ],
+    "max_sustainable_load_w": null,
+    "energy_kwh": null,
+    "array_needed_w": [
+     1971.4116664006292,
+     1976.1385547464374
+    ]
+   },
+   "terrain": {
+    "resolution_m": 5.0,
+    "median_deg": 3.6748766899108887,
+    "p90_deg": 4.897961139678955,
+    "safe_fraction": 1.0
+   },
+   "resources": {
+    "nearest_any_km": 0.583667629078885,
+    "nearest_over_0.01km2_km": 0.9140801715385848,
+    "nearest_over_1km2_km": 10.0462015355454
+   },
+   "orientation": "unknown: 8 orientations tested",
+   "terrain_uncertainty": {
+    "clones": 6,
+    "centre_sun_pct": [
+     100.0,
+     100.0
+    ],
+    "centre_longest_dark_h": [
+     0.0,
+     0.0
+    ]
+   }
+  },
+  {
+   "site": "Site20",
+   "site_name": "Leibnitz beta plateau",
+   "landing_utc": "2027-02-06T18:00:00+00:00",
+   "verdict": "green",
+   "worst_case_verdict": "green",
+   "reasons": [],
+   "landing": {
+    "sun_elevation_deg": -3.5736560821533203,
+    "sun_azimuth_deg": 143.83786010742188,
+    "sun_visible": true,
+    "earth_visible": true,
+    "earth_elevation_deg": 3.221954107284546,
+    "shadow_risk": "Sun -3.6 deg, below the local horizontal (visible only because the site is high): any local depression is in shadow. Craters smaller than about 10 m are not resolved by the 5 m terrain: check the ellipse with 1 m imagery (IM-2 Athena, 2025, ended in a 20 m crater)."
+   },
+   "light": {
+    "sun_hours": 325.5,
+    "sun_pct": 96.875,
+    "hours_to_sunset": 136.0,
+    "longest_dark_h": 10.5,
+    "dark_periods": 1
+   },
+   "comms": {
+    "contact_hours": 333.5,
+    "contact_pct": 99.25595238095238,
+    "passes": 6,
+    "longest_gap_h": 0.5,
+    "hours_to_earthset": 14.5,
+    "hours_to_earthrise": 0.0,
+    "data_possible_mb": 937968.75
+   },
+   "power": {
+    "array_needed_w": 2043.85077086362,
+    "battery_needed_wh": 12353.646825759992
+   },
+   "ranges": {
+    "sun_pct": [
+     95.53571428571429,
+     96.875
+    ],
+    "longest_dark_h": [
+     10.5,
+     10.5
+    ],
+    "contact_pct": [
+     96.72619047619048,
+     99.25595238095238
+    ],
+    "battery_needed_wh": [
+     10328.166881803612,
+     12353.647729424796
+    ],
+    "max_sustainable_load_w": null,
+    "energy_kwh": null,
+    "array_needed_w": [
+     2032.9956385077626,
+     2083.843614889962
+    ]
+   },
+   "terrain": {
+    "resolution_m": 5.0,
+    "median_deg": 5.561610698699951,
+    "p90_deg": 6.693301677703857,
+    "safe_fraction": 1.0
+   },
+   "resources": {
+    "nearest_any_km": 0.2872716484444645,
+    "nearest_over_0.01km2_km": 1.1178801724693044,
+    "nearest_over_1km2_km": 8.027070317544117
+   },
+   "orientation": "unknown: 8 orientations tested",
+   "terrain_uncertainty": {
+    "clones": 6,
+    "centre_sun_pct": [
+     96.875,
+     97.02380952380952
+    ],
+    "centre_longest_dark_h": [
+     10.0,
+     10.5
+    ]
+   }
+  },
+  {
+   "site": "Site07",
+   "site_name": "Peak near Shackleton",
+   "landing_utc": "2027-02-06T18:00:00+00:00",
+   "verdict": "green",
+   "worst_case_verdict": "green",
+   "reasons": [],
+   "landing": {
+    "sun_elevation_deg": 0.8330133557319641,
+    "sun_azimuth_deg": 52.55299377441406,
+    "sun_visible": true,
+    "earth_visible": true,
+    "earth_elevation_deg": -1.2128076553344727,
+    "shadow_risk": "Sun 0.8 deg above the local horizontal at landing: any depression or slope steeper than 0.8 deg facing away from the Sun is in shadow. Craters smaller than about 10 m are not resolved by the 5 m terrain: check the ellipse with 1 m imagery (IM-2 Athena, 2025, ended in a 20 m crater)."
+   },
+   "light": {
+    "sun_hours": 323.5,
+    "sun_pct": 96.27976190476191,
+    "hours_to_sunset": 301.5,
+    "longest_dark_h": 9.0,
+    "dark_periods": 2
+   },
+   "comms": {
+    "contact_hours": 333.5,
+    "contact_pct": 99.25595238095238,
+    "passes": 6,
+    "longest_gap_h": 0.5,
+    "hours_to_earthset": 14.5,
+    "hours_to_earthrise": 0.0,
+    "data_possible_mb": 937968.75
+   },
+   "power": {
+    "array_needed_w": 2042.2172601359791,
+    "battery_needed_wh": 12895.038437643812
+   },
+   "ranges": {
+    "sun_pct": [
+     96.27976190476191,
+     96.27976190476191
+    ],
+    "longest_dark_h": [
+     9.0,
+     9.0
+    ],
+    "contact_pct": [
+     98.21428571428571,
+     99.25595238095238
+    ],
+    "battery_needed_wh": [
+     8101.683164292888,
+     12895.039503891243
+    ],
+    "max_sustainable_load_w": null,
+    "energy_kwh": null,
+    "array_needed_w": [
+     2032.4263563059333,
+     2042.2172601359791
+    ]
+   },
+   "terrain": {
+    "resolution_m": 5.0,
+    "median_deg": 2.7143471240997314,
+    "p90_deg": 4.72385835647583,
+    "safe_fraction": 1.0
+   },
+   "resources": {
+    "nearest_any_km": 0.08223442101699265,
+    "nearest_over_0.01km2_km": 2.976820535403503,
+    "nearest_over_1km2_km": 6.0310719216169755
+   },
+   "orientation": "unknown: 8 orientations tested",
+   "terrain_uncertainty": {
+    "clones": 6,
+    "centre_sun_pct": [
+     96.27976190476191,
+     96.27976190476191
+    ],
+    "centre_longest_dark_h": [
+     9.0,
+     9.0
+    ]
+   }
+  }
+ ],
+ "landing_windows": {
+  "Haworth": [
+   {
+    "site": "Haworth rim",
+    "open": "2027-01-15T00:00:00+00:00",
+    "close": "2027-01-15T06:00:00+00:00",
+    "best": "2027-01-15T00:00:00+00:00"
+   },
+   {
+    "site": "Haworth rim",
+    "open": "2027-01-16T12:00:00+00:00",
+    "close": "2027-01-17T00:00:00+00:00",
+    "best": "2027-01-16T12:00:00+00:00"
+   },
+   {
+    "site": "Haworth rim",
+    "open": "2027-02-11T00:00:00+00:00",
+    "close": "2027-02-12T06:00:00+00:00",
+    "best": "2027-02-11T00:00:00+00:00"
+   }
+  ],
+  "Site07": [
+   {
+    "site": "Peak near Shackleton",
+    "open": "2027-01-15T00:00:00+00:00",
+    "close": "2027-01-20T06:00:00+00:00",
+    "best": "2027-01-15T00:00:00+00:00"
+   },
+   {
+    "site": "Peak near Shackleton",
+    "open": "2027-02-06T18:00:00+00:00",
+    "close": "2027-02-16T18:00:00+00:00",
+    "best": "2027-02-06T18:00:00+00:00"
+   },
+   {
+    "site": "Peak near Shackleton",
+    "open": "2027-03-07T00:00:00+00:00",
+    "close": "2027-03-16T00:00:00+00:00",
+    "best": "2027-03-07T00:00:00+00:00"
+   }
+  ],
+  "MonsMouton": [
+   {
+    "site": "Mons Mouton plateau (IM-2 target)",
+    "open": "2027-01-15T00:00:00+00:00",
+    "close": "2027-01-27T06:00:00+00:00",
+    "best": "2027-01-15T00:00:00+00:00"
+   },
+   {
+    "site": "Mons Mouton plateau (IM-2 target)",
+    "open": "2027-02-13T00:00:00+00:00",
+    "close": "2027-02-23T18:00:00+00:00",
+    "best": "2027-02-13T00:00:00+00:00"
+   },
+   {
+    "site": "Mons Mouton plateau (IM-2 target)",
+    "open": "2027-03-14T18:00:00+00:00",
+    "close": "2027-03-16T00:00:00+00:00",
+    "best": "2027-03-14T18:00:00+00:00"
+   }
+  ],
+  "Site06": [
+   {
+    "site": "Nobile rim 1",
+    "open": "2027-01-15T00:00:00+00:00",
+    "close": "2027-01-20T00:00:00+00:00",
+    "best": "2027-01-15T00:00:00+00:00"
+   },
+   {
+    "site": "Nobile rim 1",
+    "open": "2027-02-15T06:00:00+00:00",
+    "close": "2027-02-16T12:00:00+00:00",
+    "best": "2027-02-15T06:00:00+00:00"
+   }
+  ],
+  "Site04": [
+   {
+    "site": "Shackleton rim",
+    "open": "2027-01-15T06:00:00+00:00",
+    "close": "2027-01-17T12:00:00+00:00",
+    "best": "2027-01-15T06:00:00+00:00"
+   },
+   {
+    "site": "Shackleton rim",
+    "open": "2027-02-10T18:00:00+00:00",
+    "close": "2027-02-11T00:00:00+00:00",
+    "best": "2027-02-10T18:00:00+00:00"
+   },
+   {
+    "site": "Shackleton rim",
+    "open": "2027-02-11T18:00:00+00:00",
+    "close": "2027-02-11T18:00:00+00:00",
+    "best": "2027-02-11T18:00:00+00:00"
+   },
+   {
+    "site": "Shackleton rim",
+    "open": "2027-02-12T12:00:00+00:00",
+    "close": "2027-02-13T00:00:00+00:00",
+    "best": "2027-02-12T12:00:00+00:00"
+   },
+   {
+    "site": "Shackleton rim",
+    "open": "2027-03-09T18:00:00+00:00",
+    "close": "2027-03-11T12:00:00+00:00",
+    "best": "2027-03-09T18:00:00+00:00"
+   },
+   {
+    "site": "Shackleton rim",
+    "open": "2027-03-12T12:00:00+00:00",
+    "close": "2027-03-12T18:00:00+00:00",
+    "best": "2027-03-12T12:00:00+00:00"
+   }
+  ],
+  "DM2": [
+   {
+    "site": "Nobile rim 2",
+    "open": "2027-01-15T00:00:00+00:00",
+    "close": "2027-01-24T12:00:00+00:00",
+    "best": "2027-01-15T00:00:00+00:00"
+   },
+   {
+    "site": "Nobile rim 2",
+    "open": "2027-02-07T12:00:00+00:00",
+    "close": "2027-02-22T12:00:00+00:00",
+    "best": "2027-02-07T12:00:00+00:00"
+   },
+   {
+    "site": "Nobile rim 2",
+    "open": "2027-03-09T12:00:00+00:00",
+    "close": "2027-03-16T00:00:00+00:00",
+    "best": "2027-03-09T12:00:00+00:00"
+   }
+  ],
+  "Site01": [
+   {
+    "site": "Connecting ridge",
+    "open": "2027-01-15T00:00:00+00:00",
+    "close": "2027-01-19T12:00:00+00:00",
+    "best": "2027-01-15T00:00:00+00:00"
+   },
+   {
+    "site": "Connecting ridge",
+    "open": "2027-02-06T06:00:00+00:00",
+    "close": "2027-02-10T00:00:00+00:00",
+    "best": "2027-02-06T06:00:00+00:00"
+   },
+   {
+    "site": "Connecting ridge",
+    "open": "2027-02-10T12:00:00+00:00",
+    "close": "2027-02-11T12:00:00+00:00",
+    "best": "2027-02-10T12:00:00+00:00"
+   },
+   {
+    "site": "Connecting ridge",
+    "open": "2027-02-12T00:00:00+00:00",
+    "close": "2027-02-12T06:00:00+00:00",
+    "best": "2027-02-12T00:00:00+00:00"
+   },
+   {
+    "site": "Connecting ridge",
+    "open": "2027-02-12T18:00:00+00:00",
+    "close": "2027-02-13T06:00:00+00:00",
+    "best": "2027-02-12T18:00:00+00:00"
+   },
+   {
+    "site": "Connecting ridge",
+    "open": "2027-02-14T00:00:00+00:00",
+    "close": "2027-02-14T00:00:00+00:00",
+    "best": "2027-02-14T00:00:00+00:00"
+   },
+   {
+    "site": "Connecting ridge",
+    "open": "2027-02-14T18:00:00+00:00",
+    "close": "2027-02-15T12:00:00+00:00",
+    "best": "2027-02-14T18:00:00+00:00"
+   },
+   {
+    "site": "Connecting ridge",
+    "open": "2027-03-05T12:00:00+00:00",
+    "close": "2027-03-10T00:00:00+00:00",
+    "best": "2027-03-05T12:00:00+00:00"
+   },
+   {
+    "site": "Connecting ridge",
+    "open": "2027-03-11T00:00:00+00:00",
+    "close": "2027-03-11T00:00:00+00:00",
+    "best": "2027-03-11T00:00:00+00:00"
+   },
+   {
+    "site": "Connecting ridge",
+    "open": "2027-03-11T18:00:00+00:00",
+    "close": "2027-03-12T00:00:00+00:00",
+    "best": "2027-03-11T18:00:00+00:00"
+   }
+  ],
+  "Site11": [
+   {
+    "site": "de Gerlache rim",
+    "open": "2027-01-15T00:00:00+00:00",
+    "close": "2027-01-20T06:00:00+00:00",
+    "best": "2027-01-15T00:00:00+00:00"
+   },
+   {
+    "site": "de Gerlache rim",
+    "open": "2027-02-06T06:00:00+00:00",
+    "close": "2027-02-09T00:00:00+00:00",
+    "best": "2027-02-06T06:00:00+00:00"
+   },
+   {
+    "site": "de Gerlache rim",
+    "open": "2027-02-12T00:00:00+00:00",
+    "close": "2027-02-12T06:00:00+00:00",
+    "best": "2027-02-12T00:00:00+00:00"
+   },
+   {
+    "site": "de Gerlache rim",
+    "open": "2027-02-13T06:00:00+00:00",
+    "close": "2027-02-13T06:00:00+00:00",
+    "best": "2027-02-13T06:00:00+00:00"
+   },
+   {
+    "site": "de Gerlache rim",
+    "open": "2027-02-15T06:00:00+00:00",
+    "close": "2027-02-15T06:00:00+00:00",
+    "best": "2027-02-15T06:00:00+00:00"
+   },
+   {
+    "site": "de Gerlache rim",
+    "open": "2027-02-16T06:00:00+00:00",
+    "close": "2027-02-16T06:00:00+00:00",
+    "best": "2027-02-16T06:00:00+00:00"
+   },
+   {
+    "site": "de Gerlache rim",
+    "open": "2027-02-16T18:00:00+00:00",
+    "close": "2027-02-16T18:00:00+00:00",
+    "best": "2027-02-16T18:00:00+00:00"
+   },
+   {
+    "site": "de Gerlache rim",
+    "open": "2027-03-05T12:00:00+00:00",
+    "close": "2027-03-08T00:00:00+00:00",
+    "best": "2027-03-05T12:00:00+00:00"
+   },
+   {
+    "site": "de Gerlache rim",
+    "open": "2027-03-08T12:00:00+00:00",
+    "close": "2027-03-09T12:00:00+00:00",
+    "best": "2027-03-08T12:00:00+00:00"
+   }
+  ],
+  "Site20": [
+   {
+    "site": "Leibnitz beta plateau",
+    "open": "2027-01-15T00:00:00+00:00",
+    "close": "2027-01-20T00:00:00+00:00",
+    "best": "2027-01-15T00:00:00+00:00"
+   },
+   {
+    "site": "Leibnitz beta plateau",
+    "open": "2027-02-06T18:00:00+00:00",
+    "close": "2027-02-12T06:00:00+00:00",
+    "best": "2027-02-06T18:00:00+00:00"
+   },
+   {
+    "site": "Leibnitz beta plateau",
+    "open": "2027-02-13T00:00:00+00:00",
+    "close": "2027-02-16T06:00:00+00:00",
+    "best": "2027-02-13T00:00:00+00:00"
+   },
+   {
+    "site": "Leibnitz beta plateau",
+    "open": "2027-03-07T12:00:00+00:00",
+    "close": "2027-03-10T12:00:00+00:00",
+    "best": "2027-03-07T12:00:00+00:00"
+   },
+   {
+    "site": "Leibnitz beta plateau",
+    "open": "2027-03-12T00:00:00+00:00",
+    "close": "2027-03-13T12:00:00+00:00",
+    "best": "2027-03-12T00:00:00+00:00"
+   }
+  ],
+  "Shoemaker": [
+   {
+    "site": "Shoemaker rim",
+    "open": "2027-01-15T00:00:00+00:00",
+    "close": "2027-01-18T06:00:00+00:00",
+    "best": "2027-01-15T00:00:00+00:00"
+   },
+   {
+    "site": "Shoemaker rim",
+    "open": "2027-02-08T06:00:00+00:00",
+    "close": "2027-02-14T18:00:00+00:00",
+    "best": "2027-02-08T06:00:00+00:00"
+   },
+   {
+    "site": "Shoemaker rim",
+    "open": "2027-03-09T18:00:00+00:00",
+    "close": "2027-03-14T00:00:00+00:00",
+    "best": "2027-03-09T18:00:00+00:00"
+   }
+  ]
+ },
+ "scanned": {
+  "landing_times": 2651,
+  "sites": 11
+ },
+ "provenance": [
+  {
+   "field": "mission.type",
+   "value": "robotic_lander",
+   "label": "declared",
+   "source": "PUG p24, polar configuration"
+  },
+  {
+   "field": "mission.duration_days",
+   "value": 14,
+   "label": "declared",
+   "source": "PUG p24: surface operations duration up to 14 days"
+  },
+  {
+   "field": "timing.earliest_landing_utc",
+   "value": "2027-01-15T00:00",
+   "label": "asked",
+   "source": "press: launch NET late 2026; cruise 3-33 d + lunar orbit 4-25 d (PUG p52) - to confirm"
+  },
+  {
+   "field": "timing.max_slip_days",
+   "value": 60,
+   "label": "asked",
+   "source": null
+  },
+  {
+   "field": "landing.ellipse_radius_m",
+   "value": 50,
+   "label": "derived",
+   "source": "PUG p51: OPAL improves accuracy to a 100 m x 100 m ellipse"
+  },
+  {
+   "field": "landing.max_slope_deg",
+   "value": 10,
+   "label": "declared",
+   "source": "PUG p51: sites selected with effective slope <= 10 deg"
+  },
+  {
+   "field": "landing.earth_visible_at_landing",
+   "value": true,
+   "label": "derived",
+   "source": "PUG p30: lander-Earth link in X-band (direct to Earth)"
+  },
+  {
+   "field": "landing.max_rock_size_m",
+   "value": 0.3,
+   "label": "declared",
+   "source": "PUG p51: max expected rock height 0.3 m preferred"
+  },
+  {
+   "field": "power.panels",
+   "value": [
+    {
+     "peak_w": null,
+     "tilt_deg": 90,
+     "azimuth_deg": 0
+    },
+    {
+     "peak_w": null,
+     "tilt_deg": 90,
+     "azimuth_deg": 90
+    },
+    {
+     "peak_w": null,
+     "tilt_deg": 90,
+     "azimuth_deg": 180
+    },
+    {
+     "peak_w": null,
+     "tilt_deg": 90,
+     "azimuth_deg": 270
+    }
+   ],
+   "label": "derived",
+   "source": "PUG p24: side-mounted solar panels for polar missions; four sides assumed from the square deck - power not given"
+  },
+  {
+   "field": "power.load_operations_w",
+   "value": 625,
+   "label": "derived",
+   "source": "PUG p5: 1.0 W per kg of payload x 625 kg (p24) - payload power only"
+  },
+  {
+   "field": "comms.mode",
+   "value": "DTE",
+   "label": "declared",
+   "source": "PUG p30: X-band uplink and downlink with Earth"
+  },
+  {
+   "field": "comms.ground_stations",
+   "value": "DSN",
+   "label": "asked",
+   "source": "PUG p48: ground stations, network to confirm"
+  },
+  {
+   "field": "comms.data_rate_kbps",
+   "value": 6250,
+   "label": "derived",
+   "source": "PUG p5/p56: 10 kbps per kg x 625 kg"
+  }
+ ],
+ "assumptions": [
+  "power.lander_yaw_deg: 8 orientations tested -> range",
+  "power.panel_height_m: 2 m - convention",
+  "power.battery_wh: requirement: battery needed",
+  "power.battery_dod: 0.8 - convention",
+  "power.charge_efficiency: 0.95 - convention",
+  "comms.antenna_height_m: same as panel height",
+  "comms.min_earth_elevation_deg: 0 deg - convention",
+  "comms.min_pass_hours: 0 h",
+  "site.candidate_sites: all 11 characterised sites"
+ ],
+ "missing_core_fields": [],
+ "not_evaluated": [
+  "rock and crater size inside the ellipse",
+  "Sun direction vs approach trajectory",
+  "distance to other landers and infrastructure",
+  "full thermal model (proxy used)"
+ ],
+ "validation": {
+  "generated_utc": "2026-11-14T10:12:13",
+  "A_horizons": {
+   "comparisons": 80,
+   "max_az_err_deg": 1.5961296867317287e-05,
+   "max_el_err_deg": 1.5545164123498267e-05,
+   "threshold_deg": 0.01,
+   "passed": true
+  },
+  "B_nasa_maps": {
+   "note": "Like-for-like: our model evaluated at the 9 NASA 60 m pixel centres around each site, 0.5 m above ground, over a full 18.6-year cycle (2-hour step). Earth counted visible if any part of the disc is visible (NASA definition).",
+   "sites": [
+    {
+     "site": "Connecting ridge",
+     "sun_ours": 54.8,
+     "sun_nasa": 58.9,
+     "sun_max_pixel_diff": 30.3,
+     "earth_ours": 53.8,
+     "earth_nasa": 54.6,
+     "earth_max_pixel_diff": 6.2,
+     "sun_diff": -4.1,
+     "earth_diff": -0.8
+    },
+    {
+     "site": "Shackleton rim",
+     "sun_ours": 46.1,
+     "sun_nasa": 57.0,
+     "sun_max_pixel_diff": 35.9,
+     "earth_ours": 37.5,
+     "earth_nasa": 37.9,
+     "earth_max_pixel_diff": 30.2,
+     "sun_diff": -10.9,
+     "earth_diff": -0.4
+    },
+    {
+     "site": "Peak near Shackleton",
+     "sun_ours": 47.3,
+     "sun_nasa": 60.7,
+     "sun_max_pixel_diff": 38.5,
+     "earth_ours": 53.2,
+     "earth_nasa": 54.6,
+     "earth_max_pixel_diff": 8.2,
+     "sun_diff": -13.4,
+     "earth_diff": -1.4
+    },
+    {
+     "site": "de Gerlache rim",
+     "sun_ours": 56.1,
+     "sun_nasa": 62.2,
+     "sun_max_pixel_diff": 18.3,
+     "earth_ours": 57.6,
+     "earth_nasa": 58.2,
+     "earth_max_pixel_diff": 9.1,
+     "sun_diff": -6.1,
+     "earth_diff": -0.6
+    },
+    {
+     "site": "Malapert massif",
+     "sun_ours": 36.4,
+     "sun_nasa": 41.8,
+     "sun_max_pixel_diff": 11.7,
+     "earth_ours": 29.5,
+     "earth_nasa": 33.8,
+     "earth_max_pixel_diff": 28.3,
+     "sun_diff": -5.4,
+     "earth_diff": -4.3
+    },
+    {
+     "site": "Nobile rim 1",
+     "sun_ours": 47.7,
+     "sun_nasa": 62.2,
+     "sun_max_pixel_diff": 28.1,
+     "earth_ours": 51.8,
+     "earth_nasa": 55.6,
+     "earth_max_pixel_diff": 17.0,
+     "sun_diff": -14.5,
+     "earth_diff": -3.8
+    },
+    {
+     "site": "Leibnitz beta plateau",
+     "sun_ours": 48.3,
+     "sun_nasa": 64.7,
+     "sun_max_pixel_diff": 27.5,
+     "earth_ours": 51.4,
+     "earth_nasa": 53.9,
+     "earth_max_pixel_diff": 3.7,
+     "sun_diff": -16.4,
+     "earth_diff": -2.5
+    },
+    {
+     "site": "Haworth rim",
+     "sun_ours": 26.1,
+     "sun_nasa": 28.2,
+     "sun_max_pixel_diff": 7.2,
+     "earth_ours": 37.4,
+     "earth_nasa": 37.6,
+     "earth_max_pixel_diff": 5.6,
+     "sun_diff": -2.1,
+     "earth_diff": -0.2
+    },
+    {
+     "site": "Shoemaker rim",
+     "sun_ours": 38.9,
+     "sun_nasa": 50.3,
+     "sun_max_pixel_diff": 28.7,
+     "earth_ours": 45.1,
+     "earth_nasa": 45.2,
+     "earth_max_pixel_diff": 0.1,
+     "sun_diff": -11.4,
+     "earth_diff": -0.1
+    }
+   ],
+   "mean_abs_sun_diff": 9.4,
+   "mean_abs_earth_diff": 1.6
+  },
+  "C_published": [
+   {
+    "reference": "ESA lunar lander study (Koebel et al.): connecting ridge 89 28'S 136 40'W, 85.7% illumination",
+    "ours_position": "-89.4389, -137.0960",
+    "ours_illumination": 85.1
+   }
+  ],
+  "D_unit_tests": {
+   "tests": {
+    "time grid starts 2026-11-01 00:00 UTC, exact 30-min steps": true,
+    "disc fully visible when Sun 1 deg above a flat horizon": true,
+    "disc hidden when Sun 1 deg below the horizon": true,
+    "half disc when Sun centre on the horizon": true,
+    "flat panel power = peak x sin(elevation)": true,
+    "vertical panel: full power facing the Sun, zero facing away": true,
+    "battery: 800 Wh usable at 100 W lasts exactly 8 h": true
+   },
+   "passed": true
+  },
+  "B2_resolution_test": {
+   "finding": "On 80 m terrain our long-term sunlight matches NASA within about +-8 points with no systematic sign (Connecting ridge 66.7 vs 58.9, Peak near Shackleton 64.5 vs 60.7, Nobile rim 1 64.0 vs 62.2, Leibnitz beta 57.0 vs 64.7, Shoemaker 50.2 vs 50.3). On 5 m terrain at 0.5 m height our values are systematically lower: small-scale relief blocks the grazing Sun. This is a resolution effect, consistent with Barker et al. (2021), not an engine error. Our product uses 5 m terrain and the real hardware height, so it is conservative compared with 60 m maps.",
+   "conclusion": "No systematic engine error; residual pixel-level differences come from terrain resolution and DEM version."
+  }
+ },
+ "data_sources": [
+  "NASA GSFC LOLA 5 m site DEMs, 10 m (83S) and 80 m south polar DEMs, LOLA DEM clones",
+  "JPL DE421 ephemerides (validated vs JPL Horizons)",
+  "NASA LOLA permanently shadowed regions catalogue",
+  "NASA DSN station locations"
+ ]
+}
