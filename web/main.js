@@ -495,9 +495,11 @@ async function buildSite(sid) {
   if (X.sid === sid) return; X.sid = sid;
   if (X.inner) { X.inner.geometry.dispose(); X.inner = null; }
   for (const k of ['mesh', 'far']) if (X[k]) { X.scene.remove(X[k]); X[k].geometry.dispose(); X[k] = null; }
-  const site = await siteMeta(sid), z = await siteTerrain(sid);
-  const t = S.info.sites, n = t.shape[0], half = t.half_width_m, h0 = z[((n - 1) / 2) * n + (n - 1) / 2], ox = site.x_m, oy = site.y_m;
+  const site = await siteMeta(sid), z0 = await siteTerrain(sid);
+  const t = S.info.sites, n = t.shape[0], half = t.half_width_m, h0 = z0[((n - 1) / 2) * n + (n - 1) / 2], ox = site.x_m, oy = site.y_m;
   // full 10 m detail in the inner 3 km where you stand and walk, 20 m further out: a quarter of the triangles
+  const z = z0.slice(); // the last 600 m of the 10 m terrain blend into the 600 m regional terrain: no step and no square edge
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const e = Math.min(i, j, n - 1 - i, n - 1 - j) * t.pixel_m; if (e < 600) { const w = 1 - e / 600, s = w * w * (3 - 2 * w); z[i * n + j] += (regionH(ox - half + j * t.pixel_m, oy + half - i * t.pixel_m) - z[i * n + j]) * s; } }
   const ih = 1500, ic = (n - 1) / 2, ir = ih / t.pixel_m, inn = 2 * ir + 1, isub = new Float32Array(inn * inn);
   for (let i = 0; i < inn; i++) isub.set(z.subarray((ic - ir + i) * n + ic - ir, (ic - ir + i) * n + ic - ir + inn), i * inn);
   const g = gridGeometry(z, n, t.pixel_m, half, GQ.low ? 4 : 2, { gcx: ox, gcy: oy, ox, oy, h0, hole: ih + 1 }); siteColours(g, 0.74);
@@ -507,8 +509,8 @@ async function buildSite(sid) {
   const rt = S.info.region, rn = rt.shape[0], sn = 181, hw = 90, sub = new Float32Array(sn * sn);
   const ci = Math.round((rt.half_width_m - oy) / rt.pixel_m), cj = Math.round((ox + rt.half_width_m) / rt.pixel_m);
   for (let i = 0; i < sn; i++) for (let j = 0; j < sn; j++) sub[i * sn + j] = S.region[Math.max(0, Math.min(rn - 1, ci - hw + i)) * rn + Math.max(0, Math.min(rn - 1, cj - hw + j))];
-  const fg = gridGeometry(sub, sn, rt.pixel_m, hw * rt.pixel_m, 1, { gcx: -rt.half_width_m + cj * rt.pixel_m, gcy: rt.half_width_m - ci * rt.pixel_m, ox, oy, h0, hole: half - 600 }); siteColours(fg, 0.64);
-  X.far = new THREE.Mesh(fg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 })); X.scene.add(X.far);
+  const fg = gridGeometry(sub, sn, rt.pixel_m, hw * rt.pixel_m, 1, { gcx: -rt.half_width_m + cj * rt.pixel_m, gcy: rt.half_width_m - ci * rt.pixel_m, ox, oy, h0, hole: half - 600 }); siteColours(fg, 0.74);
+  X.far = new THREE.Mesh(fg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 4 })); X.far.receiveShadow = true; X.scene.add(X.far);
   Object.assign(X, { site, z, n, h0, half, px: t.pixel_m, box: new THREE.Box3().setFromBufferAttribute(g.attributes.position), farBox: new THREE.Box3().setFromBufferAttribute(fg.attributes.position) });
 }
 function setRing(radius) {
