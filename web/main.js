@@ -10,11 +10,13 @@ const D = 'web-data/';
 const R_MOON = 1737400;
 const getJSON = p => fetch(D + p).then(r => { if (!r.ok) throw new Error(`Could not load ${p}`); return r.json(); });
 const getBuf = p => fetch(D + p).then(r => { if (!r.ok) throw new Error(`Could not load ${p}`); return r.arrayBuffer(); });
-async function getBufProgress(p, onp) { // download with a progress callback (0..1)
+async function getBufProgress(p, onp) { // download with a progress callback (0..1); safe when the server compresses the file
   const r = await fetch(D + p); if (!r.ok) throw new Error(`Could not load ${p}`);
-  const total = +r.headers.get('content-length') || 0; if (!r.body || !total) return r.arrayBuffer();
-  const rd = r.body.getReader(), out = new Uint8Array(total); let got = 0;
-  for (;;) { const { done, value } = await rd.read(); if (done) break; out.set(value, got); got += value.length; onp(got / total); }
+  const t = S.info && S.info.region, expect = t ? t.shape[0] * t.shape[1] * 4 : 0; // the real size after decompression
+  if (!r.body || !expect) return r.arrayBuffer();
+  const rd = r.body.getReader(), parts = []; let got = 0;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; onp(Math.min(1, got / expect)); }
+  const out = new Uint8Array(got); let o = 0; for (const c of parts) { out.set(c, o); o += c.length; }
   return out.buffer;
 }
 const rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
