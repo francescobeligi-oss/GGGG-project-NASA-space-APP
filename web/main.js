@@ -522,16 +522,16 @@ function placeDiscover() {
     markers.push({ el, site: { lat: p.lat, lon: p.lon, x_m, y_m }, disc: true, w: 40 });
   }
 }
-function discoverCard(p, el) {
+function discoverCard(p, el, inExplore) {
   $$('.pop').forEach(x => x.remove());
-  flyTo(M.moon.localToWorld(globePoint(p.lat, p.lon, 1)), Math.min(NAV.d, 0.05));
+  if (!inExplore) flyTo(M.moon.localToWorld(globePoint(p.lat, p.lon, 1)), Math.min(NAV.d, 0.05));
   const pop = document.createElement('div'); pop.className = `pop dcard c-${p.cat}`; const src = [p.source, p.source2].filter(Boolean);
   pop.innerHTML = `<div class="dchip"><span class="dic">${DICON[p.cat] || ''}</span>${esc(S.discover.cats[p.cat])}</div><b>${esc(p.title)}</b>
     <div class="dsec"><span>What it is</span>${esc(p.what)}</div><div class="dsec"><span>Why it matters</span>${esc(p.why)}</div>
     <div class="small">Source: ${src.map(q => `<a href="${q.url}" target="_blank" rel="noopener">${esc(q.label)}</a>`).join('; ')}</div>
     <button class="dclose" aria-label="Close">×</button>`;
-  document.body.appendChild(pop); pop.__anchor = el; pop.querySelector('.dclose').onclick = () => pop.remove();
-  const r = el.getBoundingClientRect(); pop.style.left = Math.min(innerWidth - 360, r.left) + 'px'; pop.style.top = Math.min(innerHeight - 320, r.bottom + 8) + 'px';
+  pop.style.visibility = 'hidden'; pop.style.top = '84px'; pop.style.left = '10px'; document.body.appendChild(pop); pop.__anchor = el; pop.querySelector('.dclose').onclick = () => { pop.remove(); GQ.dirty = true; };
+  const r = el.getBoundingClientRect(), right = innerWidth > 980 ? innerWidth - 450 : innerWidth - 10; pop.style.left = Math.max(10, Math.min(right - 345, r.left - 20)) + 'px'; pop.style.top = Math.max(84, Math.min(innerHeight - pop.offsetHeight - 12, r.top - 40)) + 'px'; pop.style.visibility = ''; GQ.dirty = true; GQ.activeUntil = performance.now() + 600;
   setTimeout(() => addEventListener('pointerdown', function off(e) { if (!pop.contains(e.target) && !e.target.closest('.pin.disc')) { pop.remove(); removeEventListener('pointerdown', off); } }), 0);
 }
 function rankPopover(i, el) {
@@ -1337,7 +1337,7 @@ function frame(now) {
   GQ.dirty = false;
   if (anim) anim(now);
   renderer.clear();
-  if (scene === 'moon') { const xp0 = $('#xPin'); if (xp0) xp0.style.display = 'none';
+  if (scene === 'moon') { const xp0 = $('#xPin'); if (xp0) xp0.style.display = 'none'; if (X.dpins) X.dpins.forEach(q => q.el.style.display = 'none');
     const k = 1 - Math.pow(0.12, dt);
     if (S.screen === 'hero' && !anim && !M.map && storyApply(dt)) { storyChapter(); }
     else if (!M.map && !anim) {
@@ -1405,7 +1405,14 @@ function frame(now) {
       if (Math.abs(X.camera.near / nr - 1) > 0.1 || Math.abs(X.camera.far / fr - 1) > 0.1) { X.camera.near = nr; X.camera.far = fr; X.camera.updateProjectionMatrix(); } }
     { const xp = $('#xPin'), far = S.view === 'region' || S.view === 'orbit'; // label the landing spot when it is too small to see
       if (xp && far && X.ring && S.screen === 'explore') { v3.set(0, localH(0, 0) + 2, 0).project(X.camera); const px = (v3.x + 1) / 2 * innerWidth, py = (1 - v3.y) / 2 * innerHeight; const ok = v3.z < 1 && px > 0 && px < innerWidth && py > 0 && py < innerHeight; xp.style.display = ok ? '' : 'none'; if (ok) xp.style.transform = `translate(${px}px, ${py}px)`; }
-      else if (xp) xp.style.display = 'none'; }
+      else if (xp) xp.style.display = 'none';
+      // Discover icons around the site in the far views, when Discover is on
+      if (S.discover && X.site) { if (!X.dpins) { X.dpins = S.discover.items.map(p => { const rho = 2 * R_MOON * Math.tan(rad(90 + p.lat) / 2), x_m = rho * Math.sin(rad(p.lon)), y_m = rho * Math.cos(rad(p.lon));
+          const el = document.createElement('button'); el.className = `pin disc xdisc c-${p.cat}`; el.innerHTML = `<span class="dic">${DICON[p.cat] || ''}</span><span class="dl">${esc(p.name)}</span>`; el.style.display = 'none'; el.onclick = () => discoverCard(p, el, true); document.body.appendChild(el); return { el, x_m, y_m }; }); }
+        for (const q of X.dpins) { let ok = far && S.showDiscover && S.screen === 'explore';
+          if (ok) { const dx = q.x_m - X.site.x_m, dy = q.y_m - X.site.y_m; v3.set(dx, regionH(q.x_m, q.y_m) - X.h0 - (dx * dx + dy * dy) / (2 * R_MOON) + 300, -dy).project(X.camera); const px = (v3.x + 1) / 2 * innerWidth, py = (1 - v3.y) / 2 * innerHeight;
+            ok = v3.z < 1 && px > 10 && px < innerWidth - 440 && py > 130 && py < innerHeight - 110; if (ok) q.el.style.transform = `translate(${px}px, ${py}px)`; }
+          q.el.style.display = ok ? '' : 'none'; } } }
     renderer.render(X.sky, X.camera); renderer.clearDepth(); renderer.render(X.scene, X.camera); GQ.sig = X.camera.matrixWorld.elements.join(',') + X.camera.projectionMatrix.elements[0];
   }
   requestAnimationFrame(frame);
@@ -1424,7 +1431,8 @@ $('#back').onclick = () => {
 $('#openCal').onclick = () => openCalendar();
 $('#placesT').onclick = () => { S.showPlaces = !S.showPlaces; $('#placesT').setAttribute('aria-pressed', S.showPlaces); };
 const toast = (msg, ms = 4200) => { const t = $('#edgeToast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), ms); };
-$('#discT').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite');
+$('#discX').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discX').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite'); if (S.showDiscover && (S.view === 'fp' || S.view === 'drone')) setView('region'); if (!S.showDiscover) $$('.pop.dcard').forEach(x => x.remove()); GQ.dirty = true; };
+$('#discT').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discX').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite');
   if (S.showDiscover && S.discover) toast(`${S.discover.items.length} places to discover: water, hazards and history. Fly around and click a glowing icon.`, 5200); if (!S.showDiscover) $$('.pop.dcard').forEach(x => x.remove()); GQ.dirty = true; };
 $('#closeCal').onclick = () => $('#calendar').classList.remove('open');
 const CTX = () => ({ COST, PRICES, priceNow, costDark, battKg, valueLost, lostHours, BATT_WH_PER_KG, MISSIONS, VEXPERT, vx, verdictOf });

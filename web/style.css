@@ -602,3 +602,8 @@ body.wide #results .map-key { max-width: calc(100vw - 120px); }
 #results .navctl { top: 132px; transform: none; }
 #results .map-key .layer.disc-t[aria-pressed="false"] { opacity: 1; text-decoration: none; color: #f5d27a; border-color: rgba(245,200,74,.45); }
 #results .map-key .layer.disc-t[aria-pressed="true"] { background: rgba(245,200,74,.16); border-color: #f5c84a; }
+.pin.xdisc { position: fixed; z-index: 4; }
+.look .disc-x { color: #f5d27a; } .look .disc-x .spark { width: 9px; height: 9px; display: inline-block; margin-right: 6px; background: #f5c84a; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+.look .disc-x[aria-pressed="true"] { background: rgba(245,200,74,.16); }
+.pop.dcard { max-height: calc(100vh - 100px); overflow: auto; }
+.pop.dcard { align-content: start; height: auto; }
