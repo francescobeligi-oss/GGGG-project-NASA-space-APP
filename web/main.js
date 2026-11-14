@@ -842,11 +842,12 @@ function cardFacts(x, m) {
 // When the centre of the site stays dark for more than two days we show it as "with care" and say why: no contradiction on screen.
 const dateVerdict = (v, m) => v === 'green' && m && m.longestDark > 48 ? 'yellow' : v;
 const darkNote = m => m && m.longestDark > 48 ? `Needs a battery for ${hrs(m.longestDark)} of darkness.` : '';
+const dateWhy = q => darkNote(q) && q.sunPct >= 50 ? darkNote(q) : q.sunPct < 50 ? 'Dark for most of the stay.' : q.longestDark > 24 ? `Dark for up to ${hrs(q.longestDark)}.` : q.contactPct < 90 ? 'Earth is out of view for part of the stay, so no direct radio link then.' : 'The centre is fine on this date, but part of the landing area fails the checks.';
 function renderResults() {
   const o = S.data.options, best = o[0], v = verdictOf(best), common = S.whenIdx != null && S.when;
   const head = { green: `Land at ${best.site_name}.`, yellow: `${best.site_name} is your best option.`, red: 'No site fully meets your needs.' };
   $('#answer').textContent = head[v];
-  $('#answerSub').innerHTML = `<span class="sp">${v === 'red' ? 'These are the closest matches. Each card says what goes wrong.' : `Best landing time: ${dateTime(best.landing_utc)}.`}</span><span class="xp">${esc(S.data.trust_badge)}.</span>`;
+  $('#answerSub').innerHTML = `<span class="sp">${v === 'red' ? 'These are the closest matches. Each card says what goes wrong.' : `Best landing time: ${dateTime(best.landing_utc)}.${common && S.when[best.site] ? ` Cards below show ${date(S.when[best.site][S.whenIdx].utc)}.` : ''}`}</span><span class="xp">${esc(S.data.trust_badge)}.</span>`;
   const cal = S.data.calendar;
   $('#cards').innerHTML = o.map((x, i) => {
     let vv = verdictOf(x), when = date(x.landing_utc), m = null;
@@ -856,7 +857,7 @@ function renderResults() {
       <div class="verdict" style="color:${VC[vv]}"><span class="sp">${VSIMPLE[vv]}</span><span class="xp">${vx(vv)}</span></div>
       ${cardFacts(x, m)}
       ${!common && x.reasons && x.reasons.length ? `<p class="why">${esc(x.reasons[0])}</p>` : ''}
-      ${common ? `<p class="why">${darkNote(m) && vv === 'yellow' ? darkNote(m) : vv !== 'green' && m && m.sunPct >= 99 && m.contactPct >= 90 ? 'The centre of the site is fine on this date, but part of the landing area fails the checks.' : '<span class="xp">Numbers at the centre of the site; the verdict covers the whole landing area.</span>'}</p>` : ''}
+      ${common ? `<p class="why">${vv !== 'green' && m ? dateWhy(m) : '<span class="xp">Numbers at the centre of the site; the verdict covers the whole landing area.</span>'}</p>` : ''}
       <button class="btn go3d" data-open="${i}">See it in 3D</button></article>`;
   }).join('');
   $$('[data-open]').forEach(b => b.onclick = () => openExplore(+b.dataset.open));
@@ -1098,7 +1099,7 @@ function renderCompare() {
   const cv = x => { const row = common && cal.sites[x.site] && cal.sites[x.site][S.whenIdx]; return row ? dateVerdict(row[2], mm(x)) : verdictOf(x); };
   const stale = '<i class="stale">at its best date</i>';
   const why = x => { const q = mm(x); if (!q || cv(x) === 'green') return ''; // a short reason when a site fails on the chosen date
-    const r = darkNote(q) && q.sunPct >= 50 ? darkNote(q) : q.sunPct < 50 ? 'Dark for most of the stay' : q.longestDark > 24 ? `Dark for up to ${hrs(q.longestDark)}` : q.contactPct < 50 ? 'Earth out of view much of the time' : 'Part of the landing area fails the checks';
+    const r = dateWhy(q).replace(/\.$/, '');
     return `<i class="stale">${r}</i>`; };
   const prev = S.cmpPrev || {}; S.cmpPrev = {};
   const o = S.data.options, rr = (x, k) => x.ranges && x.ranges[k] ? x.ranges[k] : null, darkW = x => (rr(x, 'longest_dark_h') || [0, x.light.longest_dark_h])[1];
@@ -1312,10 +1313,16 @@ function frame(now) {
       if (vis) { m.el.classList.toggle('flip', side === 'l'); m.el.classList.toggle('bare', side === 'n'); m.el.style.transform = `translate(${px}px, ${py}px)${side === 'l' ? ' translateX(-100%)' : ''}`; } m.el.__p = vis ? [px, py] : null;
     }
     // after flying to the overview: if a recommended site is out of the free area, step back and re-centre until all three show
-    if (showPins && S.fit && !NAV.fly && !navMoving) {
-      const tops = markers.filter(q => q.top), out = tops.filter(q => !q.el.__raw || q.el.__raw[1] > barTop - 40 || q.el.__raw[1] < 90 || q.el.__raw[0] < 10 || q.el.__raw[0] > cardLeft - 40);
-      if (!out.length) S.fit = 0;
-      else { S.fit--; const c = out.reduce((a, q) => a.add(siteWorld(q.site).normalize()), new THREE.Vector3()).normalize(); NAV.t.lerp(c, 0.35).normalize(); NAV.d = Math.min(D_MAX, NAV.d * 1.25); NAV.fly = true; }
+    if (showPins && S.fit && !NAV.fly && NAV.cur && !NAV.vel && NAV.cur.t.angleTo(NAV.t) < 2e-3 && Math.abs(Math.log(NAV.cur.d / NAV.d)) < 0.05) {
+      const tops = markers.filter(q => q.top && q.el.__raw), fx0 = 20, fx1 = cardLeft - 40, fy0 = Math.max(110, ($('.res-tools').getBoundingClientRect().bottom || 200) + 20), fy1 = barTop - 50;
+      const xs = tops.map(q => q.el.__raw[0]), ys = tops.map(q => q.el.__raw[1]), x0 = Math.min(...xs) - 30, x1 = Math.max(...xs) + 230, y0 = Math.min(...ys) - 20, y1 = Math.max(...ys) + 20;
+      const fits = tops.length && x0 >= fx0 && x1 <= fx1 && y0 >= fy0 && y1 <= fy1;
+      if (fits || !tops.length) S.fit = 0;
+      else { // slide the group to the middle of the free area, and step back only if it is too big for it
+        S.fit--; const need = Math.max((x1 - x0) / (fx1 - fx0), (y1 - y0) / (fy1 - fy0));
+        panPix((fx0 + fx1) / 2 - (x0 + x1) / 2, ((y0 + y1) / 2 - (fy0 + fy1) / 2) * 1.3);
+        if (need > 0.92) NAV.d = Math.min(D_MAX, NAV.d * Math.min(1.5, need * 1.1));
+        NAV.fly = true; }
     }
     const pop = document.querySelector('.pop'); // the open card follows its pin while the map moves
     if (pop && pop.__anchor) { const q = pop.__anchor.__p; pop.style.visibility = q ? '' : 'hidden'; if (q) { pop.style.left = Math.max(8, Math.min(cardLeft - 310, q[0] - 14)) + 'px'; pop.style.top = Math.max(84, Math.min(barTop - pop.offsetHeight - 8, q[1] + 22)) + 'px'; } }
@@ -1378,7 +1385,7 @@ async function openHow() {
 }
 $('#helpBtn').onclick = () => { const h = $('#maphint'); h.classList.add('on'); setTimeout(() => h.classList.remove('on'), 5000); };
 $('#howBtn').onclick = openHow; $('#howClose').onclick = () => $('#how').classList.remove('on');
-window.__lss = { M, NAV, GQ, X }; // for automated checks
+window.__lss = { M, NAV, GQ, X, S }; // for automated checks
 if (/[?&]debug/.test(location.search)) { // diagnostics for testing on other computers: add ?debug to the address
   const el = $('#dbg'); el.hidden = false; let frames = 0, lastEv = '-', gpu = '?';
   try { const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); gpu = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); } catch (e) {}
