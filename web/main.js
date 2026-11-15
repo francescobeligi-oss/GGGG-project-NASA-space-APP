@@ -168,10 +168,11 @@ function psrMask(map, m) {
 // ---------- terrain look: NASA LRO camera mosaic (LROC WAC, 100 m) draped on NASA LOLA heights ----------
 // one material for the whole polar terrain: the photo, softened when the real sunlight of the chosen date is shown,
 // times the vertex colours (gold = often sunlit, blue = permanently dark), times the light.
-const TERR = { photo: null, u: { uPhoto: { value: 1 }, uDetail: { value: null }, uLS: { value: 0 }, uRim: { value: 0 }, uRimW: { value: 70000 }, uGlobe: { value: M.full.material.map }, uGlobeMix: { value: 0 } }, ux: { uPhoto: { value: 0.55 }, uLS: { value: 0.7 } } };
+const TERR = { photo: null, u: { uPhoto: { value: 1 }, uDetail: { value: null }, uLS: { value: 0 }, uRim: { value: 0 }, uRimW: { value: 70000 }, uGlobe: { value: M.full.material.map }, uGlobeMix: { value: 0 } }, ux: { uPhoto: { value: 0.55 }, uLS: { value: 0.7 }, uIce: { value: 0 } } };
 function terrainMaterial(extra = {}, U = TERR.u, local = false, rim = false) {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, map: TERR.photo, ...extra });
-  mat.customProgramCacheKey = () => (local ? 'terr-local' : 'terr') + (rim ? '-rim' : '');
+  const iceGlow = U === TERR.ux;
+  mat.customProgramCacheKey = () => (local ? 'terr-local' : 'terr') + (rim ? '-rim' : '') + (iceGlow ? '-ice' : '');
   mat.onBeforeCompile = sh => { sh.uniforms.uPhoto = U.uPhoto; sh.uniforms.uDetail = TERR.u.uDetail;
     if (local) { // close to the ground: two more grain sizes, measured in metres on the site so they stay sharp
       sh.vertexShader = sh.vertexShader.replace('void main() {', 'varying vec2 vLoc;\nvoid main() {').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLoc = position.xz;');
@@ -191,6 +192,9 @@ function terrainMaterial(extra = {}, U = TERR.u, local = false, rim = false) {
       sh.uniforms.uGlobe = TERR.u.uGlobe; sh.uniforms.uGlobeMix = TERR.u.uGlobeMix; // the map's edge (and, from far away, all of it) shows the same global Moon image as the globe: no seam, no pop
       sh.fragmentShader = sh.fragmentShader.replace('diffuseColor *= sampledDiffuseColor;', 'vec2 gM = ( vMapUv - 0.5 ) * 540000.0; float gR = length( gM ), gLat = -1.5707963 + 2.0 * atan( gR / 3474800.0 ), gLon = atan( gM.x, gM.y ); vec3 gC = texture2D( uGlobe, vec2( ( gLon + 3.14159265 ) / 6.2831853, ( gLat + 1.5707963 ) / 3.14159265 ), -1.0 ).rgb; sampledDiffuseColor.rgb = mix( sampledDiffuseColor.rgb, gC, max( uGlobeMix, smoothstep( 165000.0, 258000.0, gR ) ) ); diffuseColor *= sampledDiffuseColor;').replace('void main() {', 'uniform sampler2D uGlobe;\nuniform float uGlobeMix;\nvoid main() {');
       sh.fragmentShader = sh.fragmentShader.replace('diffuseColor *= sampledDiffuseColor;', 'float rimQ = clamp( ( 262000.0 - length( vMapUv - 0.5 ) * 540000.0 ) / uRimW, 0.0, 1.0 ); rimQ = rimQ * rimQ * ( 3.0 - 2.0 * rimQ ); sampledDiffuseColor.rgb *= mix( 1.0, 0.26 + 0.74 * rimQ, uRim ); diffuseColor *= sampledDiffuseColor;').replace('void main() {', 'uniform float uRim;\nuniform float uRimW;\nvarying float vRim;\nvoid main() {'); }
+    if (iceGlow) { sh.uniforms.uIce = TERR.ux.uIce; // ice-bearing ground glows blue on request: it is in permanent shadow, so a tint alone would stay black
+      sh.vertexShader = sh.vertexShader.replace('void main() {', 'attribute float ice;\nvarying float vIce;\nvoid main() {').replace('#include <begin_vertex>', '#include <begin_vertex>\nvIce = ice;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vec3( 0.12, 0.45, 1.0 ) * vIce * uIce * 0.4;').replace('void main() {', 'uniform float uIce;\nvarying float vIce;\nvoid main() {'); }
     if (local) sh.fragmentShader = sh.fragmentShader.replace('diffuseColor *= sampledDiffuseColor;', 'sampledDiffuseColor.rgb *= ( 0.72 + 0.56 * texture2D( uDetail, vLoc / 23.0 ).r ) * ( 0.84 + 0.32 * texture2D( uDetail, vLoc / 3.1 ).r ); diffuseColor *= sampledDiffuseColor;').replace('void main() {', 'varying vec2 vLoc;\nvoid main() {'); };
   return mat;
 }
@@ -447,7 +451,7 @@ function setMapLight(instant) {
   M.lightTo = { pos: c.clone().addScaledVector(d, 2), real }; TERR.photoTo = real ? 0.4 : 1;
   if (instant) M.sun.position.copy(M.lightTo.pos);
   M.sun.target.position.copy(c); M.sun.castShadow = real; for (const ms of [M.cap, M.mid, M.tile]) if (ms) ms.castShadow = ms.receiveShadow = real; GQ.dirty = true;
-  M.sun.intensity = real ? 3.8 : 1.1; M.hemiTo = real ? 0.5 : 1.5; TERR.u.uLS.value = real ? 0.7 : 0;
+  M.sun.intensity = real ? 4.4 : 1.25; M.hemiTo = real ? 0.42 : 1.65; TERR.u.uLS.value = real ? 0.7 : 0;
 }
 
 /* ================= discover tour ================= */
@@ -623,9 +627,9 @@ function sitePopover(s, el) {
 const X = { scene: new THREE.Scene(), sky: new THREE.Scene(), camera: new THREE.PerspectiveCamera(55, 1, 0.3, 200000), yaw: 0, pitch: 0, walk: {} };
 X.controls = new OrbitControls(X.camera, canvas);
 Object.assign(X.controls, { enableDamping: true, dampingFactor: 0.08, minDistance: 15, maxDistance: 900000, maxPolarAngle: rad(88), enableZoom: false, enabled: false });
-X.sun = new THREE.DirectionalLight(0xfff3dd, 4.2); X.sun.castShadow = true; X.sun.shadow.mapSize.set(GQ.low ? 1024 : 2048, GQ.low ? 1024 : 2048); X.sun.shadow.bias = -0.0004; X.sun.shadow.normalBias = 1.5;
+X.sun = new THREE.DirectionalLight(0xfff3dd, 4.8); X.sun.castShadow = true; X.sun.shadow.mapSize.set(GQ.low ? 1024 : 2048, GQ.low ? 1024 : 2048); X.sun.shadow.bias = -0.0004; X.sun.shadow.normalBias = 1.5;
 X.scene.add(X.sun, X.sun.target);
-X.fill = new THREE.HemisphereLight(0xdfe6ff, 0x1a1a1a, 0.22); X.scene.add(X.fill); // display fill so shaded ground stays readable
+X.fill = new THREE.HemisphereLight(0xdfe6ff, 0x1a1a1a, 0.17); X.scene.add(X.fill); // display fill so shaded ground stays readable
 {
   // sky: a real Earth (NASA Blue Marble) lit by the Sun, so its phase is the true one, and a glowing Sun
   const et = texLoader.load('assets/earth_2k.jpg'); et.colorSpace = THREE.SRGBColorSpace;
@@ -723,7 +727,7 @@ function gridGeometry(z, n, px, half, step, o) {
 function siteColours(g, base) {
   base = 1; const { map, m } = g.userData, mask = psrMask(map, m), plain = new Float32Array(m * m * 3).fill(base), ice = plain.slice();
   for (let k = 0; k < m * m; k++) if (mask[k]) { ice[k * 3] = 0.45; ice[k * 3 + 1] = 0.75; ice[k * 3 + 2] = 1.15; }
-  g.userData.cols = { plain, ice }; g.setAttribute('color', new THREE.BufferAttribute((S.ice ? ice : plain).slice(), 3));
+  g.userData.cols = { plain, ice }; g.setAttribute('color', new THREE.BufferAttribute(plain.slice(), 3)); g.setAttribute('ice', new THREE.BufferAttribute(Float32Array.from(mask, v => v ? 1 : 0), 1));
 }
 function setIce(g) { if (g && g.userData.cols) { g.attributes.color.array.set(S.ice ? g.userData.cols.ice : g.userData.cols.plain); g.attributes.color.needsUpdate = true; } }
 function sampleH(z, n, px, half, gcx, gcy, mx, my) {
@@ -811,13 +815,16 @@ function sample(t) {
 function applyTime() {
   if (!X.site) return; GQ.dirty = true;
   const st = sample(S.t), sd = dirFromAzEl(X.site, st.sunAz, st.sunEl);
-  fitShadow(sd); X.sun.intensity = 4.2 * st.frac; // share of the solar disc above the terrain, from our horizon data (terrain up to 300 km away)
+  fitShadow(sd); X.sun.intensity = 4.8 * st.frac; // share of the solar disc above the terrain, from our horizon data (terrain up to 300 km away)
   X.skySun.position.copy(sd).multiplyScalar(10); X.skySun.target.position.set(0, 0, 0);
   $('#scrub').value = S.t;
   const s = series(), now = new Date(toDate(s.t[0]).getTime() + S.t * 3600e3), dh = Math.floor(S.t);
   $('#clock').innerHTML = `Day ${Math.floor(dh / 24) + 1}<small>${date(now.toISOString())}, ${pad(now.getUTCHours())}:00 UTC</small>`;
   $$('#days button').forEach(b => b.classList.toggle('on', +b.dataset.h <= S.t && S.t < +b.dataset.h + 24 * (+b.dataset.n || 1)));
   const sunTxt = st.frac > 0.99 ? 'Sunlit' : st.frac < 0.01 ? 'In shadow' : 'Partly sunlit';
+  const up = el => el >= 0 ? `${fmt(el, 1)}° above the horizon` : `${fmt(-el, 1)}° below the horizon`;
+  $('#nowState').innerHTML = `<div style="--c:${st.frac > 0.01 ? 'var(--sun)' : 'var(--muted)'}">${st.frac > 0.01 ? ICON.sun : ICON.dark}<b>${sunTxt}</b><span>${st.power != null ? `Panels give ${watts(st.power)}` : st.frac > 0.01 ? 'Sun on the panels' : 'On battery'}<em class="xp">, Sun ${level(st.sunEl)}</em></span></div>
+    <div style="--c:${st.contact ? 'var(--earth)' : 'var(--muted)'}">${ICON.earth}<b>${st.contact ? 'Talking to Earth' : 'No contact'}</b><span>${st.contact ? 'Earth in view, a dish is listening' : st.earthEl < 0 ? 'Earth behind the horizon' : 'Earth hidden or no dish free'}<em class="xp">, Earth ${level(st.earthEl)}</em></span></div>`;
   $('#status').innerHTML = `<div class="chip" style="--c:${st.frac > 0.01 ? 'var(--sun)' : 'var(--muted)'}">${st.frac > 0.01 ? ICON.sun : ICON.dark}${sunTxt}</div>
     <div class="chip" style="--c:${st.contact ? 'var(--earth)' : 'var(--muted)'}">${ICON.earth}${st.contact ? 'Talking to Earth' : 'No contact with Earth'}</div>
     ${st.power != null ? `<div class="chip" style="--c:#fff">${ICON.bolt}${watts(st.power)} from the Sun</div>` : ''}
@@ -825,21 +832,36 @@ function applyTime() {
     <div class="chip xp" style="--c:var(--line)">Sun ${level(st.sunEl)}, Earth ${level(st.earthEl)}</div>`;
   if (S.view === 'fp' && X.walked) updateWalkChip();
 }
-function drawBars() {
-  const c = $('#bars'), s = series(), n = s.t.length, w = c.width = c.clientWidth * devicePixelRatio, h = c.height = 12 * devicePixelRatio, g = c.getContext('2d');
-  g.clearRect(0, 0, w, h);
-  for (let i = 0; i < n; i++) { const x = i / n * w, ww = Math.max(1, w / n + 0.5), f = s.sun_frac_worst_median_best[1][i];
-    g.fillStyle = f > 0.5 ? '#f5b83d' : 'rgba(255,255,255,.12)'; g.fillRect(x, 0, ww, h * 0.45); g.fillStyle = s.earth_contact[i] ? '#4ea3ff' : 'rgba(255,255,255,.12)'; g.fillRect(x, h * 0.58, ww, h * 0.42); }
+function drawBars() { // sunlight and Earth link over the stay: what the panels and the radio will live through
+  const c = $('#bars'), s = series(), n = s.t.length, dpr = devicePixelRatio, w = c.width = c.clientWidth * dpr, h = c.height = 34 * dpr, g = c.getContext('2d'), lh = 12 * dpr, y2 = 20 * dpr;
+  g.clearRect(0, 0, w, h); const sun = i => s.sun_frac_worst_median_best[1][i], con = i => !!s.earth_contact[i];
+  for (let i = 0; i < n; i++) { const x = i / n * w, ww = Math.max(1, w / n + 0.5), f = sun(i);
+    g.fillStyle = f > 0.5 ? '#f5b83d' : f > 0.01 ? 'rgba(245,184,61,.45)' : 'rgba(255,255,255,.08)'; g.fillRect(x, 0, ww, lh);
+    g.fillStyle = con(i) ? '#4ea3ff' : 'rgba(255,255,255,.08)'; g.fillRect(x, y2, ww, lh); }
+  // name the gaps: how long the lander is in the dark or out of contact
+  g.font = `600 ${9.5 * dpr}px Barlow Condensed, sans-serif`; g.textBaseline = 'middle'; g.textAlign = 'center';
+  const gaps = (test, y, col, word) => { let a = -1; for (let i = 0; i <= n; i++) { const off = i < n && !test(i); if (off && a < 0) a = i; if (!off && a >= 0) { const len = i - a, x0 = a / n * w, x1 = i / n * w; if (len >= 3 && x1 - x0 > 46 * dpr) { g.fillStyle = col; g.fillText(`${word} ${len >= 48 ? fmt(len / 24, 1) + ' d' : len + ' h'}`, (x0 + x1) / 2, y + lh / 2); } a = -1; } } };
+  gaps(i => sun(i) > 0.5, 0, '#f5b83d', 'dark'); gaps(con, y2, '#6fb5ff', 'no link');
+  const sp = s.sun_frac_worst_median_best[1].filter(f => f > 0.5).length / n * 100, cp = s.earth_contact.filter(Boolean).length / n * 100;
+  $('.lanes .l-sun').innerHTML = `Sunlight <b>${pct(sp)}</b>`; $('.lanes .l-earth').innerHTML = `Earth link <b>${pct(cp)}</b>`;
   const days = Math.ceil(n / 24), every = days > 20 ? Math.ceil(days / 15) : 1;
   $('#days').innerHTML = Array.from({ length: Math.ceil(days / every) }, (_, k) => `<button data-h="${k * every * 24}" data-n="${every}" style="left:${k * every * 24 / n * 100}%">D${k * every + 1}</button>`).join('');
   $$('#days button').forEach(b => b.onclick = () => { S.t = +b.dataset.h; applyTime(); });
+  if (!c.__tip) { c.__tip = true; const tip = $('#barTip');
+    c.addEventListener('mousemove', e => { const r = c.getBoundingClientRect(), s2 = series(), i = Math.max(0, Math.min(s2.t.length - 1, Math.floor((e.clientX - r.left) / r.width * s2.t.length))), st = sample(i), t = new Date(toDate(s2.t[0]).getTime() + i * 3600e3);
+      tip.innerHTML = `<b>Day ${Math.floor(i / 24) + 1}, ${date(t.toISOString())} ${pad(t.getUTCHours())}:00</b><span style="color:#f5b83d">${st.frac > 0.99 ? 'Sunlit' : st.frac < 0.01 ? 'In shadow' : 'Partly sunlit'}</span><span style="color:#6fb5ff">${st.contact ? 'Talking to Earth' : 'No contact'}</span><i>Click to go there</i>`;
+      tip.style.left = Math.min(innerWidth - 200, e.clientX - 90) + 'px'; tip.style.top = (r.top - 78) + 'px'; tip.classList.add('on'); });
+    c.addEventListener('mouseleave', () => tip.classList.remove('on'));
+    c.addEventListener('click', e => { const r = c.getBoundingClientRect(); S.t = Math.max(0, Math.min(series().t.length - 1, (e.clientX - r.left) / r.width * series().t.length)); applyTime(); }); }
 }
 
 /* ================= navigation ================= */
 const ORDER = ['hero', 'who', 'mission', 'results', 'explore', 'compare'];
 let scene = 'moon', anim = null;
-function go(name) {
+function go(name, fromHistory) {
   if (name !== 'results' && TUT.i >= 0) endTut();
+  fromHistory = fromHistory || S.navHist; if (name === 'explore' || !S.navHistExplore) S.navHist = false;
+  if (!fromHistory && S.screen !== name && !(['results', 'explore', 'compare'].includes(name) && !S.data)) try { history.pushState({ s: name }, '', '#' + name); } catch (e) {}
   GQ.dirty = true;
   if (['results', 'explore', 'compare'].includes(name) && !S.data) return;
   const prev = S.screen; S.screen = name; document.body.dataset.screen = name;
@@ -1218,6 +1240,7 @@ function updateWalkChip() {
 
 function lostHours(x) { const s = x.series_hourly; let n = 0; for (let i = 0; i < s.t.length; i++) if (!(s.sun_frac_worst_median_best[1][i] > 0.5) || !s.earth_contact[i]) n++; return n; }
 function renderPanel() {
+  TERR.ux.uIce.value = S.ice ? 1 : 0;
   const o = opt(), v = verdictOf(o), L = o.landing, rg = o.ranges || {}, tr = o.terrain, re = o.resources, tu = o.terrain_uncertainty, pw = o.power || {};
   const hw = o.hardware_toggles, h = S.hw !== 'none' && hw ? hw[S.hw] : null, pick = (k, base) => h && h[k] ? [h[k][1], h[k][1]] : base;
   const ice = re && re['nearest_over_0.01km2_km'], stay = Math.round(o.duration_h / 24);
@@ -1271,7 +1294,7 @@ function renderPanel() {
     <div class="sec"><div class="switch"><span>Show ice-bearing dark areas in blue</span><button class="toggle" id="iceT" aria-pressed="${S.ice}" aria-label="Show dark areas"></button></div></div>
     <button class="btn" data-go="compare">Compare all options</button>`;
   $$('#panel [data-hw]').forEach(b => b.onclick = () => { S.hw = b.dataset.hw; renderPanel(); });
-  $('#iceT').onclick = () => { S.ice = !S.ice; [X.mesh, X.inner, X.far].forEach(m => m && setIce(m.geometry)); if (M.cap) setCapTint(M.tint); GQ.dirty = true; renderPanel(); };
+  $('#iceT').onclick = () => { S.ice = !S.ice; TERR.ux.uIce.value = S.ice ? 1 : 0; if (S.ice) toast('Blue glow: ground that never sees the Sun and can keep water ice (NASA LOLA).', 4200); if (M.cap) setCapTint(M.tint); GQ.dirty = true; renderPanel(); };
   $$('#panel [data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
 }
 
@@ -1511,7 +1534,7 @@ function frame(now) {
     if (TERR.photoTo != null && Math.abs(TERR.u.uPhoto.value - TERR.photoTo) > 0.002) { TERR.u.uPhoto.value += (TERR.photoTo - TERR.u.uPhoto.value) * Math.min(1, dt * 3); GQ.dirty = true; }
     M.stars.rotation.y = M.spin * 0.2;
     if (M.map && M.sun.castShadow && (lerping || NAV.fly)) renderer.shadowMap.needsUpdate = true;
-    renderer.toneMappingExposure = M.map || (S.screen === 'hero' && STORY.p > 0.05) ? 1.25 : 1.15; renderer.render(M.scene, M.camera); GQ.sig = M.camera.matrixWorld.elements.join(',') + M.camera.projectionMatrix.elements[0];
+    renderer.toneMappingExposure = M.map ? 1.38 : S.screen === 'hero' && STORY.p > 0.05 ? 1.25 : 1.15; renderer.render(M.scene, M.camera); GQ.sig = M.camera.matrixWorld.elements.join(',') + M.camera.projectionMatrix.elements[0];
     const showPins = M.map && S.screen === 'results', dr = $('#dock').getBoundingClientRect(), cardLeft = showPins && VW > 980 && !$('#dock').classList.contains('closed') ? dr.left - 8 : VW, barTop = (r => r.height ? r.top : Math.min(VH, $('#dock').getBoundingClientRect().top) - 60)($('.whenbar').getBoundingClientRect()) - 6;
     const boxes = showPins ? ['.map-key', '.navctl', '.ctlegend:not([hidden])', '.ctl-chip:not([hidden])', '.res-head h2', '.res-head .lead', '.res-tools', '.tour.on', '#dockToggle'].map(s => document.querySelector(s)).filter(Boolean).map(e => { const r = e.getBoundingClientRect(); return [r.left - 6, r.top - 6, r.right + 6, r.bottom + 6]; }).filter(b => b[2] > b[0]) : [];
     for (const m of markers.slice().sort((a, b) => (a.top ? 0 : a.disc ? 1 : a.poi ? 3 : 2) - (b.top ? 0 : b.disc ? 1 : b.poi ? 3 : 2))) {
@@ -1554,7 +1577,7 @@ function frame(now) {
       X.skySun.target.position.copy(X.earth.position); X.skySun.position.copy(X.earth.position).addScaledVector(sd, 10); // Earth's phase from the real Sun direction
       if (X.ring) { const age = (now - X.ringBorn) / 1000, grow = REDUCED ? 1 : Math.min(1, age / 1.2); X.ring.scale.set(0.2 + 0.8 * ease(grow), 1, 0.2 + 0.8 * ease(grow)); X.glow.scale.copy(X.ring.scale); X.glow.material.opacity = 0.22 + (1 - grow) * 0.5; }
     }
-    renderer.toneMappingExposure = 1.3;
+    renderer.toneMappingExposure = 1.36;
     { // depth range follows the distance: sharp close up, and the whole Moon from far away
       const dd = S.view === 'fp' ? 2 : X.camera.position.distanceTo(X.controls.target), nr = Math.max(0.25, Math.min(400, dd * 0.002)), fr = Math.max(400000, dd * 4 + 800000);
       if (Math.abs(X.camera.near / nr - 1) > 0.1 || Math.abs(X.camera.far / fr - 1) > 0.1) { X.camera.near = nr; X.camera.far = fr; X.camera.updateProjectionMatrix(); } }
@@ -1564,9 +1587,11 @@ function frame(now) {
       // Discover nearby: ice-bearing dark areas, named places, other candidate sites and the Discover finds around this site
       if (X.site) { if (X.dpinsSid !== X.sid) buildNearby();
         const near = S.view === 'fp' || S.view === 'drone', ui = ['#optTabs', '#views', '#infoBtn', '#infoBox', '#status', '.look'].map(q => document.querySelector(q)).filter(e => e && !e.hidden).map(e => e.getBoundingClientRect()).filter(r => r.width);
+        { const dc = $('#distChip'), P = S.view === 'fp' ? X.camera.position : X.controls.target, d = Math.hypot(P.x, P.z); // how far you have moved from the landing point
+          dc.textContent = d > 30 && S.screen === 'explore' ? `${d < 1000 ? Math.round(d / 10) * 10 + ' m' : fmt(d / 1000, 1) + ' km'} from the landing site` : ''; }
         for (const q of X.dpins || []) { let ok = S.showDiscover && S.screen === 'explore';
           if (ok) { const dx = q.x_m - X.site.x_m, dy = q.y_m - X.site.y_m, inSite = Math.abs(dx) < X.half - 20 && Math.abs(dy) < X.half - 20;
-            v3.set(dx, (inSite ? localH(dx, -dy) : regionH(q.x_m, q.y_m) - X.h0 - (dx * dx + dy * dy) / (2 * R_MOON)) + (near ? 25 : 300), -dy).project(X.camera); const px = (v3.x + 1) / 2 * innerWidth, py = (1 - v3.y) / 2 * innerHeight;
+            const gh = inSite ? localH(dx, -dy) : regionH(q.x_m, q.y_m) - X.h0 - (dx * dx + dy * dy) / (2 * R_MOON); v3.set(dx, gh, -dy).project(X.camera); const gy = (1 - v3.y) / 2 * innerHeight; v3.set(dx, gh + (near ? 25 : 300), -dy).project(X.camera); const px = (v3.x + 1) / 2 * innerWidth, py = (1 - v3.y) / 2 * innerHeight; q.el.style.setProperty('--stem', Math.max(0, Math.min(240, gy - py - 28)) + 'px'); // a stem down to the exact spot on the ground
             ok = v3.z < 1 && px > 10 && px < (innerWidth > 980 ? innerWidth - 450 : innerWidth - 10) && py > 70 && !ui.some(r => px > r.left - 16 && px < r.right + 16 && py > r.top - 16 && py < r.bottom + 16) && py < innerHeight - (innerWidth > 980 ? 110 : innerHeight * 0.4 + 90); if (ok) q.el.style.transform = `translate(${px}px, ${py}px)`; }
           q.el.style.display = ok ? '' : 'none'; } } }
     renderer.render(X.sky, X.camera); renderer.clearDepth(); renderer.render(X.scene, X.camera); GQ.sig = X.camera.matrixWorld.elements.join(',') + X.camera.projectionMatrix.elements[0];
@@ -1577,6 +1602,20 @@ function setPlaying(p) { S.playing = p; $('#play').textContent = p ? '❚❚' : 
 
 /* ================= wiring ================= */
 document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b && !b.closest('#panel')) go(b.dataset.go); });
+// moving between steps: browser back and forward (and the phone's back swipe), a back button on phones, and a quick two-finger swipe on a touchpad
+try { history.replaceState({ s: 'hero' }, '', location.pathname + location.search); } catch (e) {}
+function stepTo(name, fromHistory) { if (name === 'explore') { if (S.data) { S.navHist = !!fromHistory; S.navHistExplore = true; openExplore(S.opt || 0); } } else go(name, fromHistory); }
+function stepNav(dir) { const i = ORDER.indexOf(S.screen); let j = i + dir; if (j < 0 || j >= ORDER.length) return; if (!S.data && ORDER[j] !== 'hero' && ORDER[j] !== 'who' && ORDER[j] !== 'mission') return; if (ORDER[j] === 'mission' && !S.role) return; stepTo(ORDER[j]); }
+addEventListener('popstate', e => { const n = e.state && e.state.s; if (n && n !== S.screen) stepTo(n, true); });
+$('#backBtn').onclick = () => stepNav(-1);
+{ let acc = 0, last = 0, cool = 0; const cue = $('#swipeCue');
+  addEventListener('wheel', e => {
+    if (e.ctrlKey || Math.abs(e.deltaX) < Math.abs(e.deltaY) * 1.6 || S.screen === 'hero') return;
+    if (e.target.closest && e.target.closest('.cmp, .tabs, .cards, .panel, .mgrid, .how, input')) return;
+    e.preventDefault(); const now = performance.now(); if (now - last > 400) acc = 0; last = now; if (now < cool) return;
+    acc += e.deltaX; const k = Math.min(1, Math.abs(acc) / 120); cue.className = 'swipecue on ' + (acc < 0 ? 'l' : 'r'); cue.style.setProperty('--k', k); clearTimeout(cue.h); cue.h = setTimeout(() => cue.className = 'swipecue', 300);
+    if (Math.abs(acc) > 120) { cool = now + 900; const d = acc < 0 ? -1 : 1; acc = 0; stepNav(d); }
+  }, { passive: false }); }
 $$('#progress li').forEach(li => li.onclick = () => { if (li.classList.contains('reach')) { if (li.dataset.step === 'explore') openExplore(S.opt); else go(li.dataset.step); } });
 $('#back').onclick = () => {
   if (S.screen === 'mission' && S.role !== 'past' && S.role !== 'student' && S.q > 0) { S.q--; renderQuestion(); return; }
@@ -1592,6 +1631,7 @@ $('#tutBtn').onclick = () => tutorial();
 { // phones: the 3D details are a sheet you pull up
   const h = document.createElement('button'); h.id = 'sheetBtn'; h.className = 'sheetbtn'; h.textContent = '▲ Details'; document.querySelector('#explore').appendChild(h);
   h.onclick = () => { const open = document.body.classList.toggle('sheet-open'); h.textContent = open ? '▼ Back to the scene' : '▲ Details'; GQ.dirty = true; }; }
+$('#panelHide').onclick = () => { const off = document.body.classList.toggle('panel-off'); $('#panelHide').textContent = off ? '‹ Show details' : 'Hide details ›'; $('#panelHide').setAttribute('aria-expanded', !off); GQ.dirty = true; };
 $('#infoBtn').onclick = () => { const b = $('#infoBox'), open = b.hidden; b.hidden = !open; $('#infoBtn').setAttribute('aria-expanded', open); };
 { // game-style arrows for phones and tablets: hold to move, same keys as the keyboard
   const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0; document.body.classList.toggle('touch', touch);

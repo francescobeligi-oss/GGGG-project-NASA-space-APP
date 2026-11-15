@@ -15,6 +15,7 @@
 <div id="shade"></div>
 
 <header class="bar">
+  <button class="backbtn" id="backBtn" aria-label="Back">‹</button>
   <button class="logo" data-go="hero">Lunar Site Scout</button>
   <ol class="progress" id="progress" aria-label="Your progress">
     <li data-step="who">You</li><li data-step="mission">Mission</li><li data-step="results">Results</li><li data-step="explore">Explore</li><li data-step="compare">Compare</li>
@@ -96,8 +97,8 @@
 <section class="screen" id="explore">
   <div class="ex-left">
     <div class="ex-top">
-      <div class="tabs" id="optTabs"></div>
-      <div class="tabs views" id="views"><button data-view="fp"><b>On the ground</b><small>eye level</small></button><button data-view="drone" aria-pressed="true"><b>The lander</b><small>close up</small></button><button data-view="region"><b>The whole area</b><small>10 km around</small></button><button data-view="orbit"><b>From space</b><small>100 km away</small></button></div>
+      <div class="tgroup"><span class="tlab">Landing site</span><div class="tabs" id="optTabs"></div></div>
+      <div class="tgroup"><span class="tlab">Point of view</span><div class="tabs views" id="views"><button data-view="fp"><b>On the ground</b><small>eye level</small></button><button data-view="drone" aria-pressed="true"><b>The lander</b><small>close up</small></button><button data-view="region"><b>The whole area</b><small>10 km around</small></button><button data-view="orbit"><b>From space</b><small>100 km away</small></button></div></div>
     </div>
     <button class="infobtn" id="infoBtn" aria-expanded="false"><i>i</i>How to move here · your lander</button>
     <div class="infobox" id="infoBox" hidden><p class="viewhint" id="viewHint"></p><p class="landerinfo" id="landerInfo"></p></div>
@@ -110,10 +111,14 @@
   <aside class="panel" id="panel"></aside>
   <div class="time">
     <button class="play" id="play" aria-label="Play">▶</button>
+    <div class="lanes" aria-hidden="true"><span class="l-sun">Sunlight</span><span class="l-earth">Earth link</span><span class="l-day"></span></div>
     <div class="track"><input type="range" id="scrub" min="0" max="1" value="0" step="any" aria-label="Time after landing"><canvas id="bars"></canvas><div class="days" id="days"></div></div>
-    <div class="clock" id="clock"></div>
+    <div class="clockbox"><div class="clock" id="clock"></div><div class="nowstate" id="nowState"></div></div>
     <div class="speed" id="speed"><button data-s="2">Slow</button><button data-s="8" aria-pressed="true">Normal</button><button data-s="36">Fast</button></div>
   </div>
+  <div class="bartip" id="barTip"></div>
+  <div class="distchip" id="distChip"></div>
+  <button class="panelhide" id="panelHide" aria-expanded="true">Hide details ›</button>
   <div class="loading" id="loading" role="status" aria-label="Loading the terrain">
     <svg class="orbit" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="22" class="o-moon"/><path d="M48 52a6 6 0 1 0 0.1 0M66 70a4 4 0 1 0 0.1 0M68 50a3 3 0 1 0 0.1 0" class="o-crater"/><ellipse cx="60" cy="60" rx="48" ry="48" class="o-path"/><g class="o-ship"><path d="M71 12l-7-4.5v9z"/><rect x="54" y="8.5" width="10" height="7" rx="1.5"/><path d="M56 8.5l-4-4h3l3 4zM56 15.5l-4 4h3l3-4z"/><path d="M54 10.5l-4 1.5 4 1.5z" class="o-flame"/></g></svg>
     <b>Loading the terrain</b></div>
@@ -137,6 +142,7 @@
     </div>
   </div>
 </section>
+<div class="swipecue" id="swipeCue"><i>‹</i></div>
 <div class="edgetoast" id="edgeToast">For now you can fly over the south pole. The rest of the Moon comes next.</div>
 <div class="vpad" id="vpad" aria-label="Move with the arrows">
     <div class="dpad"><button data-k="arrowup" aria-label="Forward">▲</button><button data-k="arrowleft" aria-label="Left">◀</button><button data-k="arrowright" aria-label="Right">▶</button><button data-k="arrowdown" aria-label="Back">▼</button></div>
