@@ -938,3 +938,4 @@ body.panel-off #explore .time { right: 0 !important; }
 .skymark span { font-size: 12px; padding: 5px 8px; }
 @media (max-width: 700px) { .skymark i { width: 26px; height: 26px; } .skymark.earth i { width: 22px; height: 22px; } }
 .credits-link { color: inherit; text-decoration: underline; pointer-events: auto; }
+.skylines, .skylines *, .skymark, .skymark * { pointer-events: none !important; }
