@@ -634,3 +634,25 @@ body.wide #results .map-key { max-width: calc(100vw - 120px); }
 .tut:not(.on) .tut-card { pointer-events: none; visibility: hidden; }
 /* text over the 3D scene stays readable on bright ground */
 #explore .viewhint, #explore .landerinfo { background: rgba(0,0,0,.55); padding: 6px 10px; max-width: 560px; backdrop-filter: blur(3px); }
+/* story text: the old line leaves before the new one arrives */
+.story .ch { transition: opacity .3s ease, transform .3s ease; }
+.story .ch.on { transition: opacity .7s var(--ease) .28s, transform .7s var(--ease) .28s; }
+#gl { opacity: 0; transition: opacity 1.4s ease; }
+body.moon-ready #gl { opacity: 1; }
+[hidden] { display: none !important; }
+/* controls legend on the map */
+.ctlegend, .ctl-chip { display: none; }
+body[data-screen="results"] .ctlegend:not([hidden]) { display: block; position: absolute; left: 40px; top: 236px; width: 268px; z-index: 5; background: rgba(4,5,8,.78); border: 1px solid rgba(255,255,255,.14); border-left: 2px solid #f5c84a; padding: 12px 14px 12px; backdrop-filter: blur(4px); }
+body[data-screen="results"] .ctl-chip:not([hidden]) { display: inline-flex; position: absolute; left: 40px; top: 236px; z-index: 5; background: rgba(4,5,8,.78); border: 1px solid rgba(255,255,255,.18); color: #f5d27a; font: 600 12px/1 var(--head); letter-spacing: .12em; text-transform: uppercase; padding: 9px 12px; cursor: pointer; }
+.ctl-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.ctl-head b { font-family: var(--head); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: #f5d27a; }
+.ctl-x { background: none; border: 0; color: #aaa; font-size: 20px; line-height: 1; cursor: pointer; padding: 0 4px; }
+.ctlegend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ctlegend li { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 8px; font-size: 13px; color: #dfe2e6; line-height: 1.3; }
+.ctlegend .k { font-style: normal; font: 600 11px/1 var(--head); letter-spacing: .06em; text-transform: uppercase; color: #fff; border: 1px solid rgba(255,255,255,.35); border-radius: 4px; padding: 5px 6px; text-align: center; white-space: nowrap; }
+.ctlegend .k.n { color: var(--nogo); border-radius: 50%; width: 24px; height: 24px; padding: 0; display: grid; place-items: center; justify-self: center; }
+.ctlegend .k.g { background: #2fbf71; color: #000; border-color: #2fbf71; }
+.ctlegend em { font-style: normal; color: #f5d27a; }
+.ctl-show { margin-top: 10px; width: 100%; background: none; border: 1px solid rgba(245,200,74,.5); color: #f5d27a; font: 600 12px/1 var(--head); letter-spacing: .12em; text-transform: uppercase; padding: 9px 0; cursor: pointer; }
+.ctl-show:hover { background: rgba(245,200,74,.12); }
+@media (max-width: 980px), (max-height: 600px) { body[data-screen="results"] .ctlegend:not([hidden]) { display: none; } }
