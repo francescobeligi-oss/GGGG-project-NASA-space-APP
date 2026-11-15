@@ -66,7 +66,7 @@
     <span class="tabs light" id="lightMode"><button data-l="photo" aria-pressed="true">Photo</button><button data-l="date" aria-pressed="false">Sunlight on the date</button></span>
     <button class="layer" data-layer="sun" aria-pressed="true"><i style="background:var(--sun)"></i>Often sunlit</button>
     <button class="layer" data-layer="ice" aria-pressed="true"><i style="background:var(--ice)"></i>Always dark, may hold ice</button>
-    <button class="layer" id="placesT" aria-pressed="true"><i class="dia"></i>Places</button><button class="layer disc-t invite" id="discT" aria-pressed="false" title="Water, hazards and history near the pole"><i class="spark"></i>Discover</button>
+    <button class="layer" id="placesT" aria-pressed="true"><i class="dia"></i>Places</button><button class="layer disc-t invite" id="discT" aria-pressed="false" title="Water, hazards and history near the pole"><i class="spark"></i>Discover</button><button class="layer tut-b" id="tutBtn" title="A 20-second tour of the map controls">How to move</button>
     <span class="credit xp">Photo: NASA LRO camera (LROC WAC). Heights: NASA LOLA.</span>
   </div>
   <div class="whenbar">
@@ -83,9 +83,9 @@
   <div class="ex-left">
     <div class="ex-top">
       <div class="tabs" id="optTabs"></div>
-      <div class="tabs views" id="views"><button data-view="fp"><b>On the ground</b><small>eye level</small></button><button data-view="drone" aria-pressed="true"><b>Above the lander</b><small>150 m up</small></button><button data-view="region"><b>The whole area</b><small>10 km around</small></button><button data-view="orbit"><b>From space</b><small>100 km away</small></button></div>
+      <div class="tabs views" id="views"><button data-view="fp"><b>On the ground</b><small>eye level</small></button><button data-view="drone" aria-pressed="true"><b>The lander</b><small>close up</small></button><button data-view="region"><b>The whole area</b><small>10 km around</small></button><button data-view="orbit"><b>From space</b><small>100 km away</small></button></div>
     </div>
-    <p class="viewhint" id="viewHint"></p>
+    <p class="viewhint" id="viewHint"></p><p class="landerinfo" id="landerInfo"></p>
     <div class="status" id="status"></div>
     <div class="look"><button class="btn ghost" id="lookSun">Look at the Sun</button><button class="btn ghost" id="lookEarth">Look at Earth</button><button class="btn ghost disc-x" id="discX" aria-pressed="false"><i class="spark"></i>Discover nearby</button></div>
   </div>

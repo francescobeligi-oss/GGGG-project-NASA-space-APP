@@ -607,3 +607,30 @@ body.wide #results .map-key { max-width: calc(100vw - 120px); }
 .look .disc-x[aria-pressed="true"] { background: rgba(245,200,74,.16); }
 .pop.dcard { max-height: calc(100vh - 100px); overflow: auto; }
 .pop.dcard { align-content: start; height: auto; }
+
+.landerinfo { max-width: 560px; font-size: 13px; line-height: 1.45; color: #c9ccd2; margin: 2px 0 6px; text-shadow: 0 1px 6px #000; }
+.landerinfo:empty { display: none; }
+.landerinfo b { color: #fff; font-weight: 600; } .landerinfo a { color: #f5d27a; }
+/* the short tour of the map controls */
+.tut { position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: 0; transition: opacity .3s; }
+.tut.on { opacity: 1; }
+.tut-ring { position: fixed; border: 2px solid #f5c84a; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(0,0,0,.42), 0 0 24px rgba(245,200,74,.45); transition: all .5s cubic-bezier(.2,.8,.2,1); }
+.tut-g { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 0 0 6px rgba(255,255,255,.25); display: none; }
+.tut-ring.g-drag .tut-g { display: block; animation: tutDrag 1.8s ease-in-out infinite; }
+.tut-ring.g-zoom .tut-g { display: block; animation: tutZoom 1.8s ease-in-out infinite; }
+.tut-ring.g-tilt .tut-g { display: block; background: #f5c84a; animation: tutDrag 1.8s ease-in-out infinite reverse; }
+.tut-ring.g-tilt .tut-g::after { content: "right button"; position: absolute; top: 28px; left: 50%; transform: translateX(-50%); white-space: nowrap; font: 600 11px/1 var(--head); letter-spacing: .1em; text-transform: uppercase; color: #fff; text-shadow: 0 1px 4px #000; }
+@keyframes tutDrag { 0%, 100% { transform: translateX(-60px); } 50% { transform: translateX(60px); } }
+@keyframes tutZoom { 0%, 100% { transform: scale(.7); } 50% { transform: scale(1.6); } }
+.tut-card { position: fixed; width: 320px; background: #050608; border: 1px solid rgba(255,255,255,.18); border-top: 2px solid #f5c84a; padding: 16px 18px 14px; pointer-events: auto; display: grid; gap: 6px; transition: left .5s cubic-bezier(.2,.8,.2,1), top .5s cubic-bezier(.2,.8,.2,1); }
+.tut-n { font: 600 11px/1 var(--head); letter-spacing: .14em; text-transform: uppercase; color: #f5c84a; }
+.tut-card b { font-family: var(--head); text-transform: uppercase; letter-spacing: .04em; font-size: 22px; }
+.tut-card p { margin: 0; font-size: 15px; line-height: 1.45; color: #d7dade; }
+.tut-bar { height: 2px; background: rgba(255,255,255,.12); margin-top: 6px; } .tut-bar i { display: block; height: 100%; width: 0; background: #f5c84a; }
+.tut-act { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; } .tut-act .btn { padding: 8px 14px; }
+#results .map-key .layer.tut-b { opacity: .85; text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { .tut-g { animation: none !important; } }
+.tut-card.first, .tut-ring.first { transition: none; }
+.tut:not(.on) .tut-card { pointer-events: none; visibility: hidden; }
+/* text over the 3D scene stays readable on bright ground */
+#explore .viewhint, #explore .landerinfo { background: rgba(0,0,0,.55); padding: 6px 10px; max-width: 560px; backdrop-filter: blur(3px); }

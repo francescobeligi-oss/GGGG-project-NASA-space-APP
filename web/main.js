@@ -167,10 +167,10 @@ function psrMask(map, m) {
 // ---------- terrain look: NASA LRO camera mosaic (LROC WAC, 100 m) draped on NASA LOLA heights ----------
 // one material for the whole polar terrain: the photo, softened when the real sunlight of the chosen date is shown,
 // times the vertex colours (gold = often sunlit, blue = permanently dark), times the light.
-const TERR = { photo: null, u: { uPhoto: { value: 1 }, uDetail: { value: null }, uLS: { value: 0 } }, ux: { uPhoto: { value: 0.55 }, uLS: { value: 0.7 } } };
-function terrainMaterial(extra = {}, U = TERR.u, local = false) {
+const TERR = { photo: null, u: { uPhoto: { value: 1 }, uDetail: { value: null }, uLS: { value: 0 }, uRim: { value: 0 }, uRimW: { value: 70000 } }, ux: { uPhoto: { value: 0.55 }, uLS: { value: 0.7 } } };
+function terrainMaterial(extra = {}, U = TERR.u, local = false, rim = false) {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, map: TERR.photo, ...extra });
-  mat.customProgramCacheKey = () => local ? 'terr-local' : 'terr';
+  mat.customProgramCacheKey = () => (local ? 'terr-local' : 'terr') + (rim ? '-rim' : '');
   mat.onBeforeCompile = sh => { sh.uniforms.uPhoto = U.uPhoto; sh.uniforms.uDetail = TERR.u.uDetail;
     if (local) { // close to the ground: two more grain sizes, measured in metres on the site so they stay sharp
       sh.vertexShader = sh.vertexShader.replace('void main() {', 'varying vec2 vLoc;\nvoid main() {').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLoc = position.xz;');
@@ -184,6 +184,10 @@ function terrainMaterial(extra = {}, U = TERR.u, local = false) {
       float d1 = texture2D( uDetail, vMapUv * 1200.0 ).r, d2 = texture2D( uDetail, vMapUv * 9000.0 ).r;
       sampledDiffuseColor.rgb *= ( 0.7 + 0.6 * d1 ) * ( 0.8 + 0.4 * d2 ); diffuseColor *= sampledDiffuseColor;
       #endif`).replace('void main() {', 'uniform float uPhoto;\nuniform sampler2D uDetail;\nvoid main() {');
+    if (rim) { sh.uniforms.uRim = TERR.u.uRim; // the rim of the polar map darkens as much as the rest of the Moon around it
+      sh.vertexShader = sh.vertexShader.replace('void main() {', 'attribute float rim;\nvarying float vRim;\nvoid main() {').replace('#include <begin_vertex>', '#include <begin_vertex>\nvRim = rim;');
+      sh.uniforms.uRimW = TERR.u.uRimW; // fade width in metres: narrow on the map, wide in the opening story (a soft spotlight, no visible disc)
+      sh.fragmentShader = sh.fragmentShader.replace('diffuseColor *= sampledDiffuseColor;', 'float rimQ = clamp( ( 262000.0 - length( vMapUv - 0.5 ) * 540000.0 ) / uRimW, 0.0, 1.0 ); rimQ = rimQ * rimQ * ( 3.0 - 2.0 * rimQ ); sampledDiffuseColor.rgb *= mix( 1.0, 0.26 + 0.74 * rimQ, uRim ); diffuseColor *= sampledDiffuseColor;').replace('void main() {', 'uniform float uRim;\nuniform float uRimW;\nvarying float vRim;\nvoid main() {'); }
     if (local) sh.fragmentShader = sh.fragmentShader.replace('diffuseColor *= sampledDiffuseColor;', 'sampledDiffuseColor.rgb *= ( 0.72 + 0.56 * texture2D( uDetail, vLoc / 23.0 ).r ) * ( 0.84 + 0.32 * texture2D( uDetail, vLoc / 3.1 ).r ); diffuseColor *= sampledDiffuseColor;').replace('void main() {', 'varying vec2 vLoc;\nvoid main() {'); };
   return mat;
 }
@@ -205,13 +209,13 @@ function tintArrays(map, nv, m, rimFade) {
     tintNoIce.set([1 + (r - 1) * fade, 1 + (gg - 1) * fade, 1 + (b - 1) * fade], k * 3);
     if (ice[k]) { r = r * 0.3 + 0.25; gg = gg * 0.3 + 0.55; b = b * 0.3 + 1.1; }
     tint.set([1 + (r - 1) * fade, 1 + (gg - 1) * fade, 1 + (b - 1) * fade], k * 3);
-    if (rimFade) alpha[k] = 0.26 + 0.74 * Math.min(1, Math.max(0, (RHO_MAX - Math.hypot(mx, my)) / 30000)); // rim darkens to match the dimmed globe
+    if (rimFade) { const q = Math.min(1, Math.max(0, (RHO_MAX - Math.hypot(mx, my)) / 70000)); alpha[k] = 0.26 + 0.74 * q * q * (3 - 2 * q); } // rim darkens to match the dimmed globe
   }
   return { plain, tint, tintNoIce, alpha };
 }
 function applyTint(mesh, f) {
   const g = mesh.geometry, { plain, alpha } = g.userData, tint = !S.layers.sun && !S.layers.ice ? plain : S.layers.ice && S.layers.sun ? g.userData.tint : S.layers.sun ? g.userData.tintNoIce : g.userData.iceOnly, c = g.attributes.color.array;
-  for (let k = 0, n = alpha.length; k < n; k++) { const dim = 1 - (1 - alpha[k]) * f; for (let q = 0; q < 3; q++) c[k * 4 + q] = (plain[k * 3 + q] + (tint[k * 3 + q] - plain[k * 3 + q]) * f) * dim; c[k * 4 + 3] = 1; }
+  for (let k = 0, n = alpha.length; k < n; k++) { for (let q = 0; q < 3; q++) c[k * 4 + q] = plain[k * 3 + q] + (tint[k * 3 + q] - plain[k * 3 + q]) * f; c[k * 4 + 3] = 1; }
   g.attributes.color.needsUpdate = true;
 }
 function withIceOnly(u) { const n = u.alpha.length, io = new Float32Array(n * 3); for (let k = 0; k < n; k++) for (let q = 0; q < 3; q++) io[k * 3 + q] = u.tint[k * 3 + q] / Math.max(1e-3, u.tintNoIce[k * 3 + q]); u.iceOnly = io; return u; }
@@ -240,13 +244,14 @@ function buildCap() {
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', mapUV(map, m * m));
   g.userData = { m, map, inside, ...withIceOnly(tintArrays(map, m * m, m, true)) };
   g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(m * m * 4), 4));
-  M.cap = new THREE.Mesh(g, terrainMaterial()); M.cap.visible = false;
+  g.setAttribute('rim', new THREE.BufferAttribute(g.userData.alpha, 1));
+  M.cap = new THREE.Mesh(g, terrainMaterial({}, TERR.u, false, true)); M.cap.visible = false;
   capIndex(null); g.computeVertexNormals(); applyTint(M.cap, 0);
   M.moon.add(M.cap); if (!TERR.photo) loadPhoto();
 }
 function setCapTint(f) {
   for (const ms of [M.cap, M.mid, M.tile]) if (ms) applyTint(ms, f);
-  M.holed.material.color.setScalar(1 - 0.74 * f); // the rest of the Moon dims while the pole map is open
+  M.holed.material.color.setScalar(1 - 0.74 * f); TERR.u.uRim.value = f; TERR.u.uRimW.value = 70000; // the rest of the Moon dims while the pole map is open, and the map's rim with it
   GQ.dirty = true;
 }
 // a terrain grid laid on the globe: heights z (n x n, pixel px, centred on gcx, gcy in map metres), edges blended into `under`
@@ -327,9 +332,12 @@ function navPose(st) {
 function navApply(dt) {
   const c = NAV.cur; if (!c) return;
   { // stay over the detailed polar terrain: past its edge there is only the coarse globe
-    const pole = M.moon.localToWorld(globePoint(-90, 0, 1)).sub(M.moon.getWorldPosition(new THREE.Vector3())).normalize(), lim = Math.max(0.01, (RHO_MAX - 40000) / R_MOON - NAV.d * 0.35), a = NAV.t.angleTo(pole);
+    const pole = M.moon.localToWorld(globePoint(-90, 0, 1)).sub(M.moon.getWorldPosition(new THREE.Vector3())).normalize(), lim = Math.max(0.03, (RHO_MAX - 40000) / R_MOON - Math.max(0, NAV.d - 0.05) * 0.15), a = NAV.t.angleTo(pole);
     if (a > lim) { const ax = new THREE.Vector3().crossVectors(pole, NAV.t).normalize(); if (ax.lengthSq() > 0.5) NAV.t.copy(pole).applyAxisAngle(ax, lim);
-      const now = performance.now(); if (!S.fit && !NAV.fly && now - (NAV.toastAt || 0) > 15000) { NAV.toastAt = now; const t = $('#edgeToast'); t.textContent = 'For now you can fly over the south pole. The rest of the Moon comes next.'; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 4200); } }}
+      const now = performance.now(), user = NAV.ptrs.size || NAV.vel || Object.keys(NAV.keys || {}).length; if (user && !S.fit && now - (NAV.toastAt || 0) > 15000) { NAV.toastAt = now; const t = $('#edgeToast'); t.textContent = 'For now you can fly over the south pole. The rest of the Moon comes next.'; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 4200); } }}
+  if (S.index) { // close zoom only where the detailed 10 m terrain exists (around the sites); elsewhere NASA's 100 m photo would turn to blur
+    let a = 9; for (const s of S.index.sites) a = Math.min(a, siteWorld(s).normalize().angleTo(NAV.t));
+    const dm = a < 0.012 ? D_MIN : a < 0.03 ? D_MIN + (0.009 - D_MIN) * (a - 0.012) / 0.018 : 0.009; if (NAV.d < dm) NAV.d = dm; }
   const k = 1 - Math.pow(NAV.fly ? 0.08 : 0.0004, dt);
   c.t.lerp(NAV.t, k).normalize(); c.d = Math.exp(Math.log(c.d) + (Math.log(NAV.d) - Math.log(c.d)) * k);
   c.head += (((NAV.head - c.head + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * k; c.tiltU += (NAV.tiltU - c.tiltU) * k;
@@ -534,6 +542,37 @@ function discoverCard(p, el, inExplore) {
   const r = el.getBoundingClientRect(), right = innerWidth > 980 ? innerWidth - 450 : innerWidth - 10; pop.style.left = Math.max(10, Math.min(right - 345, r.left - 20)) + 'px'; pop.style.top = Math.max(84, Math.min(innerHeight - pop.offsetHeight - 12, r.top - 40)) + 'px'; pop.style.visibility = ''; GQ.dirty = true; GQ.activeUntil = performance.now() + 600;
   setTimeout(() => addEventListener('pointerdown', function off(e) { if (!pop.contains(e.target) && !e.target.closest('.pin.disc')) { pop.remove(); removeEventListener('pointerdown', off); } }), 0);
 }
+// a 15-second tour of the map controls, shown once on the first visit and on demand
+const TUT = { i: -1, h: null };
+function tutorial() {
+  try { localStorage.setItem('lss_tut', '1'); } catch (e) {}
+  const free = () => { const dr = $('#dock').getBoundingClientRect(), right = innerWidth > 980 && !$('#dock').classList.contains('closed') ? dr.left : innerWidth; return { x: right / 2, y: innerHeight * 0.5 }; };
+  const box = sel => { const e = typeof sel === 'string' ? document.querySelector(sel) : sel; if (!e) return null; const r = e.getBoundingClientRect(); return r.width ? r : null; };
+  const demo = (fn, ms) => { const t0 = performance.now(); const step = now => { const k = Math.min(1, (now - t0) / ms); fn(k); GQ.dirty = true; if (k < 1 && TUT.i >= 0) requestAnimationFrame(step); }; requestAnimationFrame(step); };
+  const pin1 = [...document.querySelectorAll('.pin.top')].find(e => e.style.display !== 'none');
+  const steps = [
+    { t: 'Move around', d: 'Drag the map with the mouse or one finger. It glides, like Google Earth.', g: 'drag', at: () => { const c = free(); return { x: c.x, y: c.y, w: 220, h: 140 }; }, run: () => { let last = 0; demo(k => { const v = Math.sin(k * Math.PI) * 160, dv = v - last; last = v; panPix(dv, 0, true); }, 1500); } },
+    { t: 'Zoom', d: 'Scroll the wheel, or pinch on a touchpad or phone. Double-click a spot to dive in.', g: 'zoom', at: () => { const c = free(); return { x: c.x, y: c.y, w: 220, h: 140 }; }, run: () => { const d0 = NAV.d; demo(k => { NAV.d = d0 * (1 - 0.45 * Math.sin(k * Math.PI)); NAV.cur.d = NAV.d; }, 1500); } },
+    { t: 'Tilt and turn', d: 'Right-drag, or hold Shift and drag, to turn the map and look across the horizon.', g: 'tilt', at: () => { const c = free(); return { x: c.x, y: c.y, w: 220, h: 140 }; }, run: () => { const h0 = NAV.head; demo(k => { NAV.head = h0 + 0.5 * Math.sin(k * Math.PI); NAV.cur.head = NAV.head; }, 1500); } },
+    { t: 'Click to learn more', d: 'Click a numbered site to open it in 3D. Turn on Discover for glowing icons of water, hazards and history.', at: () => { const r = box('#discT'); return r && { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width + 24, h: r.height + 20 }; } },
+    { t: 'Back to all three', d: 'Lost? The compass puts north up and brings all three sites back into view.', at: () => { const r = box('#compass'); return r && { x: r.left + r.width / 2, y: r.top + r.height / 2, w: 64, h: 64 }; } },
+    { t: 'Pick a date', d: 'Drag along this bar or press play: sunlight, shadows and the verdicts change with the date.', at: () => { const r = box('.whenbar'); return r && { x: r.left + r.width / 2, y: r.top + r.height / 2 + 10, w: r.width - 40, h: r.height - 10 }; } } ];
+  let el = $('#tut'); if (!el) { el = document.createElement('div'); el.id = 'tut'; el.className = 'tut'; el.innerHTML = '<div class="tut-ring"><i class="tut-g"></i></div><div class="tut-card"><div class="tut-n"></div><b></b><p></p><div class="tut-bar"><i></i></div><div class="tut-act"><button class="btn ghost" data-t="skip">Skip</button><button class="btn primary" data-t="next">Next</button></div></div>'; document.body.appendChild(el);
+    el.querySelector('[data-t="skip"]').onclick = endTut; el.querySelector('[data-t="next"]').onclick = () => show(TUT.i + 1); }
+  const show = i => {
+    clearTimeout(TUT.h); if (i >= steps.length) return endTut(); TUT.i = i; const st = steps[i], a = st.at(); if (!a) return show(i + 1);
+    const ring = el.querySelector('.tut-ring'), card = el.querySelector('.tut-card');
+    Object.assign(ring.style, { left: a.x - a.w / 2 + 'px', top: a.y - a.h / 2 + 'px', width: a.w + 'px', height: a.h + 'px' }); ring.className = 'tut-ring' + (st.g ? ' g-' + st.g : '') + (a.w > 300 ? ' wide' : '');
+    card.querySelector('.tut-n').textContent = `How to move · ${i + 1} of ${steps.length}`; card.querySelector('b').textContent = st.t; card.querySelector('p').textContent = st.d;
+    card.querySelector('[data-t="next"]').textContent = i === steps.length - 1 ? 'Got it' : 'Next';
+    const cw = 320, below = a.y + a.h / 2 + 16, above = a.y - a.h / 2 - 16; card.style.left = Math.max(16, Math.min(innerWidth - cw - 16, a.x - cw / 2)) + 'px';
+    card.style.top = (below + 190 < innerHeight ? below : Math.max(80, above - card.offsetHeight)) + 'px';
+    const bar = card.querySelector('.tut-bar i'); bar.style.transition = 'none'; bar.style.width = '0'; requestAnimationFrame(() => { bar.style.transition = 'width 3.4s linear'; bar.style.width = '100%'; });
+    ring.classList.toggle('first', i === 0); card.classList.toggle('first', i === 0); el.classList.add('on'); if (st.run && NAV.cur) st.run(); TUT.h = setTimeout(() => show(i + 1), 3600);
+  };
+  show(0);
+}
+function endTut() { clearTimeout(TUT.h); TUT.i = -1; const el = $('#tut'); if (el) el.classList.remove('on'); }
 function rankPopover(i, el) {
   $$('.pop').forEach(p => p.remove()); const o = S.data.options[i], pop = document.createElement('div'); pop.className = 'pop';
   pop.innerHTML = `<b>${i + 1}. ${esc(o.site_name)}</b><div class="small">${VSIMPLE[verdictOf(o)]}. Best landing ${dateTime(o.landing_utc)}.</div><button class="btn primary" style="padding:9px 16px">See it in 3D</button>`;
@@ -582,7 +621,62 @@ X.fill = new THREE.HemisphereLight(0xdfe6ff, 0x1a1a1a, 0.22); X.scene.add(X.fill
   const deck = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.15, 2.2), grey); deck.position.y = 2.9; grp.add(deck);
   for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + Math.PI / 4, leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.6), grey); leg.position.set(Math.cos(a) * 1.9, 1.0, Math.sin(a) * 1.9); leg.rotation.z = Math.cos(a) * 0.5; leg.rotation.x = -Math.sin(a) * 0.5; grp.add(leg); }
   grp.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; });
-  X.lander = grp; X.scene.add(grp);
+  X.lander = grp; X.landerKind = 'generic'; X.scene.add(grp);
+}
+// the mission's own lander at its real size (public dimensions), with a 1.8 m person beside it for scale
+const LANDERS = {
+  starship: { name: 'Starship HLS, SpaceX', size: 'about 50 m tall and 9 m wide, like a 15-storey building', power: 'Its solar panels run in a band around the hull, high above the ground, so they catch a low Sun that hills hide from a small lander.', src: 'https://www.nasa.gov/hls' },
+  novac: { name: 'Nova-C, Intuitive Machines', size: '4.3 m tall and 1.6 m wide, on six legs', power: 'Its panels sit on the sides of a tall, narrow body, built for the low Sun of the south pole.', src: 'https://intuitivemachines.com/nova-c' },
+  griffin: { name: 'Griffin, Astrobotic', size: 'about 4.5 m wide and 2 m tall, on four legs', power: 'Its panels are close to the ground: the 2 m standard panel height in this tool fits it well.', src: 'https://www.space.com/astrobotic-technology' },
+  argonaut: { name: 'Argonaut, ESA', size: '6 m tall and 4.5 m wide', power: 'Panels on a 6 m lander see slightly more of the low Sun than the 2 m standard; compare with the 10 m mast option.', src: 'https://www.esa.int/Science_Exploration/Human_and_Robotic_Exploration/Exploration/Argonaut' },
+  generic: { name: 'a typical small lander', size: 'about 3 m tall', power: '', src: '' } };
+const landerKind = () => ({ artemis: 'starship', novac: 'novac', griffin1: 'griffin', argonaut: 'argonaut' })[S.mission] || 'generic';
+function buildLander(kind) {
+  const g = new THREE.Group(), M_ = (c, m = 0, r = 0.6) => new THREE.MeshStandardMaterial({ color: c, metalness: m, roughness: r });
+  const steel = M_(0xd9dce1, 0.25, 0.42), foil = M_(0xd4ad4f, 0.6, 0.35), grey = M_(0xd0d3d8), dark = M_(0x2a2c30, 0.3, 0.5), panel = M_(0x1c2a4c, 0.35, 0.28), white = M_(0xeeeeee, 0, 0.7);
+  const add = (geo, mat, x, y, z, rx = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; m.rotation.z = rz; g.add(m); return m; };
+  const legs = (n, r, h, top, w = 0.08) => { for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2 + Math.PI / n, A = new THREE.Vector3(Math.cos(a) * r * 0.5, top, Math.sin(a) * r * 0.5), B = new THREE.Vector3(Math.cos(a) * r, 0.05, Math.sin(a) * r), d = B.clone().sub(A);
+    const leg = add(new THREE.CylinderGeometry(w, w, d.length(), 6), grey, (A.x + B.x) / 2, (A.y + B.y) / 2, (A.z + B.z) / 2); leg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); add(new THREE.CylinderGeometry(w * 4, w * 4, 0.06, 10), grey, B.x, 0.03, B.z); } };
+  if (kind === 'starship') {
+    add(new THREE.CylinderGeometry(4.5, 4.5, 38, 48), steel, 0, 3 + 19, 0);
+    add(new THREE.CylinderGeometry(0.9, 4.5, 9, 48), steel, 0, 41 + 4.5, 0);
+    add(new THREE.SphereGeometry(0.9, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), steel, 0, 50, 0);
+    add(new THREE.CylinderGeometry(4.56, 4.56, 6, 48, 1, true), panel, 0, 37, 0);
+    add(new THREE.CylinderGeometry(4.58, 4.58, 1.2, 48, 1, true), dark, 0, 31, 0); // windows and airlock band
+    legs(6, 5.2, 3.2, 3.2, 0.25);
+  } else if (kind === 'novac') {
+    add(new THREE.CylinderGeometry(0.8, 0.8, 3.0, 6), foil, 0, 1.0 + 1.5, 0);
+    for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2; const p = add(new THREE.BoxGeometry(0.75, 1.9, 0.04), panel, Math.cos(a) * 0.71, 2.6, Math.sin(a) * 0.71); p.rotation.y = -a + Math.PI / 2; }
+    add(new THREE.CylinderGeometry(0.35, 0.45, 0.5, 12), dark, 0, 0.75, 0); add(new THREE.CylinderGeometry(0.05, 0.05, 0.3), grey, 0, 4.15, 0);
+    legs(6, 1.9, 1.3, 1.3);
+  } else if (kind === 'griffin') {
+    add(new THREE.BoxGeometry(3.4, 0.25, 3.4), grey, 0, 1.25, 0);
+    for (const [x, z] of [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]]) add(new THREE.SphereGeometry(0.55, 16, 12), foil, x, 0.95, z);
+    add(new THREE.BoxGeometry(1.6, 0.6, 1.2), white, 0.6, 1.68, 0.5);
+    const p = add(new THREE.BoxGeometry(2.4, 0.04, 0.9), panel, -0.6, 1.95, -0.9); p.rotation.x = -0.25;
+    legs(4, 2.25, 1.15, 1.15, 0.09);
+  } else if (kind === 'argonaut') {
+    add(new THREE.CylinderGeometry(2.25, 2.25, 2.4, 8), foil, 0, 1.0 + 1.2, 0);
+    add(new THREE.BoxGeometry(3.8, 0.2, 3.8), grey, 0, 3.5, 0);
+    add(new THREE.BoxGeometry(2.2, 2.2, 2.2), white, 0, 4.7, 0);
+    for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.PI / 4; const p = add(new THREE.BoxGeometry(1.6, 1.3, 0.04), panel, Math.cos(a) * 2.3, 2.2, Math.sin(a) * 2.3); p.rotation.y = -a + Math.PI / 2; }
+    add(new THREE.CylinderGeometry(0.2, 0.2, 0.3), grey, 0, 6.0 - 0.15, 0); legs(4, 3.0, 1.2, 1.2, 0.1);
+  } else return null;
+  // a person, 1.8 m, a few metres away: the scale everyone understands
+  const man = new THREE.Group(), suit = M_(0xf2f2f2, 0, 0.8);
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.75, 4, 8), suit); body.position.y = 0.95; man.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), M_(0xd8b45a, 0.8, 0.2)); head.position.y = 1.62; man.add(head);
+  for (const x of [-0.11, 0.11]) { const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.45, 4, 6), suit); l.position.set(x, 0.32, 0); man.add(l); }
+  man.position.set((kind === 'starship' ? 8 : 3.2), 0, 1.2); g.add(man);
+  g.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; });
+  return g;
+}
+function setLander() {
+  const kind = landerKind(); if (X.landerKind === kind && X.lander) return;
+  const g = kind === 'generic' ? X.landerGeneric || X.lander : buildLander(kind); if (!X.landerGeneric && X.landerKind === 'generic') X.landerGeneric = X.lander;
+  if (X.lander && X.lander !== g) X.scene.remove(X.lander);
+  X.lander = g; X.landerKind = kind; X.scene.add(g); g.position.set(0, X.site && X.z ? localH(0, 0) : 0, 0);
+  const L = LANDERS[kind], el = $('#landerInfo'); if (el) el.innerHTML = kind === 'generic' ? '' : `<b>Your lander:</b> ${esc(L.name)}, ${esc(L.size)}, shown at real size next to a person. ${esc(L.power)} ${L.src ? `<a href="${L.src}" target="_blank" rel="noopener">Source</a>` : ''}`;
 }
 const SKY_D = 60000;
 function gridGeometry(z, n, px, half, step, o) {
@@ -716,6 +810,7 @@ function drawBars() {
 const ORDER = ['hero', 'who', 'mission', 'results', 'explore', 'compare'];
 let scene = 'moon', anim = null;
 function go(name) {
+  if (name !== 'results' && TUT.i >= 0) endTut();
   GQ.dirty = true;
   if (['results', 'explore', 'compare'].includes(name) && !S.data) return;
   const prev = S.screen; S.screen = name; document.body.dataset.screen = name;
@@ -753,8 +848,9 @@ function flyToPole() {
     if (k >= 1) {
       anim = null; M.map = true; M.pivot.updateMatrixWorld(true);
       NAV.cur = { t: high.t.clone(), d: high.d, head: 0, tiltU: 0 }; const f = mapFrame(); flyTo(f.t, f.d, 0); NAV.tiltU = f.tiltU; S.fit = 8;
-      let seen = false; try { seen = localStorage.getItem('lss_maphint') === '1'; localStorage.setItem('lss_maphint', '1'); } catch (e) {}
-      if (!seen) { const h = $('#maphint'); h.classList.add('on'); const off = () => { h.classList.remove('on'); removeEventListener('pointerdown', off); removeEventListener('wheel', off); }; addEventListener('pointerdown', off); addEventListener('wheel', off); setTimeout(off, 7000); }
+      let seen = false; try { seen = localStorage.getItem('lss_tut') === '1'; } catch (e) {}
+      if (!seen) setTimeout(() => { if (S.screen === 'results') tutorial(); }, 2600);
+      if (false) { const h = $('#maphint'); h.classList.add('on'); const off = () => { h.classList.remove('on'); removeEventListener('pointerdown', off); removeEventListener('wheel', off); }; addEventListener('pointerdown', off); addEventListener('wheel', off); setTimeout(off, 7000); }
     }
   };
 }
@@ -995,21 +1091,21 @@ async function openExplore(i) {
   renderPanel(); drawBars(); setView(S.view, true); L.classList.remove('on'); $('#fade').style.opacity = 0; showExHint();
 }
 const VIEW = {
-  drone: back => ({ pos: new THREE.Vector3(back.x * 120, 55, back.z * 120), target: new THREE.Vector3(0, 2, 0), fov: 50 }),
+  drone: back => { const h = { starship: 50, novac: 4.3, griffin: 2, argonaut: 6 }[X.landerKind] || 3, r = 22 + h * 2.4, g = localH(0, 0); return { pos: new THREE.Vector3(back.x * r, g + h * 0.5 + r * 0.42, back.z * r), target: new THREE.Vector3(0, g + h * 0.45, 0), fov: 50 }; },
   region: back => ({ pos: new THREE.Vector3(back.x * 5200, 7600, back.z * 5200), target: new THREE.Vector3(0, 0, 0), fov: 50 }),
   orbit: back => ({ pos: new THREE.Vector3(back.x * 95000, 60000, back.z * 95000), target: new THREE.Vector3(0, 0, 0), fov: 50 }),
 };
 function setView(v, instant) {
   S.view = v; $$('#views button').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
-  $('#viewHint').textContent = { fp: 'You are standing where the lander touches down. Drag to look around, W A S D to walk, scroll to zoom in on the Sun or Earth.', drone: 'Looking down at the landing circle. Drag to circle around it, scroll to come closer or go higher, right-drag to slide.', region: 'The 10 km around the site, with the hills that cast its shadows. Drag to turn, scroll to zoom.', orbit: 'The pole seen from space, on the real Moon. Drag to turn, scroll to zoom out to the whole Moon.' }[v];
-  X.lander.visible = v !== 'fp'; if (X.sunPath) X.sunPath.visible = X.earthPath.visible = false; if (X.ring) X.ring.visible = X.glow.visible = v !== 'fp';
+  $('#viewHint').textContent = { fp: 'You are standing where the lander touches down. Drag to look around, W A S D to walk, scroll to zoom in on the Sun or Earth.', drone: 'Your lander at real size, beside a person, in its landing circle. Drag to circle around it, scroll out to see the whole circle, right-drag to slide.', region: 'The 10 km around the site, with the hills that cast its shadows. Drag to turn, scroll to zoom.', orbit: 'The pole seen from space, on the real Moon. Drag to turn, scroll to zoom out to the whole Moon.' }[v];
+  setLander(); X.lander.visible = v !== 'fp'; if (X.sunPath) X.sunPath.visible = X.earthPath.visible = false; if (X.ring) X.ring.visible = X.glow.visible = v !== 'fp';
   $('#walkhint').classList.toggle('on', v === 'fp'); $('#walkhint').textContent = 'Use the arrow keys or W A S D to walk. Hold Shift to run. Drag to look around.';
   const st = sample(S.t), back = dirFromAzEl(X.site, st.sunAz + 150, 0);
   X.controls.enabled = false;
   const fromPos = X.camera.position.clone(), fromTgt = X.controls.target.clone(), fromFov = X.camera.fov;
   let to;
   if (v === 'fp') { X.yaw = st.sunAz; X.pitch = 2; to = { pos: new THREE.Vector3(0, localH(0, 0) + 2, 0), fov: 60 }; to.target = to.pos.clone().add(dirFromAzEl(X.site, X.yaw, X.pitch)); }
-  else to = VIEW[v](back);
+  else to = VIEW[v](v === 'drone' ? dirFromAzEl(X.site, st.sunAz + 55, 0) : back); // close up: the Sun over your shoulder, so the lander is lit
   const done = () => { X.camera.position.copy(to.pos); X.camera.fov = to.fov; X.camera.updateProjectionMatrix(); if (v === 'fp') lookFP(); else { X.controls.target.copy(to.target); X.camera.lookAt(to.target); X.controls.update(); X.controls.enabled = S.screen === 'explore'; } applyTime(); };
   if (instant || REDUCED) { done(); return; }
   const t0 = performance.now();
@@ -1272,20 +1368,25 @@ function storyEarth() {
   return M.earthS;
 }
 function storyApply(dt) {
-  const k = 1 - Math.pow(0.04, dt); STORY.p += (STORY.to - STORY.p) * k; if (Math.abs(STORY.to - STORY.p) < 1e-4) STORY.p = STORY.to;
+  const k = 1 - Math.pow(STORY.to === 0 ? 0.004 : 0.04, dt); STORY.p += (STORY.to - STORY.p) * k; if (Math.abs(STORY.to - STORY.p) < 1e-4) STORY.p = STORY.to;
   const p = STORY.p, ready = M.cap && TERR.photo;
   if (!ready || p <= 0.001) { // the whole Moon, turning slowly
-    M.full.visible = true; M.holed.visible = false; if (M.cap) M.cap.visible = false; if (M.earthS) M.earthS.visible = false; if (STORY.dimmed) { STORY.dimmed = false; if (M.cap) applyTint(M.cap, 0); M.holed.material.color.setScalar(1); }
-    M.sun.castShadow = false; M.sun.position.set(-3, 1.4, 2.2); M.sun.intensity = 3.4; M.hemi.intensity = 0.04; M.camera.up.set(0, 1, 0);
+    M.full.visible = true; M.holed.visible = false; if (M.cap) M.cap.visible = false; if (M.earthS) M.earthS.visible = false; if (STORY.dimmed) { STORY.dimmed = false; if (M.cap) applyTint(M.cap, 0); M.holed.material.color.setScalar(1); M.full.material.color.setScalar(1); TERR.u.uRim.value = 0; }
+    M.sun.castShadow = false; M.sun.position.set(-3, 1.4, 2.2); M.sun.target.position.set(0, 0, 0); M.sun.intensity = 3.4; M.hemi.intensity = 0.04; M.camera.up.set(0, 1, 0);
     M.camera.near = 0.01; M.camera.far = 200; M.camera.updateProjectionMatrix(); return false;
   }
-  M.full.visible = false; M.holed.visible = true; M.cap.visible = true; TERR.u.uPhoto.value = 0.5; TERR.photoTo = null;
-  if (!STORY.dimmed) { const L = S.layers; S.layers = { sun: false, ice: false }; applyTint(M.cap, 1); S.layers = L; M.holed.material.color.setScalar(0.26); M.tint = M.tintTo = 0; STORY.dimmed = true; } // the rest of the Moon dims: the pole stands out, no visible edge
-  const e = ease(Math.min(1, p)); M.pivot.rotation.set(M.tilt + (-Math.PI - M.tilt) * e, 0, 0); M.moon.rotation.y = (M.spin % (Math.PI * 2)) * (1 - e); M.pivot.updateMatrixWorld(true);
+  const e = ease(Math.min(1, p)), near = e > 0.9; // far away the whole Moon turns to show its pole; close up the detailed polar terrain takes over, as on Google Earth
+  M.full.visible = !near; M.holed.visible = near; M.cap.visible = near; TERR.u.uPhoto.value = 0.5; TERR.photoTo = null;
+  if (!STORY.dimmed) { const L = S.layers; S.layers = { sun: false, ice: false }; applyTint(M.cap, 0); S.layers = L; M.tint = M.tintTo = 0; STORY.dimmed = true; }
+  const dimF = Math.min(1, Math.max(0, (e - 0.45) / 0.5)), dm = dimF * dimF * (3 - 2 * dimF) * 0.7; // the Moon darkens first, then the lit pole appears: a spotlight, not a pasted disc
+  M.holed.material.color.setScalar(1 - 0.86 * dm); M.full.material.color.setScalar(1 - 0.86 * dm); TERR.u.uRimW.value = 170000; TERR.u.uRim.value = dm; // the rest of the Moon dims gradually: the pole stands out, with no edge
+  M.pivot.rotation.set(M.tilt + (-Math.PI - M.tilt) * e, 0, 0); M.moon.rotation.y = (M.spin % (Math.PI * 2)) * (1 - e); M.pivot.updateMatrixWorld(true);
   // the Sun circles the pole a degree and a half above the horizon; its shadows turn with it
   STORY.sunAz += dt * (p > 0.9 ? 9 : 0); const az = rad(STORY.sunAz), el = rad(1.6), sd = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el));
-  const pole = new THREE.Vector3(0, 1, 0); M.sun.target.position.copy(pole); M.sun.position.copy(pole).addScaledVector(sd, 2); M.sun.castShadow = e > 0.6; M.cap.castShadow = M.cap.receiveShadow = true;
-  M.sun.intensity = 1.2 + 3.2 * e; M.hemi.intensity = 0.05 + 0.1 * e; renderer.shadowMap.needsUpdate = true;
+  const pole = new THREE.Vector3(0, 1, 0), front = new THREE.Vector3(-3, 1.4, 2.2).normalize(), ls = Math.min(1, e / 0.7);
+  const dir = front.clone().lerp(sd, ls * ls * (3 - 2 * ls)).normalize(); // the light eases from the front (the whole Moon lit) to the low polar Sun
+  M.sun.target.position.copy(pole); M.sun.position.copy(pole).addScaledVector(dir, 2); M.sun.castShadow = e > 0.6; M.cap.castShadow = M.cap.receiveShadow = true;
+  M.sun.intensity = 3.4 + 1.0 * e; M.hemi.intensity = 0.04 + 0.11 * e; renderer.shadowMap.needsUpdate = true;
   let pos, up, look;
   if (p < 1) {
     const hp = navPose(STORY_K[1] && storyPose(1)), from = new THREE.Vector3(0, 0, M.dist);
@@ -1300,7 +1401,7 @@ function storyApply(dt) {
     const ed = fwd.multiplyScalar(Math.cos(rad(1.0))).addScaledVector(u, Math.sin(rad(1.0))).normalize(), D = Math.min(2, M.camera.far * 0.6); ea.position.copy(M.camera.position).addScaledVector(ed, D); ea.scale.setScalar(D * Math.tan(rad(0.95))); ea.lookAt(M.camera.position); }
   return true;
 }
-function leaveStory() { if (STORY.dimmed) { STORY.dimmed = false; if (M.cap) applyTint(M.cap, 0); M.holed.material.color.setScalar(1); } STORY.p = STORY.to = 0; storyChapter(); if (M.earthS) M.earthS.visible = false; M.camera.clearViewOffset(); M.pivot.rotation.set(M.tilt, 0, 0); }
+function leaveStory() { if (STORY.dimmed) { STORY.dimmed = false; if (M.cap) applyTint(M.cap, 0); M.holed.material.color.setScalar(1); M.full.material.color.setScalar(1); TERR.u.uRim.value = 0; } STORY.p = STORY.to = 0; storyChapter(); if (M.earthS) M.earthS.visible = false; M.camera.clearViewOffset(); M.pivot.rotation.set(M.tilt, 0, 0); }
 // a ring follows the pointer and grows over things you can press or drag
 {
   const ring = document.createElement('div'); ring.className = 'cring'; ring.innerHTML = '<span></span>'; document.body.appendChild(ring);
@@ -1411,7 +1512,7 @@ function frame(now) {
           const el = document.createElement('button'); el.className = `pin disc xdisc c-${p.cat}`; el.innerHTML = `<span class="dic">${DICON[p.cat] || ''}</span><span class="dl">${esc(p.name)}</span>`; el.style.display = 'none'; el.onclick = () => discoverCard(p, el, true); document.body.appendChild(el); return { el, x_m, y_m }; }); }
         for (const q of X.dpins) { let ok = far && S.showDiscover && S.screen === 'explore';
           if (ok) { const dx = q.x_m - X.site.x_m, dy = q.y_m - X.site.y_m; v3.set(dx, regionH(q.x_m, q.y_m) - X.h0 - (dx * dx + dy * dy) / (2 * R_MOON) + 300, -dy).project(X.camera); const px = (v3.x + 1) / 2 * innerWidth, py = (1 - v3.y) / 2 * innerHeight;
-            ok = v3.z < 1 && px > 10 && px < innerWidth - 440 && py > 130 && py < innerHeight - 110; if (ok) q.el.style.transform = `translate(${px}px, ${py}px)`; }
+            ok = v3.z < 1 && px > 10 && px < innerWidth - 440 && py > ($('.look').getBoundingClientRect().bottom || 240) + 24 && py < innerHeight - 110; if (ok) q.el.style.transform = `translate(${px}px, ${py}px)`; }
           q.el.style.display = ok ? '' : 'none'; } } }
     renderer.render(X.sky, X.camera); renderer.clearDepth(); renderer.render(X.scene, X.camera); GQ.sig = X.camera.matrixWorld.elements.join(',') + X.camera.projectionMatrix.elements[0];
   }
@@ -1432,6 +1533,7 @@ $('#openCal').onclick = () => openCalendar();
 $('#placesT').onclick = () => { S.showPlaces = !S.showPlaces; $('#placesT').setAttribute('aria-pressed', S.showPlaces); };
 const toast = (msg, ms = 4200) => { const t = $('#edgeToast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), ms); };
 $('#discX').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discX').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite'); if (S.showDiscover && (S.view === 'fp' || S.view === 'drone')) setView('region'); if (!S.showDiscover) $$('.pop.dcard').forEach(x => x.remove()); GQ.dirty = true; };
+$('#tutBtn').onclick = () => tutorial();
 $('#discT').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discX').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite');
   if (S.showDiscover && S.discover) toast(`${S.discover.items.length} places to discover: water, hazards and history. Fly around and click a glowing icon.`, 5200); if (!S.showDiscover) $$('.pop.dcard').forEach(x => x.remove()); GQ.dirty = true; };
 $('#closeCal').onclick = () => $('#calendar').classList.remove('open');
@@ -1464,7 +1566,7 @@ async function openHow() {
 }
 $('#helpBtn').onclick = () => { const h = $('#maphint'); h.classList.add('on'); setTimeout(() => h.classList.remove('on'), 5000); };
 $('#howBtn').onclick = openHow; $('#howClose').onclick = () => $('#how').classList.remove('on');
-window.__lss = { M, NAV, GQ, X, S }; // for automated checks
+window.__lss = { M, NAV, GQ, X, S, STORY, TERR, renderer }; // for automated checks
 if (/[?&]debug/.test(location.search)) { // diagnostics for testing on other computers: add ?debug to the address
   const el = $('#dbg'); el.hidden = false; let frames = 0, lastEv = '-', gpu = '?';
   try { const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); gpu = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); } catch (e) {}
