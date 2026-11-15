@@ -656,3 +656,51 @@ body[data-screen="results"] .ctl-chip:not([hidden]) { display: inline-flex; posi
 .ctl-show { margin-top: 10px; width: 100%; background: none; border: 1px solid rgba(245,200,74,.5); color: #f5d27a; font: 600 12px/1 var(--head); letter-spacing: .12em; text-transform: uppercase; padding: 9px 0; cursor: pointer; }
 .ctl-show:hover { background: rgba(245,200,74,.12); }
 @media (max-width: 980px), (max-height: 600px) { body[data-screen="results"] .ctlegend:not([hidden]) { display: none; } }
+/* game-style arrows on touch screens */
+.vpad { display: none; }
+body.touch[data-screen="results"] .vpad, body.touch[data-screen="explore"] .vpad { display: flex; position: fixed; left: 14px; right: 14px; bottom: calc(38vh + 96px); justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 7; }
+body.touch[data-screen="explore"] .vpad { bottom: calc(40vh + 110px); }
+@media (min-width: 981px) { body.touch[data-screen="results"] .vpad, body.touch[data-screen="explore"] .vpad { bottom: 120px; right: 460px; } }
+.vpad button { pointer-events: auto; touch-action: none; -webkit-user-select: none; user-select: none; width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(6,8,12,.62); color: #fff; font-size: 16px; display: grid; place-items: center; backdrop-filter: blur(4px); }
+.vpad button.down { background: rgba(245,200,74,.85); color: #000; border-color: #f5c84a; }
+.dpad { display: grid; grid-template-columns: 46px 46px 46px; grid-template-rows: 46px 46px 46px; gap: 2px; }
+.dpad [data-k="arrowup"] { grid-column: 2; grid-row: 1; } .dpad [data-k="arrowleft"] { grid-column: 1; grid-row: 2; } .dpad [data-k="arrowright"] { grid-column: 3; grid-row: 2; } .dpad [data-k="arrowdown"] { grid-column: 2; grid-row: 3; }
+.vside { display: grid; grid-template-columns: 46px 46px; gap: 8px; }
+.vside [data-k="f"], .vside [data-k="r"] { font-size: 22px; }
+/* phones: the same scenes, laid out for a narrow screen */
+@media (max-width: 700px) {
+  .story .scrollcue { display: none; }
+  #who .choice, #mission .choice { background: rgba(0,0,0,.72); }
+  #mission .col, #missionBody { max-width: 100%; overflow-x: hidden; }
+  .mgrid, .mgrid .choices { min-width: 0; } .mgrid .choice { max-width: 100%; box-sizing: border-box; }
+  .dock { height: 34vh !important; } .whenbar { bottom: calc(34vh + 30px) !important; }
+  body.touch[data-screen="results"] .vpad { bottom: calc(34vh + 118px); }
+  #explore .ex-left { left: 12px; right: 12px; top: 64px; gap: 6px; }
+  #explore .viewhint { font-size: 12px; padding: 4px 8px; max-width: none; }
+  #explore .landerinfo { display: none; }
+  #explore .ex-left .look .btn { padding: 6px 8px; font-size: 11px; }
+  body.touch[data-screen="explore"] .vpad { bottom: calc(45vh + 74px); }
+  .cmp { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cmp > * { min-width: 640px; }
+}
+body.touch .exhint, body.touch #walkhint { display: none !important; }
+@media (max-width: 700px) {
+  .cmp > * { min-width: 0; }
+  .cmp { grid-template-columns: 120px repeat(3, 150px); overflow-x: auto; }
+  .cmp > div { padding: 10px 10px; font-size: 14px; }
+  .cmp .ch h3 { font-size: 18px; }
+  /* results: the map gets the screen, the date bar is one compact row above the options */
+  .dock { height: 30vh !important; }
+  #results .whenbar { bottom: calc(30vh + 8px) !important; padding: 8px 12px 8px !important; }
+  #results .whenbar .tabs, #results .whenbar #toBest, #results .whenbar .wb-note { display: none !important; }
+  #results .whenbar .when-track { height: 34px; }
+  body.touch[data-screen="results"] .vpad { bottom: calc(30vh + 96px); }
+  #results .res-head h2 { font-size: 24px; }
+  #results .res-tools { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin-top: 8px; } #results .res-tools .btn { padding: 6px 9px; font-size: 10.5px; white-space: nowrap; }
+  #results .res-head .lead { display: none; }
+  /* 3D: tabs and status on top, arrows at the bottom of the scene, details below */
+  #explore .panel { height: 40vh; }
+  body.touch #explore .viewhint { display: none; }
+  #explore .ex-left .look { display: flex; flex-wrap: wrap; gap: 4px; }
+  body.touch[data-screen="explore"] .vpad { bottom: calc(40vh + 110px); }
+}

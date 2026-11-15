@@ -554,7 +554,7 @@ function tutorial() {
   const demo = (fn, ms) => { const t0 = performance.now(); const step = now => { const k = Math.min(1, (now - t0) / ms); fn(k); GQ.dirty = true; if (k < 1 && TUT.i >= 0) requestAnimationFrame(step); }; requestAnimationFrame(step); };
   const pin1 = [...document.querySelectorAll('.pin.top')].find(e => e.style.display !== 'none');
   const steps = [
-    { t: 'Move around', d: 'Drag the map with the mouse or one finger. It glides, like Google Earth.', g: 'drag', at: () => { const c = free(); return { x: c.x, y: c.y, w: 220, h: 140 }; }, run: () => { let last = 0; demo(k => { const v = Math.sin(k * Math.PI) * 160, dv = v - last; last = v; panPix(dv, 0, true); }, 1500); } },
+    { t: 'Move around', d: 'Drag the map with the mouse or one finger, or hold the arrow keys (W A S D) to fly. Q and E turn.', g: 'drag', at: () => { const c = free(); return { x: c.x, y: c.y, w: 220, h: 140 }; }, run: () => { let last = 0; demo(k => { const v = Math.sin(k * Math.PI) * 160, dv = v - last; last = v; panPix(dv, 0, true); }, 1500); } },
     { t: 'Zoom', d: 'Scroll the wheel, or pinch on a touchpad or phone. Double-click a spot to dive in.', g: 'zoom', at: () => { const c = free(); return { x: c.x, y: c.y, w: 220, h: 140 }; }, run: () => { const d0 = NAV.d; demo(k => { NAV.d = d0 * (1 - 0.45 * Math.sin(k * Math.PI)); NAV.cur.d = NAV.d; }, 1500); } },
     { t: 'Tilt and turn', d: 'Right-drag, or hold Shift and drag, to turn the map and look across the horizon.', g: 'tilt', at: () => { const c = free(); return { x: c.x, y: c.y, w: 220, h: 140 }; }, run: () => { const h0 = NAV.head; demo(k => { NAV.head = h0 + 0.5 * Math.sin(k * Math.PI); NAV.cur.head = NAV.head; }, 1500); } },
     { t: 'Click to learn more', d: 'Click a numbered site to open it in 3D. Turn on Discover for glowing icons of water, hazards and history.', at: () => { const r = box('#discT'); return r && { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width + 24, h: r.height + 20 }; } },
@@ -1101,7 +1101,7 @@ const VIEW = {
 };
 function setView(v, instant) {
   S.view = v; $$('#views button').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
-  $('#viewHint').textContent = { fp: 'You are standing where the lander touches down. Drag to look around, W A S D to walk, scroll to zoom in on the Sun or Earth.', drone: 'Your lander at real size, beside a person, in its landing circle. Drag to circle around it, scroll out to see the whole circle, double-click a spot to fly there.', region: 'The 10 km around the site, with the hills that cast its shadows. Drag to turn, scroll to zoom, double-click a spot to fly there, right-drag to slide.', orbit: 'The pole seen from space, on the real Moon. Drag to turn, scroll to zoom out to the whole Moon, double-click a spot to fly there.' }[v];
+  $('#viewHint').textContent = { fp: 'You are standing where the lander touches down. Drag to look around, W A S D to walk, scroll to zoom in on the Sun or Earth.', drone: 'Your lander at real size, beside a person, in its landing circle. Drag to circle around it, arrows or W A S D to move, scroll out to see the whole circle, double-click a spot to fly there.', region: 'The 10 km around the site, with the hills that cast its shadows. Drag to turn, arrows or W A S D to fly, scroll to zoom, double-click a spot to fly there.', orbit: 'The pole seen from space, on the real Moon. Drag to turn, arrows or W A S D to fly, scroll to zoom out to the whole Moon, double-click a spot to fly there.' }[v];
   setLander(); X.lander.visible = v !== 'fp'; if (X.sunPath) X.sunPath.visible = X.earthPath.visible = false; if (X.ring) X.ring.visible = X.glow.visible = v !== 'fp';
   $('#walkhint').classList.toggle('on', v === 'fp'); $('#walkhint').textContent = 'Use the arrow keys or W A S D to walk. Hold Shift to run. Drag to look around.';
   const st = sample(S.t), back = dirFromAzEl(X.site, st.sunAz + 150, 0);
@@ -1154,16 +1154,30 @@ $('#lookSun').onclick = () => lookAt('sun'); $('#lookEarth').onclick = () => loo
     const d = X.camera.position.clone().sub(X.controls.target), len = Math.max(15, Math.min(S.view === 'orbit' ? 900000 : 60000, d.length() * Math.exp(e.deltaY * 0.0012)));
     X.camera.position.copy(X.controls.target).add(d.setLength(len)); GQ.dirty = true;
   }, { passive: false });
-  addEventListener('keydown', e => { if (S.screen === 'explore' && S.view === 'fp' && !e.target.closest('input')) { X.walk[e.key.toLowerCase()] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } });
+  addEventListener('keydown', e => { if (S.screen === 'explore' && !e.target.closest('input')) { X.walk[e.key.toLowerCase()] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } });
   addEventListener('keyup', e => { X.walk[e.key.toLowerCase()] = false; });
 }
 function walkStep(dt) {
   const k = X.walk, f = (k.w || k.arrowup ? 1 : 0) - (k.s || k.arrowdown ? 1 : 0), r = (k.d || k.arrowright ? 1 : 0) - (k.a || k.arrowleft ? 1 : 0);
+  const turn = (k.e ? 1 : 0) - (k.q ? 1 : 0); if (turn) { X.yaw += turn * dt * 50; lookFP(); GQ.dirty = true; }
   if (!f && !r) return;
   const sp = (k.shift ? 150 : 30) * dt, fwd = dirFromAzEl(X.site, X.yaw, 0), right = dirFromAzEl(X.site, X.yaw + 90, 0);
   const p = X.camera.position.clone().addScaledVector(fwd, f * sp).addScaledVector(right, r * sp), lim = X.half - 50;
   p.x = Math.max(-lim, Math.min(lim, p.x)); p.z = Math.max(-lim, Math.min(lim, p.z)); p.y = localH(p.x, p.z) + 2;
   X.camera.position.copy(p); lookFP(); X.walked = true; updateWalkChip();
+}
+function flyStep(dt) { // arrows or W A S D in the other views: glide over the ground, faster the higher you are
+  const k = X.walk, f = (k.w || k.arrowup ? 1 : 0) - (k.s || k.arrowdown ? 1 : 0), r = (k.d || k.arrowright ? 1 : 0) - (k.a || k.arrowleft ? 1 : 0), turn = (k.e ? 1 : 0) - (k.q ? 1 : 0);
+  const zm = (k.r ? 1 : 0) - (k.f ? 1 : 0);
+  if (!f && !r && !turn && !zm) return false;
+  const off = X.camera.position.clone().sub(X.controls.target);
+  if (zm) off.multiplyScalar(Math.exp(zm * dt * 1.3)), off.setLength(Math.max(15, Math.min(S.view === 'orbit' ? 900000 : 60000, off.length())));
+  const dist = off.length(), fwd = off.clone().setY(0).normalize().negate(), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+  const mv = fwd.multiplyScalar(f).add(right.multiplyScalar(r)).multiplyScalar(Math.max(dist, 80) * (k.shift ? 1.6 : 0.6) * dt);
+  X.controls.target.add(mv); const lim = 250000; X.controls.target.x = Math.max(-lim, Math.min(lim, X.controls.target.x)); X.controls.target.z = Math.max(-lim, Math.min(lim, X.controls.target.z));
+  if (Math.abs(X.controls.target.x) < X.half && Math.abs(X.controls.target.z) < X.half) X.controls.target.y += (localH(X.controls.target.x, X.controls.target.z) - X.controls.target.y) * Math.min(1, dt * 4);
+  if (turn) off.applyAxisAngle(new THREE.Vector3(0, 1, 0), -turn * dt * 0.9);
+  X.camera.position.copy(X.controls.target).add(off); X.camera.lookAt(X.controls.target); GQ.dirty = true; GQ.activeUntil = performance.now() + 300; return true;
 }
 function updateWalkChip() {
   // distance from the lander and direction to the nearest permanently shadowed area while walking
@@ -1445,7 +1459,7 @@ function frame(now) {
   if (scene === 'moon' && M.map && !anim) navInertia(dt);
   const navMoving = (M.map && (NAV.vel || Object.keys(NAV.keys || {}).length)) || M.map && NAV.cur && (NAV.cur.t.angleTo(NAV.t) > 1e-6 || Math.abs(Math.log(NAV.cur.d / NAV.d)) > 1e-4 || Math.abs(((NAV.head - NAV.cur.head + Math.PI * 3) % (Math.PI * 2)) - Math.PI) > 1e-5 || Math.abs(NAV.cur.tiltU - NAV.tiltU) > 1e-5);
   const storyMoving = S.screen === 'hero' && (Math.abs(STORY.to - STORY.p) > 1e-4 || (STORY.p > 0.9 && !(GQ.skip2 = !GQ.skip2))); // the turning Sun redraws at half rate
-  const busy = anim || S.playing || GQ.dirty || storyMoving || (S.fit > 0 && S.screen === 'results') || now < GQ.activeUntil || lerping || navMoving || (heroSpin && !(GQ.skip = !GQ.skip)) || (X.ring && now - X.ringBorn < 1600) || sig !== GQ.sig;
+  const busy = anim || S.playing || GQ.dirty || (S.screen === 'explore' && Object.values(X.walk).some(Boolean)) || storyMoving || (S.fit > 0 && S.screen === 'results') || now < GQ.activeUntil || lerping || navMoving || (heroSpin && !(GQ.skip = !GQ.skip)) || (X.ring && now - X.ringBorn < 1600) || sig !== GQ.sig;
   GQ.drew = !!busy;
   if (!busy) { requestAnimationFrame(frame); return; }
   GQ.dirty = false;
@@ -1504,7 +1518,7 @@ function frame(now) {
   } else {
     markers.forEach(m => m.el.style.display = 'none');
     if (S.playing && S.data) { const n = series().t.length - 1; S.t += dt * S.speed; if (S.t >= n) { S.t = n; setPlaying(false); } applyTime(); }
-    if (S.view === 'fp' && !anim) walkStep(dt); else if (!anim && X.controls.enabled) X.controls.update();
+    if (S.view === 'fp' && !anim) walkStep(dt); else if (!anim && X.controls.enabled) { flyStep(dt); X.controls.update(); }
     if (X.site) {
       const st = sample(S.t), cp = X.camera.position, sd = dirFromAzEl(X.site, st.sunAz, st.sunEl), ed = dirFromAzEl(X.site, st.earthAz, st.earthEl);
       X.sunGlow.position.copy(cp).addScaledVector(sd, SKY_D); X.sunGlow.scale.setScalar(SKY_D * Math.tan(rad(0.27)) * 56); X.sunGlow.material.opacity = Math.max(0.15, st.frac);
@@ -1547,6 +1561,11 @@ $('#placesT').onclick = () => { S.showPlaces = !S.showPlaces; $('#placesT').setA
 const toast = (msg, ms = 4200) => { const t = $('#edgeToast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), ms); };
 $('#discX').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discX').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite'); if (S.showDiscover && (S.view === 'fp' || S.view === 'drone')) setView('region'); if (!S.showDiscover) $$('.pop.dcard').forEach(x => x.remove()); GQ.dirty = true; };
 $('#tutBtn').onclick = () => tutorial();
+{ // game-style arrows for phones and tablets: hold to move, same keys as the keyboard
+  const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0; document.body.classList.toggle('touch', touch);
+  const target = () => S.screen === 'explore' ? X.walk : (NAV.keys ||= {});
+  $$('#vpad button').forEach(b => { const k = b.dataset.k, on = e => { e.preventDefault(); target()[k] = true; GQ.dirty = true; GQ.activeUntil = performance.now() + 400; b.classList.add('down'); }, off = () => { delete NAV.keys[k]; X.walk[k] = false; b.classList.remove('down'); };
+    b.addEventListener('pointerdown', on); for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, off); b.addEventListener('contextmenu', e => e.preventDefault()); }); }
 { // the controls legend on the map: open the first time, then as the person left it
   const setL = open => { $('#ctLegend').hidden = !open; $('#ctlChip').hidden = open; try { localStorage.setItem('lss_legend', open ? '1' : '0'); } catch (e) {} GQ.dirty = true; };
   let open = true; try { open = localStorage.getItem('lss_legend') !== '0'; } catch (e) {} setL(open);
@@ -1577,7 +1596,7 @@ async function openHow() {
       <p>On the sharper 5 m terrain our sunlight is lower than NASA's maps, because small hills block the grazing Sun. We keep the sharper terrain: it errs on the safe side.</p></section>
     <section><h3>How we handle what we do not know</h3><p>Every verdict holds for the worst point of the landing area, for every lander orientation when yours is unknown, and on six NASA versions of the terrain. When you do not give a value, we do not guess it: we tell you what you would need. Costs are scenarios built only from public prices, with their sources.</p></section>
     <section><h3>What we do not check</h3><p>Rocks smaller than the terrain grid, the approach trajectory, a full thermal model and other landers nearby. A mission team should confirm the chosen spot with 1 m imagery hazard maps.</p></section>
-    <section><h3>Moving around</h3><p>As on Google Earth: drag to move, scroll or pinch to zoom, double-click to dive in, right-drag or Shift-drag to turn and tilt. The compass brings north up and all three sites back into view. Discover shows water, hazards and history near the pole, each with its source.</p></section>
+    <section><h3>Moving around</h3><p>As on Google Earth: drag to move, scroll or pinch to zoom, double-click to dive in, right-drag or Shift-drag to turn and tilt. The arrow keys (or W A S D) fly in any direction, Q and E turn, in the map and in every 3D view. On a phone, use the on-screen arrows. The compass brings north up and all three sites back into view. Discover shows water, hazards and history near the pole, each with its source.</p></section>
     <section><h3>What comes next</h3><p>Today you can explore the south polar region, out to about 81°S, where every landing planned for the next years is headed. Next: the rest of the Moon and the north pole, local installation so mission data never leaves the customer, and a full thermal model.</p></section>`;
   el.classList.add('on');
 }
