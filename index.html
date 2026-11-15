@@ -28,9 +28,9 @@
 
 <section class="screen" id="hero">
   <div class="story">
-    <div class="ch" data-i="0"><h1>Choose where<br>to land.</h1><p>Find the best place and day to land near the Moon’s south pole: sunlight, contact with Earth and safe ground, worked out from NASA data.</p>
+    <div class="ch" data-i="0"><h1>Choose where<br>to land.</h1><p>The best spot and day to land at the Moon’s south pole, checked with NASA data.</p>
       <ol class="howto"><li><b>1</b>Tell us who you are</li><li><b>2</b>Pick a mission, or describe yours</li><li><b>3</b>Get the best site and date, and why</li></ol>
-      <div class="ch-act"><button class="btn primary" data-go="who">Find my landing site</button><button class="btn ghost" id="storyNext">Or scroll: why the south pole is hard</button></div><p class="ch-time">About one minute. Free, nothing to install.</p></div>
+      <div class="ch-act"><button class="btn primary" data-go="who">Find my landing site</button><button class="btn ghost" id="storyNext">Or scroll: why the south pole is hard</button></div></div>
     <div class="ch" data-i="1"><h2>At the south pole, the Sun never rises high.</h2><p>It circles the horizon a degree or two up. Every hill throws a shadow tens of kilometres long, and the shadows turn with the Sun.</p></div>
     <div class="ch" data-i="2"><h2>A hill far away can hide it for days.</h2><p>Some crater floors have not seen sunlight for billions of years. They are among the coldest places known, and may hold water ice.</p></div>
     <div class="ch" data-i="3"><h2>Earth hangs low on the horizon.</h2><p>When it sinks behind a ridge, a lander cannot call home. Where you land decides when you have power and when you can talk.</p></div>
@@ -78,6 +78,8 @@
   </div>
   <button class="ctl-chip" id="ctlChip" hidden>Lost? Need help?</button>
 
+  <div class="skymark sun" id="sunMark" aria-hidden="true"><i></i><span>Sun</span></div>
+  <div class="skymark earth" id="earthMark" aria-hidden="true"><i></i><span>Earth</span></div>
   <div class="map-key">
     <span class="tabs light" id="lightMode"><button data-l="photo" aria-pressed="true">Photo</button><button data-l="date" aria-pressed="false">Sunlight on the date</button></span>
     <button class="layer" data-layer="sun" aria-pressed="true"><i style="background:var(--sun)"></i>Often sunlit</button>

@@ -470,6 +470,32 @@ function mapSunDir() {
   if (S.lightMode === 'photo') el = 40; // the photo already carries its own shading: a soft light from above
   const dv = dirFromAzEl(s0, az, el); return new THREE.Vector3(-dv.z, dv.y, dv.x); // local site frame -> world (south pole up)
 }
+// the Sun and Earth on the map: two markers around the view, pointing to where each stands on the horizon on the chosen date.
+// Press play and they travel round, with the shadows: the Sun circles the pole once a month, Earth rocks up and down.
+function skyNow() {
+  const o = S.data.options[0], set = S.when && S.when[o.site], m = set && set[S.whenIdx ?? S.bestIdx];
+  if (m && m.earthAz != null) return m;
+  const sh = o.series_hourly; return { sunAz: o.landing.sun_azimuth_deg, sunEl: o.landing.sun_elevation_deg, earthAz: sh ? sh.earth_az[0] : null, earthEl: sh ? sh.earth_el[0] : o.landing.earth_elevation_deg };
+}
+const _p0 = new THREE.Vector3(), _p1 = new THREE.Vector3();
+function skyMarks() {
+  const sm = $('#sunMark'), em = $('#earthMark'); if (!sm) return;
+  const show = S.screen === 'results' && M.map && !anim && S.data && NAV.cur && !document.body.classList.contains('immerse');
+  sm.classList.toggle('on', !!show); em.classList.toggle('on', !!show); if (!show) return;
+  const s0 = S.sites[S.data.options[0].site], m = skyNow(); if (!s0) return;
+  const up = NAV.cur.t.clone().normalize(); _p0.copy(up).multiplyScalar(1.001).project(M.camera);
+  const cx = (_p0.x + 1) / 2 * VW, cy = (1 - _p0.y) / 2 * VH, R = Math.min(VW > 980 ? VW - 460 : VW, VH) * (VW > 700 ? 0.42 : 0.38);
+  const place = (el, az, elev, name) => {
+    if (az == null) { el.classList.remove('on'); return; }
+    const dv = dirFromAzEl(s0, az, Math.max(-5, Math.min(5, elev))), d = new THREE.Vector3(-dv.z, 0, dv.x).normalize(), dir = d.sub(up.clone().multiplyScalar(d.dot(up))).normalize();
+    _p1.copy(up).multiplyScalar(1.001).addScaledVector(dir, 0.02).project(M.camera);
+    const a = Math.atan2((1 - _p1.y) / 2 * VH - cy, (_p1.x + 1) / 2 * VW - cx), dockW = VW > 980 && !$('#dock').classList.contains('closed') ? 440 : 16;
+    const x = Math.max(24, Math.min(VW - dockW - 24, cx + R * Math.cos(a))), y = Math.max(110, Math.min(VH - 150, cy + R * Math.sin(a)));
+    el.style.transform = `translate(${x}px, ${y}px)`; el.classList.toggle('below', elev < 0);
+    el.querySelector('span').innerHTML = `${name}${elev < 0 ? ', behind the horizon' : ''}<em class="xp"> ${fmt(elev, 1)}°</em>`; // plain words; the angle only in Expert
+  };
+  place(sm, m.sunAz, m.sunEl, 'Sun'); place(em, m.earthAz, m.earthEl, 'Earth');
+}
 function setMapLight(instant) {
   if (!S.data) return;
   const d = mapSunDir(), real = S.lightMode !== 'photo', c = new THREE.Vector3(0, 1, 0);
@@ -1615,6 +1641,7 @@ function frame(now) {
       const dockOpen = VW > 980 && S.screen === 'results' && !$('#dock').classList.contains('closed'), wantX = (dockOpen ? 210 : 0) - (S.screen === 'results' && VW > 980 && document.querySelector('.ctlegend:not([hidden])') ? 150 : 0), wantY = S.screen === 'results' && VW > 980 ? VH / 2 - (layoutY().a + layoutY().b) / 2 : VH * 0.06; // centre the map in the free space between the headline and the legend
       M.offX = (M.offX ?? 0) + (wantX - (M.offX ?? 0)) * k; M.offY = (M.offY ?? 0) + (wantY - (M.offY ?? 0)) * k; M.camera.setViewOffset(VW, VH, M.offX, M.offY, VW, VH);
     }
+    skyMarks();
     if (M.map && !anim) { navApply(dt); if (M.lightTo) { M.sun.position.lerp(M.lightTo.pos, 1 - Math.pow(0.02, dt)); M.hemi.intensity += (M.hemiTo - M.hemi.intensity) * (1 - Math.pow(0.02, dt)); } }
     if (M.cap && Math.abs(M.tint - M.tintTo) > 0.002) { M.tint += (M.tintTo - M.tint) * Math.min(1, dt * 3); setCapTint(M.tint); }
     if (TERR.photoTo != null && Math.abs(TERR.u.uPhoto.value - TERR.photoTo) > 0.002) { TERR.u.uPhoto.value += (TERR.photoTo - TERR.u.uPhoto.value) * Math.min(1, dt * 3); GQ.dirty = true; }
