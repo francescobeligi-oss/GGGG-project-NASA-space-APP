@@ -859,3 +859,32 @@ body.panel-off #explore .time { right: 0 !important; }
   #explore .time .play { grid-row: 2; } #explore .time .track { grid-row: 2; }
   #explore .time { row-gap: 6px !important; }
 }
+.ctl-acts { display: grid; gap: 6px; margin-top: 10px; }
+.ctl-acts .ctl-show { margin-top: 0; }
+#ctlHome { border-color: rgba(255,255,255,.35); color: #fff; }
+#ctlHome:hover { background: rgba(255,255,255,.08); }
+/* explore: the pole and ground ring are drawn in 3D now; the icon just sits on top of the pole */
+.pin.xdisc .dic::before, .pin.xdisc::after { display: none; }
+/* date chart: what the lines mean, a scale, a live read-out, and the sky that explains them */
+.cmp-chartgrid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 26px; align-items: start; }
+.chart-q { margin: 2px 0 6px; font-size: 15px; color: var(--text); }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; color: var(--muted); margin-bottom: 6px; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.chart-legend i { width: 18px; height: 3px; display: inline-block; }
+.chart-legend b { color: var(--text); font-weight: 600; }
+.chart-legend.mini { font-size: 12px; gap: 4px 12px; margin: -2px 0 4px; }
+.chart-legend.mini em { font-style: normal; }
+.chart-legend.mini i { width: 12px; }
+.cmp-when .when-track.tall { height: 150px; }
+.strip-key { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.strip-key span { margin-right: 6px; } .strip-key b { color: var(--text); font-weight: 500; }
+.strip-key i { width: 14px; height: 6px; display: inline-block; margin-left: 6px; }
+.strip-key i.g { background: rgba(47,210,122,.85); } .strip-key i.y { background: rgba(255,176,32,.8); } .strip-key i.r { background: rgba(255,90,79,.6); }
+.sky { margin: 0; }
+.sky canvas { width: 100%; height: 150px; display: block; border: 1px solid var(--line); }
+.sky figcaption { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin-top: 8px; }
+.sky figcaption b { color: var(--text); font-weight: 600; }
+.sky .ks { color: #f5b83d; } .sky .ke { color: #6fb5ff; }
+@media (max-width: 980px) { .cmp-chartgrid { grid-template-columns: 1fr; } .sky canvas { height: 130px; } }
+@media (max-width: 700px) { .chart-legend.mini { display: none; } .cmp-when .when-track.tall { height: 120px; } }
+.cmp-when .when-track.tall #cmpSlider { left: 40px; right: 2px; width: auto; }

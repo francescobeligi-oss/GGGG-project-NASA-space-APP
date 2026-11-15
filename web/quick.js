@@ -153,7 +153,9 @@ export async function dateMetrics(site, meta, fromUtc, toUtc, durationH, mast, s
       sun += s; con += e; if (!s || !e) lost++;
       if (!s) { run++; if (run > dark) dark = run; } else run = 0;
     }
-    out.push({ utc: new Date((t0 + (k0 + k) * 3600) * 1000).toISOString().slice(0, 16) + 'Z', sunPct: 100 * sun / durationH, longestDark: dark, contactPct: 100 * con / durationH, lostH: lost, sunAz: R[k * COLS], sunEl: R[k * COLS + 1] });
+    const path = []; // where the Sun and Earth stand in the sky over the stay, every 3 hours (for the sky view)
+    for (let i = 0; i < durationH; i += 3) { const o = (k + i) * COLS; path.push([R[o], R[o + 1], R[o + 2], R[o + 3]]); }
+    out.push({ utc: new Date((t0 + (k0 + k) * 3600) * 1000).toISOString().slice(0, 16) + 'Z', sunPct: 100 * sun / durationH, longestDark: dark, contactPct: 100 * con / durationH, lostH: lost, sunAz: R[k * COLS], sunEl: R[k * COLS + 1], earthAz: R[k * COLS + 2], earthEl: R[k * COLS + 3], path });
   }
   return out;
 }

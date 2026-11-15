@@ -63,7 +63,7 @@
   <div class="tour" id="tour"></div>
   <div class="maphint" id="maphint"><b>Fly over the south pole</b><span>Drag to move · scroll or pinch to zoom · double-click to dive in</span><span>Right-drag or Shift-drag to turn and tilt</span></div>
   <div class="ctlegend" id="ctLegend" aria-label="How to move on the map">
-    <div class="ctl-head"><b>Moving around</b><button class="ctl-x" id="ctlToggle" aria-label="Hide">–</button></div>
+    <div class="ctl-head"><b>Lost? Here is how to move</b><button class="ctl-x" id="ctlToggle" aria-label="Hide">–</button></div>
     <ul>
       <li><i class="k">drag</i><span>Move over the pole</span></li>
       <li><i class="k">← ↑ → ↓</i><span>Fly with the arrows or W A S D (Q E to turn)</span></li>
@@ -73,9 +73,9 @@
       <li><i class="k n">N</i><span>North up, all three sites</span></li>
       <li><i class="k g">1 2 3</i><span>Open a site · <em>✦ Discover</em> what is there</span></li>
     </ul>
-    <button class="ctl-show" id="ctlShow">Show me in 20 seconds</button>
+    <div class="ctl-acts"><button class="ctl-show" id="ctlHome">Take me back to my 3 sites</button><button class="ctl-show" id="ctlShow">Show me in 20 seconds</button></div>
   </div>
-  <button class="ctl-chip" id="ctlChip" hidden>Moving around</button>
+  <button class="ctl-chip" id="ctlChip" hidden>Lost? Need help?</button>
 
   <div class="map-key">
     <span class="tabs light" id="lightMode"><button data-l="photo" aria-pressed="true">Photo</button><button data-l="date" aria-pressed="false">Sunlight on the date</button></span>
@@ -89,6 +89,7 @@
       <div class="tabs metric" id="metric"><button data-m="sun" aria-pressed="true">Sunlight</button><button data-m="earth">Earth contact</button><button data-m="cost">Cost of darkness</button></div>
       <button class="btn ghost" id="toBest">Back to best date</button>
     </div>
+    <div class="chart-legend mini" id="whenLegend"></div>
     <div class="when-track"><canvas id="whenChart"></canvas><input type="range" id="whenSlider" min="0" max="1" value="0" step="1" aria-label="Landing date"></div>
   </div>
   <div class="dock" id="dock"><button class="dock-toggle" id="dockToggle" aria-expanded="true">Hide options</button><div class="cards" id="cards"></div></div>
@@ -131,13 +132,21 @@
       <div class="when-head"><button class="play small-play" id="cmpPlay" aria-label="Play through the dates">▶</button><b>Landing date</b><span id="cmpDate" class="num">Each site at its best date</span>
         <div class="tabs metric" id="cmpMetric"><button data-m="sun" aria-pressed="true">Sunlight</button><button data-m="earth">Earth contact</button><button data-m="cost">Cost of darkness</button></div>
         <button class="btn ghost" id="cmpBest">Back to best date</button></div>
-      <div class="when-track"><canvas id="cmpChart"></canvas><input type="range" id="cmpSlider" min="0" max="1" value="0" step="1" aria-label="Landing date for all sites"></div>
+      <div class="cmp-chartgrid">
+        <div>
+          <p class="chart-q" id="cmpQ">Share of the stay in sunlight, if you land on that date</p>
+          <div class="chart-legend" id="cmpLegend"></div>
+          <div class="when-track tall"><canvas id="cmpChart"></canvas><input type="range" id="cmpSlider" min="0" max="1" value="0" step="1" aria-label="Landing date for all sites"></div>
+          <div class="strip-key"><span>Bottom stripe: verdict at <b id="stripSite">option 1</b> on each date</span><i class="g"></i>Go<i class="y"></i>With caveats<i class="r"></i>No go</div>
+        </div>
+        <figure class="sky" id="skyFig"><canvas id="skyPano"></canvas><figcaption id="skyCap"></figcaption></figure>
+      </div>
       <p class="small" id="cmpNote">Move the date: the sunlight, contact, darkness and cost rows change for every site. Click a site name to see it in 3D.</p>
     </div>
     <div class="cmp" id="cmp"></div>
     <div class="costbox" id="costbox"></div>
     <div class="actions exports">
-      <div><button class="btn primary" id="pdf">Download the report (PDF)</button><small>The answer and why, one page per site, costs, landing calendar, sources. About 8 pages.</small></div>
+      <div><button class="btn primary" id="pdf">Download the report (PDF)</button><small>The answer and why, one page per site, costs, landing calendar, sources. 8 or 9 pages.</small></div>
       <div><button class="btn" id="xlsx">Download every number (Excel)</button><small>Every calculation as a live formula: change power, prices or requirements and the answer updates.</small></div>
     </div>
   </div>

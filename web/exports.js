@@ -65,7 +65,7 @@ export function model(S, C) {
     if (best.x.slip_tolerance_days != null) why.push(`${best.x.slip_tolerance_days > 0 ? `The landing can slip by ${f(best.x.slip_tolerance_days, 1)} days and stay ${VW[v]}` : `The date is tight: a delay of ${d.calendar.step_hours || 6} hours or more makes the verdict worse`}${best.x.backup_site ? `; backup within 3 days: ${best.x.backup_site.site_name}, ${dt(best.x.backup_site.landing_utc)}` : ''}.`);
   } else why.push(...(best.x.reasons || []));
   const mission = (C.MISSIONS.find(x => x.id === S.mission) || {}).name || 'Your mission (quick check)';
-  return { d, quick, P, W, L, DOD, WHKG, prices, opts, sites, best, answer, why, tie, first, last: lastRow, mission, name, missionUsd: C.COST.missionUsd, loadGiven: !!d.costLoadGiven };
+  return { you: C.YOU || [], d, quick, P, W, L, DOD, WHKG, prices, opts, sites, best, answer, why, tie, first, last: lastRow, mission, name, missionUsd: C.COST.missionUsd, loadGiven: !!d.costLoadGiven };
 }
 
 /* ================= Excel workbook ================= */
@@ -405,7 +405,12 @@ export function buildWorkbook(X, S, C) {
   const ip = Sheet('Inputs', [36, 30, 12, 70]); ip.nogrid = true;
   ip.add(['Inputs: what the analysis was told, and by whom'], ST.title);
   ip.para('Every value used, with its origin. Declared: stated in the mission\'s public documents. Derived: computed from those documents. Asked: an answer or an example value that should be confirmed by the mission team.', ST.sub, 3);
-  ip.skip();
+  if (m.you.length) {
+    ip.h2('What you told the app, and what you changed on screen', 3);
+    m.you.forEach(([k, v]) => { const r = ip.add([k, v], [ST.lab, ST.txt]); ip.span(1, 3, r); if (String(v).length > 70) ip.hts[r] = 30; });
+    ip.para('Everything ran in your browser: your answers and any document you gave were read on your computer and were not sent anywhere.', ST.note, 3);
+  }
+  ip.h2('The mission profile used by the engine', 3);
   ip.add(['Field', 'Value', 'Origin', 'Source or note'], ST.head);
   const val = v => typeof v === 'object' ? JSON.stringify(v) : v === true ? 'Yes' : v === false ? 'No' : v;
   if (d.provenance) d.provenance.forEach(r => { const rr = ip.add([r.field, val(r.value), r.label, r.source || ''], [ST.lab, ST.data, ST.data, ST.note]); if (String(val(r.value)).length > 40) ip.hts[rr] = 54; });
@@ -692,13 +697,14 @@ export function buildPDF(jsPDF, S, C) {
 
   /* ---------- assumptions, limits, validation, sources ---------- */
   H1('Inputs, limits and trust', 'What the analysis was told, what it does not see, and how it was checked.');
-  H2('Inputs');
+  if (m.you.length) { H2('What you told the app'); table(null, m.you.map(([k, v]) => [k, v]), { w0: 62, styles: { fontSize: 7.5, cellPadding: 1.2 } }); P('Everything ran in your browser: your answers and any document were read on your computer and not sent anywhere.', { s: 7.5, c: K.grey, after: 3 }); }
+  H2('Mission profile used by the engine');
   const val = v => typeof v === 'object' ? (Array.isArray(v) ? `${v.length} item(s)` : JSON.stringify(v)) : v === true ? 'Yes' : v === false ? 'No' : String(v);
   if (d.provenance) table(['Field', 'Value', 'Origin and source'], d.provenance.map(r => [r.field, val(r.value), `${r.label}${r.source ? ': ' + r.source : ''}`]), { cols: { 0: { cellWidth: 52, fontStyle: 'bold' }, 1: { cellWidth: 34 } }, styles: { fontSize: 7, cellPadding: 1.1 } });
   else table(['Field', 'Value'], Object.entries(m.P).filter(([, v]) => v != null).map(([k, v]) => [k, val(v)]), { styles: { fontSize: 7.5 } });
   if ((d.assumptions || []).length) P('Assumed where the mission gave no value: ' + d.assumptions.join('; ') + '.', { s: 7.5, c: K.grey, after: 3 });
   H2('Not evaluated');
-  (d.not_evaluated || []).forEach(t => P(`- ${t}`, { s: 8.5, after: 0.6 }));
+  (d.not_evaluated || []).forEach(t => P(`- ${t}`, { s: 8, after: 0.3 }));
   y += 2;
   const V = S.validation;
   if (V) {
@@ -708,7 +714,7 @@ export function buildPDF(jsPDF, S, C) {
     if (V.D_unit_tests) P(`Unit tests: ${Object.values(V.D_unit_tests.tests).filter(Boolean).length} of ${Object.keys(V.D_unit_tests.tests).length} passed (geometry, panel power, battery).`, { s: 8.5 });
   }
   H2('Sources');
-  [...Object.values(SRC).map(([t, u]) => `${t}: ${u}`), ...m.prices.map(p => `${p.label}: ${p.url}`)].forEach(t => P(t, { s: 7.5, c: K.grey, after: 0.8 }));
+  [...Object.values(SRC).map(([t, u]) => `${t}: ${u}`), ...m.prices.map(p => `${p.label}: ${p.url}`)].forEach(t => P(t, { s: 6.8, c: K.grey, after: 0.2, lh: 1.15 }));
 
   const np = doc.getNumberOfPages();
   for (let i = 1; i <= np; i++) { doc.setPage(i); T(`Lunar Site Scout  |  NASA Space Apps 2026  |  ${m.mission}`, M, PH - 8, { s: 7, c: K.grey }); T(`${i} / ${np}`, PW - M, PH - 8, { s: 7, c: K.grey, a: 'right' }); }

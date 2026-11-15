@@ -168,12 +168,14 @@ function psrMask(map, m) {
 // ---------- terrain look: NASA LRO camera mosaic (LROC WAC, 100 m) draped on NASA LOLA heights ----------
 // one material for the whole polar terrain: the photo, softened when the real sunlight of the chosen date is shown,
 // times the vertex colours (gold = often sunlit, blue = permanently dark), times the light.
-const TERR = { photo: null, u: { uPhoto: { value: 1 }, uDetail: { value: null }, uLS: { value: 0 }, uRim: { value: 0 }, uRimW: { value: 70000 }, uGlobe: { value: M.full.material.map }, uGlobeMix: { value: 0 } }, ux: { uPhoto: { value: 0.55 }, uLS: { value: 0.7 }, uIce: { value: 0 } } };
+const TERR = { photo: null, u: { uTint: { value: 0 }, uPhoto: { value: 1 }, uDetail: { value: null }, uLS: { value: 0 }, uRim: { value: 0 }, uRimW: { value: 70000 }, uGlobe: { value: M.full.material.map }, uGlobeMix: { value: 0 } }, ux: { uTint: { value: 1 }, uPhoto: { value: 0.55 }, uLS: { value: 0.7 }, uIce: { value: 0 } } };
 function terrainMaterial(extra = {}, U = TERR.u, local = false, rim = false) {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, map: TERR.photo, ...extra });
   const iceGlow = U === TERR.ux;
   mat.customProgramCacheKey = () => (local ? 'terr-local' : 'terr') + (rim ? '-rim' : '') + (iceGlow ? '-ice' : '');
-  mat.onBeforeCompile = sh => { sh.uniforms.uPhoto = U.uPhoto; sh.uniforms.uDetail = TERR.u.uDetail;
+  mat.onBeforeCompile = sh => { sh.uniforms.uPhoto = U.uPhoto; sh.uniforms.uDetail = TERR.u.uDetail; sh.uniforms.uTint = U.uTint || TERR.u.uTint;
+    // vertex colours fade in through a uniform: the colours are uploaded once, the fade costs nothing per frame
+    sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>', '#if defined( USE_COLOR_ALPHA )\n diffuseColor *= mix( vec4( 1.0 ), vColor, uTint );\n#elif defined( USE_COLOR )\n diffuseColor.rgb *= mix( vec3( 1.0 ), vColor, uTint );\n#endif').replace('void main() {', 'uniform float uTint;\nvoid main() {');
     if (local) { // close to the ground: two more grain sizes, measured in metres on the site so they stay sharp
       sh.vertexShader = sh.vertexShader.replace('void main() {', 'varying vec2 vLoc;\nvoid main() {').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLoc = position.xz;');
     }
@@ -198,11 +200,25 @@ function terrainMaterial(extra = {}, U = TERR.u, local = false, rim = false) {
     if (local) sh.fragmentShader = sh.fragmentShader.replace('diffuseColor *= sampledDiffuseColor;', 'sampledDiffuseColor.rgb *= ( 0.72 + 0.56 * texture2D( uDetail, vLoc / 23.0 ).r ) * ( 0.84 + 0.32 * texture2D( uDetail, vLoc / 3.1 ).r ); diffuseColor *= sampledDiffuseColor;').replace('void main() {', 'varying vec2 vLoc;\nvoid main() {'); };
   return mat;
 }
+// compile the map's shaders and upload its textures while nothing moves, so the first flight to the pole does not stutter
+function prewarm() {
+  if (!M.cap) return;
+  const vis = [M.cap.visible, M.holed.visible, M.full.visible]; M.cap.visible = M.holed.visible = M.full.visible = true;
+  try { renderer.compile(M.scene, M.camera); } catch (e) {}
+  // the map is drawn with shadows on: compile that variant too, so switching to it costs nothing later
+  const sh = [M.sun.castShadow, M.cap.castShadow, M.cap.receiveShadow]; M.sun.castShadow = M.cap.castShadow = M.cap.receiveShadow = true;
+  try { renderer.compile(M.scene, M.camera); } catch (e) {}
+  [M.sun.castShadow, M.cap.castShadow, M.cap.receiveShadow] = sh;
+  M.cap.visible = vis[0]; M.holed.visible = vis[1]; M.full.visible = vis[2];
+  for (const t of [TERR.photo, TERR.u.uDetail.value, TERR.u.uGlobe.value]) if (t && t.isTexture) try { renderer.initTexture(t); } catch (e) {}
+  // one draw into a tiny target uploads the map's vertex buffers now, not on the first frame of the flight
+  try { const rt = new THREE.WebGLRenderTarget(4, 4), fc = M.cap.frustumCulled; M.cap.visible = true; M.cap.frustumCulled = false; renderer.setRenderTarget(rt); renderer.render(M.scene, M.camera); renderer.setRenderTarget(null); rt.dispose(); M.cap.frustumCulled = fc; M.cap.visible = vis[0]; } catch (e) { renderer.setRenderTarget(null); }
+}
 function loadPhoto() {
-  texLoader.load(D + 'imagery/regolith_512.jpg', t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); TERR.u.uDetail.value = t; GQ.dirty = true; });
+  texLoader.load(D + 'imagery/regolith_512.jpg', t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); try { renderer.initTexture(t); } catch (e) {} TERR.u.uDetail.value = t; GQ.dirty = true; });
   const load = (f, then) => texLoader.load(D + 'imagery/' + f, t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.generateMipmaps = true; then(t); });
-  load('wac_south_2048.jpg', t => { TERR.photo = t; for (const ms of [M.cap, M.mid, M.tile, X.mesh, X.inner, X.far]) if (ms) { ms.material.map = t; ms.material.needsUpdate = true; } GQ.dirty = true;
-    if (!GQ.low) idle(() => load('wac_south_4096.jpg', t2 => { TERR.photo = t2; for (const ms of [M.cap, M.mid, M.tile, X.mesh, X.inner, X.far]) if (ms) { ms.material.map = t2; ms.material.needsUpdate = true; } t.dispose(); GQ.dirty = true; })); });
+  load('wac_south_2048.jpg', t => { try { renderer.initTexture(t); } catch (e) {} TERR.photo = t; for (const ms of [M.cap, M.mid, M.tile, X.mesh, X.inner, X.far]) if (ms) { ms.material.map = t; ms.material.needsUpdate = true; } GQ.dirty = true;
+    if (!GQ.low) idle(() => load('wac_south_4096.jpg', t2 => { try { renderer.initTexture(t2); } catch (e) {} TERR.photo = t2; for (const ms of [M.cap, M.mid, M.tile, X.mesh, X.inner, X.far]) if (ms) { ms.material.map = t2; ms.material.needsUpdate = true; } t.dispose(); GQ.dirty = true; })); });
 }
 const mapUV = (map, n) => { const uv = new Float32Array(n * 2), H = 270000; for (let k = 0; k < n; k++) { uv[k * 2] = (map[k * 2] + H) / (2 * H); uv[k * 2 + 1] = (map[k * 2 + 1] + H) / (2 * H); } return new THREE.BufferAttribute(uv, 2); };
 // colours for any polar grid: white (the photo shows through), gold where NASA's map says the Sun is often up, blue where it never is
@@ -221,9 +237,13 @@ function tintArrays(map, nv, m, rimFade) {
   return { plain, tint, tintNoIce, alpha };
 }
 function applyTint(mesh, f) {
-  const g = mesh.geometry, { plain, alpha } = g.userData, tint = !S.layers.sun && !S.layers.ice ? plain : S.layers.ice && S.layers.sun ? g.userData.tint : S.layers.sun ? g.userData.tintNoIce : g.userData.iceOnly, c = g.attributes.color.array;
-  for (let k = 0, n = alpha.length; k < n; k++) { for (let q = 0; q < 3; q++) c[k * 4 + q] = plain[k * 3 + q] + (tint[k * 3 + q] - plain[k * 3 + q]) * f; c[k * 4 + 3] = 1; }
-  g.attributes.color.needsUpdate = true;
+  const g = mesh.geometry, key = (S.layers.sun ? 1 : 0) + (S.layers.ice ? 2 : 0);
+  if (g.userData.tkey !== key) { // rewrite the colours only when the layers change
+    const { plain, alpha } = g.userData, tint = !S.layers.sun && !S.layers.ice ? plain : S.layers.ice && S.layers.sun ? g.userData.tint : S.layers.sun ? g.userData.tintNoIce : g.userData.iceOnly, c = g.attributes.color.array;
+    for (let k = 0, n = alpha.length; k < n; k++) { c[k * 4] = tint[k * 3]; c[k * 4 + 1] = tint[k * 3 + 1]; c[k * 4 + 2] = tint[k * 3 + 2]; c[k * 4 + 3] = 1; }
+    g.attributes.color.needsUpdate = true; g.userData.tkey = key;
+  }
+  if (f != null) TERR.u.uTint.value = f;
 }
 function withIceOnly(u) { const n = u.alpha.length, io = new Float32Array(n * 3); for (let k = 0; k < n; k++) for (let q = 0; q < 3; q++) io[k * 3 + q] = u.tint[k * 3 + q] / Math.max(1e-3, u.tintNoIce[k * 3 + q]); u.iceOnly = io; return u; }
 function gridIndex(m, map, keep) { // triangles of an m x m grid, skipping cells that keep() rejects
@@ -340,7 +360,11 @@ function navApply(dt) {
   const c = NAV.cur; if (!c) return;
   { // stay over the detailed polar terrain: past its edge there is only the coarse globe
     const pole = M.moon.localToWorld(globePoint(-90, 0, 1)).sub(M.moon.getWorldPosition(new THREE.Vector3())).normalize(), lim = Math.max(0.03, (RHO_MAX - 40000) / R_MOON - Math.max(0, NAV.d - 0.05) * 0.15), a = NAV.t.angleTo(pole);
-    if (a > lim) { const ax = new THREE.Vector3().crossVectors(pole, NAV.t).normalize(); if (ax.lengthSq() > 0.5) NAV.t.copy(pole).applyAxisAngle(ax, lim);
+    if (a > lim) { const ax = new THREE.Vector3().crossVectors(pole, NAV.t).normalize(), held = NAV.ptrs.size || Object.keys(NAV.keys || {}).length;
+      // a soft edge, like a rubber band: while you pull, the map gives a little; let go and it eases back. No snapping, no shaking
+      const over = a - lim, give = held ? 0.02 * (1 - Math.exp(-over / 0.02)) : over * Math.exp(-dt * 6);
+      if (ax.lengthSq() > 0.5) { NAV.t.copy(pole).applyAxisAngle(ax, lim + Math.min(over, give)); if (held && c.t.angleTo(pole) > NAV.t.angleTo(pole)) c.t.copy(NAV.t); } // the view itself never goes past the band, so it cannot spring back and forth
+      NAV.vel = null;
       const now = performance.now(), user = NAV.ptrs.size || NAV.vel || Object.keys(NAV.keys || {}).length; if (user && !S.fit && now - (NAV.toastAt || 0) > 15000) { NAV.toastAt = now; const t = $('#edgeToast'); t.textContent = 'For now you can fly over the south pole. The rest of the Moon comes next.'; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 4200); } }}
   if (S.index) { // close zoom only where the detailed 10 m terrain exists (around the sites); elsewhere NASA's 100 m photo would turn to blur
     let a = 9; for (const s of S.index.sites) a = Math.min(a, siteWorld(s).normalize().angleTo(NAV.t));
@@ -541,8 +565,22 @@ function nearbyItems() { // what is around this landing site, from NASA data and
   return out;
 }
 function buildNearby() {
-  (X.dpins || []).forEach(q => q.el.remove()); X.dpinsSid = X.sid;
-  X.dpins = nearbyItems().map(p => { const el = document.createElement('button'); el.className = `pin disc xdisc c-${p.cat}`; el.innerHTML = `<span class="dic">${DICON[p.cat] || ''}</span><span class="dl">${esc(p.name)}</span>`; el.style.display = 'none'; el.onclick = () => discoverCard(p, el, true); document.body.appendChild(el); return { el, x_m: p.x_m, y_m: p.y_m }; });
+  (X.dpins || []).forEach(q => { q.el.remove(); if (q.g3) { X.scene.remove(q.g3); q.g3.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } }); X.dpinsSid = X.sid;
+  const COL = { hazard: 0xff8a5c, history: 0xe8d9a8, wonder: 0xf5c84a };
+  X.dpins = nearbyItems().map(p => { const el = document.createElement('button'); el.className = `pin disc xdisc c-${p.cat}`; el.innerHTML = `<span class="dic">${DICON[p.cat] || ''}</span><span class="dl">${esc(p.name)}</span>`; el.style.display = 'none'; el.onclick = () => discoverCard(p, el, true); document.body.appendChild(el);
+    // the anchor lives in the 3D world: a ring on the ground and a thin pole up to the icon, so the icon never floats loose from its spot
+    const c = COL[p.cat] || 0x8fd8ff, g3 = new THREE.Group(), mat = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+    g3.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0)]), new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: 0.85 })));
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.6, 1, 40).rotateX(-Math.PI / 2), mat), dot = new THREE.Mesh(new THREE.CircleGeometry(0.28, 20).rotateX(-Math.PI / 2), mat); ring.name = 'ring'; dot.name = 'dot'; g3.add(ring, dot); g3.visible = false; g3.renderOrder = 5; X.scene.add(g3);
+    return { el, x_m: p.x_m, y_m: p.y_m, g3, gy: null, tries: 0 }; });
+}
+// height of the drawn terrain at a point of the explore scene (finest mesh first); null while the meshes are still loading
+const _ray = new THREE.Raycaster(); _ray.firstHitOnly = true;
+function groundY(x, z) {
+  const ms = [X.inner, X.mesh, X.far, X.wide].filter(m => m && m.visible !== false); if (!ms.length) return null;
+  _ray.set(new THREE.Vector3(x, 60000, z), new THREE.Vector3(0, -1, 0)); _ray.far = 200000;
+  for (const m of ms) { const h = _ray.intersectObject(m, false)[0]; if (h) return h.point.y; }
+  return null;
 }
 function xFlyTo(point, closer = 0.55) { // fly the 3D camera to a point, keeping the angle
   const t0 = performance.now(), fromT = X.controls.target.clone(), fromP = X.camera.position.clone(), off = fromP.clone().sub(fromT).multiplyScalar(closer), toT = point.clone(), toP = toT.clone().add(off.setLength(Math.max(30, off.length())));
@@ -874,7 +912,7 @@ function go(name, fromHistory) {
   if (POSE[name]) { leaveMap(); [M.tiltTo, M.distTo, M.offTo] = POSE[name]; M.ring.material.opacity = name === 'mission' ? 0.9 : 0; }
   if (name === 'results') { if (M.map) backToMap(); else flyToPole(); }
   if (name === 'explore') scene = 'site';
-  if (name === 'compare') renderCompare();
+  if (name === 'compare') { renderCompare(); setTimeout(drawWhen, 60); }
   setPlaying(false);
 }
 function leaveMap() {
@@ -882,26 +920,32 @@ function leaveMap() {
   anim = null; scene = 'moon'; M.map = false; M.full.visible = true; M.holed.visible = false; if (M.cap) M.cap.visible = false; M.tintTo = 0; M.lightTo = null; M.sun.castShadow = false; M.sun.intensity = 3.4;
   M.sun.position.set(-3, 1.4, 2.2); M.hemi.intensity = 0.04; M.camera.up.set(0, 1, 0); $('#tour').classList.remove('on'); TOUR.i = -1; if (S.whenTimer) $('#whenPlay').click();
 }
-// globe -> south pole map without a cut: the Moon turns its pole up, then the camera descends over the real terrain
+// globe -> south pole map in one continuous move: the Moon turns its pole up while the camera glides along an arc
+// (never a straight line through the surface) and settles exactly on the map view, so there is no second jump
 function flyToPole() {
   scene = 'moon'; buildCap(); flyToPole.mix0 = M.full.visible ? 1 : TERR.u.uGlobeMix.value; TERR.u.uGlobeMix.value = flyToPole.mix0; M.full.visible = false; M.holed.visible = true; if (M.cap) M.cap.visible = true;
-  const from = { tilt: M.tilt, spin: M.spin % (Math.PI * 2), cam: M.camera.position.clone() }, t0 = performance.now(), dur = REDUCED ? 1 : 1800;
-  const high = { t: new THREE.Vector3(0, 1, 0), d: 1.6, head: 0, tiltU: 0 }, hp = navPose(high);
-  M.ring.material.opacity = 0; M.offY = 0; M.offX = 0; setMapLight(false);
-  const l0 = M.sun.position.clone();
+  const from = { tilt: M.tilt, spin: M.spin % (Math.PI * 2), cam: M.camera.position.clone(), up: M.camera.up.clone() }, t0 = performance.now(), dur = REDUCED ? 1 : 2800;
+  // the final view, computed with the Moon already in its end pose
+  const r0 = [M.pivot.rotation.x, M.moon.rotation.y]; M.pivot.rotation.set(-Math.PI, 0, 0); M.moon.rotation.y = 0; M.pivot.updateMatrixWorld(true);
+  const f = mapFrame(), end = { t: f.t.clone(), d: f.d, head: 0, tiltU: f.tiltU }, ep = navPose(end), look1 = ep.surf.clone().addScaledVector(ep.up, end.d * 0.12);
+  M.pivot.rotation.set(r0[0], 0, 0); M.moon.rotation.y = r0[1]; M.pivot.updateMatrixWorld(true);
+  const dir0 = from.cam.clone().normalize(), dir1 = ep.pos.clone().normalize(), rad0 = from.cam.length(), rad1 = ep.pos.length(), q = new THREE.Quaternion().setFromUnitVectors(dir0, dir1), qi = new THREE.Quaternion();
+  const look0 = new THREE.Vector3(), lk = new THREE.Vector3(), ss = x => x * x * (3 - 2 * x);
+  const V = M.camera.view; M.offX = V && V.enabled ? V.offsetX : 0; M.offY = V && V.enabled ? V.offsetY : 0; // keep the screen offset the Moon has now: it then glides, it does not jump
+  const i0 = M.sun.intensity, ls0 = TERR.u.uLS.value; M.ring.material.opacity = 0; setMapLight(false);
+  const l0 = M.sun.position.clone(), h0 = M.hemi.intensity, i1 = M.sun.intensity, ls1 = TERR.u.uLS.value; M.sun.intensity = i0; TERR.u.uLS.value = ls0;
   anim = now => {
-    const k = Math.min(1, (now - t0) / dur), e = ease(k);
+    const k = Math.min(1, (now - t0) / dur), e = ease(k), er = ss(Math.min(1, Math.max(0, (k - 0.12) / 0.88))); // the turn starts first, the descent follows: a gentle, single arc
     M.tilt = M.tiltTo = from.tilt + (-Math.PI - from.tilt) * e; M.pivot.rotation.set(M.tilt, 0, 0);
     M.moon.rotation.y = from.spin * (1 - e); M.spin = M.moon.rotation.y;
-    M.camera.position.lerpVectors(from.cam, hp.pos, e); M.camera.up.set(0, 1, 0).lerp(hp.up, e); M.camera.lookAt(new THREE.Vector3().lerpVectors(new THREE.Vector3(), hp.surf, e));
-    M.sun.position.lerpVectors(l0, M.lightTo.pos, e); M.hemi.intensity = 0.04 + (M.hemiTo - 0.04) * e; TERR.u.uGlobeMix.value = flyToPole.mix0 * (1 - Math.min(1, k * 1.4)); GQ.dirty = true;
-    if (k > 0.5) M.tintTo = 1;
+    qi.identity().slerp(q, e); M.camera.position.copy(dir0).applyQuaternion(qi).multiplyScalar(Math.exp(Math.log(rad0) + (Math.log(rad1) - Math.log(rad0)) * er));
+    M.camera.up.copy(from.up).lerp(ep.up, e).normalize(); M.camera.lookAt(lk.lerpVectors(look0, look1, ss(Math.min(1, k * 1.15))));
+    M.sun.position.lerpVectors(l0, M.lightTo.pos, e); M.hemi.intensity = h0 + (M.hemiTo - h0) * e; M.sun.intensity = i0 + (i1 - i0) * e; TERR.u.uLS.value = ls0 + (ls1 - ls0) * e; TERR.u.uGlobeMix.value = flyToPole.mix0 * (1 - ss(Math.min(1, Math.max(0, (k - 0.1) / 0.4)))); GQ.dirty = true;
+    M.tintTo = ss(Math.min(1, Math.max(0, (k - 0.35) / 0.5))); M.tint = M.tintTo; setCapTint(M.tint); // colours fade in with the descent (a uniform, no upload)
     if (k >= 1) {
-      anim = null; M.map = true; M.pivot.updateMatrixWorld(true);
-      NAV.cur = { t: high.t.clone(), d: high.d, head: 0, tiltU: 0 }; const f = mapFrame(); flyTo(f.t, f.d, 0); NAV.tiltU = f.tiltU; S.fit = 8;
-      let seen = false; try { seen = localStorage.getItem('lss_tut') === '1'; } catch (e) {}
-      // the controls legend is on the map; the 20-second demo runs from its button
-      if (false) { const h = $('#maphint'); h.classList.add('on'); const off = () => { h.classList.remove('on'); removeEventListener('pointerdown', off); removeEventListener('wheel', off); }; addEventListener('pointerdown', off); addEventListener('wheel', off); setTimeout(off, 7000); }
+      anim = null; M.map = true; M.pivot.updateMatrixWorld(true); M.tint = M.tintTo = 1;
+      NAV.cur = { t: end.t.clone(), d: end.d, head: 0, tiltU: end.tiltU }; NAV.t.copy(end.t); NAV.d = end.d; NAV.head = 0; NAV.tiltU = end.tiltU; NAV.fly = false; S.fit = 8;
+      if (flyToPole.after) { const fn = flyToPole.after; flyToPole.after = null; setTimeout(fn, 60); } // heavy work waits until the camera has landed
     }
   };
 }
@@ -973,7 +1017,7 @@ function renderMission() {
 }
 async function readDoc(f) {
   $('#docLoad').hidden = false; $('#docLoad i').style.width = '30%';
-  try { S.doc = await readDocument(f); $('#docLoad i').style.width = '100%'; S.q = -1; renderMission(); }
+  try { S.docName = f.name; S.doc = await readDocument(f); $('#docLoad i').style.width = '100%'; S.q = -1; renderMission(); }
   catch (e) { $('#missionBody .lead').textContent = `We could not read this file (${e.message}). Try another PDF, or answer the questions instead.`; }
 }
 async function loadPreset(id, btn) {
@@ -987,8 +1031,9 @@ async function afterData() {
   await Promise.all(S.data.options.map(o => siteMeta(o.site)));
   S.opt = 0; X.sid = null; S.when = null; S.whenIdx = null; M.map = false;
   if (innerWidth <= 700 && !$('#dock').classList.contains('closed')) $('#dockToggle').click(); // phones: the map gets the screen, options fold down
-  placeMarkers(); placePlaces(); placeDiscover(); renderResults(); go('results'); loadWhen();
-  idle(() => S.data.options.slice(0, 3).forEach((o, i) => setTimeout(() => siteTerrain(o.site).catch(() => {}), i * 400)));
+  placeMarkers(); placePlaces(); placeDiscover(); renderResults();
+  const later = () => { loadWhen(); idle(() => S.data.options.slice(0, 3).forEach((o, i) => setTimeout(() => siteTerrain(o.site).catch(() => {}), i * 400))); };
+  flyToPole.after = later; go('results'); if (!anim) { flyToPole.after = null; later(); }
 }
 
 const QS = [
@@ -1078,20 +1123,58 @@ async function loadWhen() {
   S.when = W2; drawWhen();
 }
 const metricVal = m => S.metric === 'sun' ? m.sunPct : S.metric === 'earth' ? m.contactPct : costDark(m.longestDark);
-function drawWhen() { drawWhenIn($('#whenChart')); drawWhenIn($('#cmpChart')); }
-function drawWhenIn(c) {
+const METRIC_Q = { sun: 'Share of the stay in sunlight, if you land on that date', earth: 'Share of the stay in contact with Earth, if you land on that date', cost: 'Extra battery cost to get through the darkness, if you land on that date' };
+const metricTxt = v => S.metric === 'cost' ? usd(v) : pct(v);
+function drawWhen() {
+  drawWhenIn($('#whenChart'), false); drawWhenIn($('#cmpChart'), true); drawSky();
+  // the legend doubles as a read-out: each site's value on the date under the marker
+  const i = S.whenIdx ?? S.bestIdx, o = S.data.options;
+  const leg = full => o.map((x, k) => { const m = S.when && S.when[x.site] && S.when[x.site][i]; return `<span><i style="background:${LINE[k]}"></i>${k + 1}${full ? ` ${esc(x.site_name)}` : ''}${m ? ` <b>${metricTxt(metricVal(m))}</b>` : ''}</span>`; }).join('');
+  if ($('#cmpLegend')) { $('#cmpLegend').innerHTML = leg(true); $('#cmpQ').textContent = METRIC_Q[S.metric || 'sun']; $('#stripSite').textContent = `${o[0].site_name}`; }
+  if ($('#whenLegend')) $('#whenLegend').innerHTML = `<em>${METRIC_Q[S.metric || 'sun'].replace(', if you land on that date', '')}:</em>${leg(false)}`;
+}
+function drawWhenIn(c, big) {
   if (!S.when || !c || !c.clientWidth) return;
   const dpr = devicePixelRatio, w = c.clientWidth, h = c.clientHeight; c.width = w * dpr; c.height = h * dpr;
   const g = c.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0, 0, w, h);
   const sets = S.data.options.map(o => S.when[o.site] || []), n = sets[0].length; if (n < 2) return;
   const max = S.metric === 'cost' ? Math.max(1, ...sets.flat().map(metricVal)) : 100;
-  const cal = S.data.calendar, x = i => i / (n - 1) * w, y = v => h - 6 - v / max * (h - 18);
-  (cal.sites[S.data.options[0].site] || []).forEach((row, i) => { g.fillStyle = row[2] === 'green' ? 'rgba(47,210,122,.6)' : row[2] === 'yellow' ? 'rgba(255,176,32,.55)' : 'rgba(255,90,79,.35)'; g.fillRect(x(i), h - 3, Math.max(1, w / n), 3); });
-  sets.forEach((set, k) => { g.strokeStyle = LINE[k]; g.globalAlpha = k ? 0.85 : 1; g.lineWidth = k ? 1.2 : 1.8; g.beginPath(); set.forEach((m, i) => g[i ? 'lineTo' : 'moveTo'](x(i), y(metricVal(m)))); g.stroke(); });
-  g.globalAlpha = 1; const i = S.whenIdx ?? S.bestIdx; g.fillStyle = '#fff'; g.fillRect(x(i) - 1, 0, 2, h);
-  g.fillStyle = 'rgba(255,255,255,.55)'; g.font = '11px Barlow, sans-serif'; let lastM = -1;
-  sets[0].forEach((m, k) => { const d = toDate(m.utc); if (d.getUTCMonth() !== lastM && d.getUTCDate() <= 2) { lastM = d.getUTCMonth(); g.fillText(MON[lastM], x(k) + 3, 11); } });
-  g.textAlign = 'right'; g.fillText(S.metric === 'cost' ? usd(max) : '100%', w - 2, 11);
+  const L = big ? 40 : 0, sb = big ? 8 : 3, top = big ? 16 : 14, bot = big ? 30 : 6; // left margin for the scale, stripe height, bottom margin for months
+  const cal = S.data.calendar, x = i => L + i / (n - 1) * (w - L - 2), y = v => h - bot - v / max * (h - bot - top);
+  g.font = `${big ? 11.5 : 11}px Barlow, sans-serif`;
+  if (big) { // scale: 0, half, full, with faint guide lines
+    g.textAlign = 'right'; g.textBaseline = 'middle';
+    [0, 0.5, 1].forEach(f => { const yy = y(f * max); g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(L, yy, w - L, 1); g.fillStyle = 'rgba(255,255,255,.55)'; g.fillText(S.metric === 'cost' ? usd(f * max) : `${f * 100}%`, L - 6, yy); });
+    g.textBaseline = 'alphabetic';
+  }
+  (cal.sites[S.data.options[0].site] || []).forEach((row, i) => { g.fillStyle = row[2] === 'green' ? 'rgba(47,210,122,.75)' : row[2] === 'yellow' ? 'rgba(255,176,32,.7)' : 'rgba(255,90,79,.5)'; g.fillRect(x(i), h - bot + (big ? 4 : 3) - sb + (big ? 0 : 0), Math.max(1, (w - L) / n), sb); });
+  sets.forEach((set, k) => { g.strokeStyle = LINE[k]; g.globalAlpha = k ? 0.85 : 1; g.lineWidth = big ? (k ? 1.6 : 2.2) : (k ? 1.2 : 1.8); g.beginPath(); set.forEach((m, i) => g[i ? 'lineTo' : 'moveTo'](x(i), y(metricVal(m)))); g.stroke(); });
+  g.globalAlpha = 1; const i = S.whenIdx ?? S.bestIdx; g.fillStyle = '#fff'; g.fillRect(x(i) - 1, top - 6, 2, h - top - bot + 6 + (big ? 8 : 0));
+  if (big) sets.forEach((set, k) => { const m = set[i]; if (!m) return; g.beginPath(); g.arc(x(i), y(metricVal(m)), 4, 0, 7); g.fillStyle = LINE[k]; g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1.5; g.stroke(); });
+  g.fillStyle = 'rgba(255,255,255,.6)'; g.textAlign = 'left'; let lastM = -1;
+  sets[0].forEach((m, k) => { const d = toDate(m.utc); if (d.getUTCMonth() !== lastM && d.getUTCDate() <= 2) { lastM = d.getUTCMonth(); if (big) { g.fillRect(x(k), h - bot + 6, 1, 6); g.fillText(`${MON[lastM]} ${d.getUTCFullYear()}`, x(k) + 4, h - 6); } else g.fillText(MON[lastM], x(k) + 3, 11); } });
+  if (!big) { g.textAlign = 'right'; g.fillText(S.metric === 'cost' ? usd(max) : '100%', w - 2, 11); }
+}
+// the sky seen from option 1's site: the real skyline (NASA terrain), and where the Sun and Earth travel during the stay.
+// When the Sun's path dips behind a mountain the site goes dark; when Earth's does, the radio link drops.
+function drawSky() {
+  const c = $('#skyPano'); if (!c || !c.clientWidth || !S.when) return;
+  const o = S.data.options[0], meta = S.sites[o.site], set = S.when[o.site], m = set && set[S.whenIdx ?? S.bestIdx]; if (!meta || !meta.horizon || !m) return;
+  const dpr = devicePixelRatio, w = c.clientWidth, h = c.clientHeight; c.width = w * dpr; c.height = h * dpr; const g = c.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0, 0, w, h);
+  const hz = meta.horizon.elevation_deg[S.data.profile && S.data.profile.mast ? 1 : 0], st = meta.horizon.az_step_deg, P = m.path || [[m.sunAz, m.sunEl, m.earthAz, m.earthEl]];
+  const els = [...hz, ...P.map(p => p[1]), ...P.map(p => p[3])], lo = Math.min(...els) - 0.6, hi = Math.max(...els) + 0.8, top = 8, bot = 20;
+  const X = az => ((az % 360) + 360) % 360 / 360 * w, Y = e => top + (hi - e) / (hi - lo) * (h - top - bot);
+  g.fillStyle = '#05070b'; g.fillRect(0, 0, w, h);
+  g.fillStyle = 'rgba(255,255,255,.06)'; g.fillRect(0, Y(0), w, 1); // level line
+  g.beginPath(); g.moveTo(0, h - bot); hz.forEach((e, k) => g.lineTo(X(k * st), Y(e))); g.lineTo(w, h - bot); g.closePath(); g.fillStyle = '#2a2d33'; g.fill(); g.strokeStyle = '#8c929c'; g.lineWidth = 1; g.stroke();
+  const hzAt = az => hz[Math.round((((az % 360) + 360) % 360) / st) % hz.length];
+  const track = (ia, ie, col) => { P.forEach(p => { const up = p[ie] > hzAt(p[ia]); g.fillStyle = up ? col : 'rgba(255,255,255,.18)'; g.beginPath(); g.arc(X(p[ia]), Y(p[ie]), up ? 1.6 : 1.2, 0, 7); g.fill(); }); };
+  track(2, 3, 'rgba(78,163,255,.75)'); track(0, 1, 'rgba(245,184,61,.85)');
+  const body = (az, el, col, r, lab) => { g.beginPath(); g.arc(X(az), Y(el), r, 0, 7); g.fillStyle = col; g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1.5; g.stroke(); g.fillStyle = '#fff'; g.font = '600 11px Barlow, sans-serif'; g.textAlign = 'left'; g.fillText(lab, Math.min(w - 40, X(az) + r + 4), Math.max(12, Y(el) - r)); };
+  body(m.earthAz, m.earthEl, '#4ea3ff', 5.5, 'Earth'); body(m.sunAz, m.sunEl, '#f5b83d', 6, 'Sun');
+  g.fillStyle = 'rgba(255,255,255,.55)'; g.font = '11px Barlow, sans-serif'; g.textAlign = 'center'; ['N', 'E', 'S', 'W'].forEach((t, k) => g.fillText(t, X(k * 90 + (k ? 0 : 0.01)) + (k ? 0 : 6), h - 5)); g.fillText('N', w - 6, h - 5);
+  const sunHid = P.filter(p => p[1] <= hzAt(p[0])).length, earthHid = P.filter(p => p[3] <= hzAt(p[2])).length;
+  $('#skyCap').innerHTML = `<b>The sky from ${esc(o.site_name)}</b>, landing ${date(m.utc)}. Grey: the real skyline all around (NASA terrain). Dots: where the <span class="ks">Sun</span> and <span class="ke">Earth</span> travel during the stay; ${sunHid ? `${Math.round(100 * sunHid / P.length)}% of the Sun's path is behind the mountains, so the site goes dark` : 'the Sun never drops behind the mountains, so the site stays lit'}${earthHid ? `; Earth is hidden ${Math.round(100 * earthHid / P.length)}% of the time` : ''}.`;
 }
 function setWhen(i) {
   if (S.lightMode === 'photo') setLightMode('date');
@@ -1452,7 +1535,7 @@ function storyApply(dt) {
   }
   const e = ease(Math.min(1, p)), gb = Math.min(1, Math.max(0, (e - 0.45) / 0.5)); // far away the polar map shows the same image as the globe; coming closer, NASA's detailed polar photo fades in: no cut
   M.full.visible = false; M.holed.visible = true; M.cap.visible = true; TERR.u.uGlobeMix.value = 1 - gb * gb * (3 - 2 * gb); TERR.u.uPhoto.value = 0.5; TERR.photoTo = null;
-  if (!STORY.dimmed) { const L = S.layers; S.layers = { sun: false, ice: false }; applyTint(M.cap, 0); S.layers = L; M.tint = M.tintTo = 0; STORY.dimmed = true; }
+  if (!STORY.dimmed) { applyTint(M.cap, 0); M.tint = M.tintTo = 0; STORY.dimmed = true; } // plain colours in the story: the tint uniform at 0, no buffer rewrite
   const dimF = Math.min(1, Math.max(0, (e - 0.55) / 0.45)), dm = dimF * dimF * (3 - 2 * dimF) * 0.55; // the Moon darkens first, then the lit pole appears: a spotlight, not a pasted disc
   M.holed.material.color.setScalar(1 - 0.86 * dm); M.full.material.color.setScalar(1 - 0.86 * dm); TERR.u.uRimW.value = 170000; TERR.u.uRim.value = dm; // the rest of the Moon dims gradually: the pole stands out, with no edge
   M.pivot.rotation.set(M.tilt + (-Math.PI - M.tilt) * e, 0, 0); M.moon.rotation.y = (M.spin % (Math.PI * 2)) * (1 - e); M.pivot.updateMatrixWorld(true);
@@ -1497,6 +1580,8 @@ function setLow() {
 for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchmove']) addEventListener(ev, () => { GQ.activeUntil = performance.now() + 1200; }, { passive: true });
 canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); $('#gpuNote').classList.add('on'); });
 canvas.addEventListener('webglcontextrestored', () => { $('#gpuNote').classList.remove('on'); setLow(); GQ.dirty = true; });
+// where the headline ends and the legend starts, read from the page at most three times a second (reading layout every frame makes the browser stutter)
+function layoutY() { const now = performance.now(); if (!layoutY.v || now - layoutY.t > 330) { layoutY.v = { a: $('.res-tools').getBoundingClientRect().bottom || 210, b: $('.map-key').getBoundingClientRect().top || VH - 130 }; layoutY.t = now; } return layoutY.v; }
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   // adapt: if frames are slow while drawing, switch to light graphics (fewer pixels, smaller shadow maps)
@@ -1524,7 +1609,7 @@ function frame(now) {
       if (VW > 980) M.camera.setViewOffset(VW, VH, -VW * M.off, S.screen === 'hero' ? -VH * 0.06 : 0, VW, VH); else M.camera.clearViewOffset();
     } else if (M.map || anim) {
       // the options dock covers the lower part of the screen: centre the map in the space above it
-      const dockOpen = VW > 980 && S.screen === 'results' && !$('#dock').classList.contains('closed'), wantX = (dockOpen ? 210 : 0) - (S.screen === 'results' && VW > 980 && document.querySelector('.ctlegend:not([hidden])') ? 150 : 0), wantY = S.screen === 'results' && VW > 980 ? VH / 2 - (($('.res-tools').getBoundingClientRect().bottom || 210) + ($('.map-key').getBoundingClientRect().top || VH - 130)) / 2 : VH * 0.06; // centre the map in the free space between the headline and the legend
+      const dockOpen = VW > 980 && S.screen === 'results' && !$('#dock').classList.contains('closed'), wantX = (dockOpen ? 210 : 0) - (S.screen === 'results' && VW > 980 && document.querySelector('.ctlegend:not([hidden])') ? 150 : 0), wantY = S.screen === 'results' && VW > 980 ? VH / 2 - (layoutY().a + layoutY().b) / 2 : VH * 0.06; // centre the map in the free space between the headline and the legend
       M.offX = (M.offX ?? 0) + (wantX - (M.offX ?? 0)) * k; M.offY = (M.offY ?? 0) + (wantY - (M.offY ?? 0)) * k; M.camera.setViewOffset(VW, VH, M.offX, M.offY, VW, VH);
     }
     if (M.map && !anim) { navApply(dt); if (M.lightTo) { M.sun.position.lerp(M.lightTo.pos, 1 - Math.pow(0.02, dt)); M.hemi.intensity += (M.hemiTo - M.hemi.intensity) * (1 - Math.pow(0.02, dt)); } }
@@ -1532,7 +1617,7 @@ function frame(now) {
     if (TERR.photoTo != null && Math.abs(TERR.u.uPhoto.value - TERR.photoTo) > 0.002) { TERR.u.uPhoto.value += (TERR.photoTo - TERR.u.uPhoto.value) * Math.min(1, dt * 3); GQ.dirty = true; }
     M.stars.rotation.y = M.spin * 0.2;
     if (M.map && M.sun.castShadow && (lerping || NAV.fly)) renderer.shadowMap.needsUpdate = true;
-    renderer.toneMappingExposure = M.map ? 1.38 : S.screen === 'hero' && STORY.p > 0.05 ? 1.25 : 1.15; renderer.render(M.scene, M.camera); GQ.sig = M.camera.matrixWorld.elements.join(',') + M.camera.projectionMatrix.elements[0];
+    { const ex = M.map || (anim && S.screen === 'results') ? 1.38 : S.screen === 'hero' && STORY.p > 0.05 ? 1.25 : 1.15; M.expo = M.expo == null ? ex : M.expo + (ex - M.expo) * Math.min(1, dt * 2.5); if (Math.abs(ex - M.expo) > 0.002) GQ.dirty = true; renderer.toneMappingExposure = M.expo; } renderer.render(M.scene, M.camera); // exposure eases, never pops GQ.sig = M.camera.matrixWorld.elements.join(',') + M.camera.projectionMatrix.elements[0];
     const showPins = M.map && S.screen === 'results', dr = $('#dock').getBoundingClientRect(), cardLeft = showPins && VW > 980 && !$('#dock').classList.contains('closed') ? dr.left - 8 : VW, barTop = (r => r.height ? r.top : Math.min(VH, $('#dock').getBoundingClientRect().top) - 60)($('.whenbar').getBoundingClientRect()) - 6;
     const boxes = showPins ? ['.map-key', '.navctl', '.ctlegend:not([hidden])', '.ctl-chip:not([hidden])', '.res-head h2', '.res-head .lead', '.res-tools', '.tour.on', '#dockToggle'].map(s => document.querySelector(s)).filter(Boolean).map(e => { const r = e.getBoundingClientRect(); return [r.left - 6, r.top - 6, r.right + 6, r.bottom + 6]; }).filter(b => b[2] > b[0]) : [];
     for (const m of markers.slice().sort((a, b) => (a.top ? 0 : a.disc ? 1 : a.poi ? 3 : 2) - (b.top ? 0 : b.disc ? 1 : b.poi ? 3 : 2))) {
@@ -1587,10 +1672,20 @@ function frame(now) {
         const near = S.view === 'fp' || S.view === 'drone', ui = ['#optTabs', '#views', '#infoBtn', '#infoBox', '#status', '.look'].map(q => document.querySelector(q)).filter(e => e && !e.hidden).map(e => e.getBoundingClientRect()).filter(r => r.width);
         { const dc = $('#distChip'), P = S.view === 'fp' ? X.camera.position : X.controls.target, d = Math.hypot(P.x, P.z); // how far you have moved from the landing point
           dc.textContent = d > 30 && S.screen === 'explore' ? `${d < 1000 ? Math.round(d / 10) * 10 + ' m' : fmt(d / 1000, 1) + ' km'} from the landing site` : ''; }
-        for (const q of X.dpins || []) { let ok = S.showDiscover && S.screen === 'explore';
+        let rayBudget = 0; const placed = []; for (const q of X.dpins || []) { let ok = S.showDiscover && S.screen === 'explore';
           if (ok) { const dx = q.x_m - X.site.x_m, dy = q.y_m - X.site.y_m, inSite = Math.abs(dx) < X.half - 20 && Math.abs(dy) < X.half - 20;
-            const gh = inSite ? localH(dx, -dy) : regionH(q.x_m, q.y_m) - X.h0 - (dx * dx + dy * dy) / (2 * R_MOON); v3.set(dx, gh, -dy).project(X.camera); const gy = (1 - v3.y) / 2 * innerHeight; v3.set(dx, gh + (near ? 25 : 300), -dy).project(X.camera); const px = (v3.x + 1) / 2 * innerWidth, py = (1 - v3.y) / 2 * innerHeight; q.el.style.setProperty('--stem', Math.max(0, Math.min(240, gy - py - 28)) + 'px'); // a stem down to the exact spot on the ground
-            ok = v3.z < 1 && px > 10 && px < (innerWidth > 980 ? innerWidth - 450 : innerWidth - 10) && py > 70 && !ui.some(r => px > r.left - 16 && px < r.right + 16 && py > r.top - 16 && py < r.bottom + 16) && py < innerHeight - (innerWidth > 980 ? 110 : innerHeight * 0.4 + 90); if (ok) q.el.style.transform = `translate(${px}px, ${py}px)`; }
+            if (q.gy == null && !inSite && !rayBudget) { rayBudget = 1; const t0 = performance.now(), h = groundY(dx, -dy); X.rayMs = (X.rayMs || 0) + performance.now() - t0; if (h != null) q.gy = h; else if (++q.tries > 40) q.gy = false; } // outside the 10 m site: the exact height of the terrain that is drawn (one look-up per frame)
+            const gh = typeof q.gy === 'number' ? q.gy : inSite ? localH(dx, -dy) : regionH(q.x_m, q.y_m) - X.h0 - (dx * dx + dy * dy) / (2 * R_MOON);
+            const D = X.camera.position.distanceTo(v3.set(dx, gh, -dy)), rr = Math.min(700, Math.max(1.2, D * 0.011)); let H = Math.min(4000, Math.max(near ? 10 : 30, D * 0.07)), px, py;
+            for (let tryN = 0; tryN < 3; tryN++) { // icons that would overlap stand on taller poles, so each stays readable and tied to its own spot
+              v3.set(dx, gh + H, -dy).project(X.camera); px = (v3.x + 1) / 2 * innerWidth; py = (1 - v3.y) / 2 * innerHeight;
+              if (!placed.some(([a, b]) => Math.abs(a - px) < 32 && Math.abs(b - py) < 32)) break; H *= 1.7; }
+            placed.push([px, py]);
+            q.g3.position.set(dx, gh + rr * 0.15, -dy); q.g3.children[0].scale.set(1, H, 1); q.g3.getObjectByName('ring').scale.setScalar(rr); q.g3.getObjectByName('dot').scale.setScalar(rr);
+            q.el.style.setProperty('--stem', '0px');
+            const front = v3.z < 1; q.g3.visible = front;
+            ok = front && px > 10 && px < (innerWidth > 980 ? innerWidth - 450 : innerWidth - 10) && py > 70 && !ui.some(r => px > r.left - 16 && px < r.right + 16 && py > r.top - 16 && py < r.bottom + 16) && py < innerHeight - (innerWidth > 980 ? 110 : innerHeight * 0.4 + 90); if (ok) q.el.style.transform = `translate(${px}px, ${py - 29}px)`; }
+          else q.g3.visible = false;
           q.el.style.display = ok ? '' : 'none'; } } }
     renderer.render(X.sky, X.camera); renderer.clearDepth(); renderer.render(X.scene, X.camera); GQ.sig = X.camera.matrixWorld.elements.join(',') + X.camera.projectionMatrix.elements[0];
   }
@@ -1639,12 +1734,30 @@ $('#infoBtn').onclick = () => { const b = $('#infoBox'), open = b.hidden; b.hidd
 { // the controls legend on the map: open the first time, then as the person left it
   const setL = open => { $('#ctLegend').hidden = !open; $('#ctlChip').hidden = open; try { localStorage.setItem('lss_legend', open ? '1' : '0'); } catch (e) {} GQ.dirty = true; };
   let open = true; try { open = localStorage.getItem('lss_legend') !== '0'; } catch (e) {} setL(open);
-  $('#ctlToggle').onclick = () => setL(false); $('#ctlChip').onclick = () => setL(true); $('#ctlShow').onclick = () => tutorial(); }
+  $('#ctlToggle').onclick = () => setL(false); $('#ctlChip').onclick = () => setL(true); $('#ctlShow').onclick = () => tutorial(); $('#ctlHome').onclick = () => $('#compass').click(); }
 $('#discP').onclick = () => $('#discT').click();
 $('#discT').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discP').setAttribute('aria-pressed', S.showDiscover); $('#discX').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite');
   if (S.showDiscover && S.discover) toast(`${S.discover.items.length} places to discover: water, hazards and history. Fly around and click a glowing icon.`, 5200); if (!S.showDiscover) $$('.pop.dcard').forEach(x => x.remove()); GQ.dirty = true; };
 $('#closeCal').onclick = () => $('#calendar').classList.remove('open');
-const CTX = () => ({ DOD, COST, PRICES, priceNow, costDark, battKg, valueLost, lostHours, BATT_WH_PER_KG, MISSIONS, VEXPERT, vx, verdictOf });
+const CTX = () => ({ YOU: youInputs(), DOD, COST, PRICES, priceNow, costDark, battKg, valueLost, lostHours, BATT_WH_PER_KG, MISSIONS, VEXPERT, vx, verdictOf });
+// everything the person told the app or changed on screen, so the report and workbook can say exactly what they were built from
+function youInputs() {
+  const role = { project: 'Mission team, with a mission document', planner: 'Mission planner, answering questions', past: 'Looking at real missions', student: 'Student or curious' }[S.role] || S.role || '-';
+  const rows = [['Who you said you are', role]];
+  const pre = MISSIONS.find(m => m.id === S.mission);
+  rows.push(['Mission analysed', pre ? `${pre.name} (public mission data)` : S.doc ? `Your mission, from your document${S.docName ? ` "${S.docName}"` : ''} and your answers` : 'Your mission, from your answers (quick check)']);
+  if (S.doc && S.doc.fields) for (const [k, f] of Object.entries(S.doc.fields)) if (f && f.v != null) rows.push([`Read from your document: ${k}`, `${Array.isArray(f.v) ? f.v.join(' to ') : f.v}${f.src ? ` (${f.src})` : ''}`]);
+  if (S.data && S.data.profile) { const n = { earliestUtc: 'Earliest landing', slipDays: 'Latest landing, days after', durationDays: 'Days on the surface', continuousSun: 'Needs sunlight all the time', earthAtLanding: 'Must talk to Earth while landing', loadW: 'Power use (W)', batteryWh: 'Battery (Wh)', mast: 'Panels on a 10 m mast' };
+    for (const [k, v] of Object.entries(S.data.profile)) if (n[k] && v != null) rows.push([`Your answer: ${n[k]}`, v === true ? 'Yes' : v === false ? 'No' : String(v).replace('T00:00:00Z', '')]); }
+  rows.push(['Power kept on during darkness', `${fmt(COST.loadW)} W${S.data && S.data.costLoadGiven ? ' (from the mission)' : ' (example: the mission did not say)'}`]);
+  rows.push(['Delivery price shown on screen', priceNow().label]);
+  rows.push(['Mission price', usd(COST.missionUsd)]);
+  const m = S.when && S.whenIdx != null && S.when[S.data.options[0].site] && S.when[S.data.options[0].site][S.whenIdx];
+  rows.push(['Date picked on the slider', m ? `${dateTime(m.utc)} (this report keeps each site at its best date)` : 'none: each site at its best date']);
+  if (S.hw && S.hw !== 'none') rows.push(['Solar panel option tried in 3D', { mast_10m: '10 m mast', tracking_panels: 'panels that follow the Sun' }[S.hw] || S.hw]);
+  rows.push(['View', S.mode === 'expert' ? 'Expert' : 'Simple']);
+  return rows;
+}
 const busy = async (btn, job) => { const t = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…'; try { await job(); } catch (e) { toast(`Could not build the file: ${e.message}`); } finally { btn.disabled = false; btn.textContent = t; } };
 $('#pdf').onclick = e => busy(e.currentTarget, () => exportPDF(S, CTX()));
 $('#xlsx').onclick = e => busy(e.currentTarget, () => exportXLSX(S, CTX()));
@@ -1692,6 +1805,6 @@ if (/[?&]debug/.test(location.search)) { // diagnostics for testing on other com
     const [r, rs] = await Promise.all([getBufProgress('terrain/' + (w16 ? w16.file : S.info.region.file), f => { lp.querySelector('i').style.width = Math.round(f * 100) + '%'; }), getBuf('terrain/' + S.info.region_sun.file)]);
     lp.classList.remove('on');
     S.region = w16 ? dec16(r, w16) : new Float32Array(r); S.regionSun = new Uint8Array(rs);
-    setTimeout(buildCap, 300); // ready before the first flight to the pole
+    setTimeout(() => { buildCap(); idle(prewarm); }, 300); // ready before the first flight to the pole, with its shaders compiled and textures on the GPU
   } catch (e) { $('.story .ch[data-i="0"] p').textContent = `${e.message}. Open the app from a web server, not as a local file.`; }
 })();
