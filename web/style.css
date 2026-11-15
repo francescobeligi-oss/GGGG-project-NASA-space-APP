@@ -781,3 +781,40 @@ body.panel-off #explore .time { right: 0 !important; }
 @media (max-width: 980px) { .panelhide { display: none; } }
 .tlab { background: rgba(0,0,0,.55); padding: 3px 6px; justify-self: start; }
 .nowstate em { font-style: normal; }
+.discp { display: none; }
+/* phones, third pass: order and calm */
+@media (max-width: 700px) {
+  .col, .col.wide { left: 16px; width: calc(100vw - 32px); top: 76px; bottom: 24px; }
+  #mission .choice, #who .choice { width: 100%; box-sizing: border-box; }
+  #mission .choice * { white-space: normal; }
+  #mission .choices, #mission .choices.compact, #mission .mgrid { grid-template-columns: 1fr !important; }
+  #mission .choice .st, #mission .choice .own, #mission .choice [class*='tag'] { white-space: nowrap; }
+  .discp { display: inline-flex; } .discp[aria-pressed="true"] { background: rgba(245,200,74,.18); border-color: #f5c84a; color: #f5d27a; }
+  /* 3D: two clean rows of pickers, three small buttons, the scene, the timeline */
+  .tlab, .infobtn, .infobox { display: none !important; }
+  #explore .ex-left { top: 58px !important; gap: 6px; }
+  .ex-top { gap: 6px; flex-direction: column; align-items: stretch; width: 100%; }
+  .tgroup { min-width: 0; } #optTabs, #views { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; max-width: 100%; }
+  #explore .tabs.views button { padding: 6px 10px; } #explore .tabs.views small { display: none; }
+  #optTabs button { padding: 7px 10px; white-space: nowrap; font-size: 11px; }
+  .look .ll { display: none; }
+  #explore .ex-left .look .btn { padding: 6px 10px; font-size: 11px; }
+  #explore .time { grid-template-columns: auto 1fr !important; gap: 10px !important; }
+  #explore .lanes, #explore .clockbox, #explore .speed { display: none !important; }
+  #explore .time .track #days button:not(:nth-child(3n+1)) { visibility: hidden; }
+  .distchip { left: 12px; bottom: 112px; font-size: 10px; }
+  body.touch[data-screen="explore"] .vpad { bottom: 112px !important; }
+  body.touch[data-screen="explore"] .distchip { bottom: 262px; }
+  .vpad button { width: 42px; height: 42px; } .dpad { grid-template-columns: 42px 42px 42px; grid-template-rows: 42px 42px 42px; } .vside { grid-template-columns: 42px 42px; }
+  .vside [data-k="q"], .vside [data-k="e"] { opacity: .8; }
+  #results .res-head .lead { display: none; }
+}
+@media (max-width: 700px) {
+  .bar .logo { font-size: 12px; letter-spacing: .14em; white-space: nowrap; }
+  .edgetoast { bottom: auto; top: 150px; max-width: calc(100vw - 40px); text-align: center; }
+  body.touch[data-screen="explore"] .vpad { bottom: 128px !important; }
+}
+@media (max-width: 700px) {
+  #nav { display: none !important; }
+  body.touch[data-screen="explore"] .vpad { bottom: 158px !important; }
+}

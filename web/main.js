@@ -1642,7 +1642,8 @@ $('#infoBtn').onclick = () => { const b = $('#infoBox'), open = b.hidden; b.hidd
   const setL = open => { $('#ctLegend').hidden = !open; $('#ctlChip').hidden = open; try { localStorage.setItem('lss_legend', open ? '1' : '0'); } catch (e) {} GQ.dirty = true; };
   let open = true; try { open = localStorage.getItem('lss_legend') !== '0'; } catch (e) {} setL(open);
   $('#ctlToggle').onclick = () => setL(false); $('#ctlChip').onclick = () => setL(true); $('#ctlShow').onclick = () => tutorial(); }
-$('#discT').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discX').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite');
+$('#discP').onclick = () => $('#discT').click();
+$('#discT').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discP').setAttribute('aria-pressed', S.showDiscover); $('#discX').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite');
   if (S.showDiscover && S.discover) toast(`${S.discover.items.length} places to discover: water, hazards and history. Fly around and click a glowing icon.`, 5200); if (!S.showDiscover) $$('.pop.dcard').forEach(x => x.remove()); GQ.dirty = true; };
 $('#closeCal').onclick = () => $('#calendar').classList.remove('open');
 const CTX = () => ({ COST, PRICES, priceNow, costDark, battKg, valueLost, lostHours, BATT_WH_PER_KG, MISSIONS, VEXPERT, vx, verdictOf });

@@ -58,7 +58,7 @@
 
 <section class="screen" id="results">
   <div class="res-head"><h2 id="answer"></h2><p class="lead" id="answerSub"></p>
-    <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button><button class="btn" id="tourBtn" hidden>Discover the south pole</button></div></div>
+    <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button><button class="btn discp" id="discP" aria-pressed="false">✦ Discover</button><button class="btn" id="tourBtn" hidden>Discover the south pole</button></div></div>
   <div class="navctl" aria-label="Map controls"><button id="compass" aria-label="North up, back to the three sites" title="North up, back to the three sites"><i>N</i></button><div class="pad" aria-label="Move the map"><button data-p="up" aria-label="Move north">▲</button><button data-p="left" aria-label="Move west">◀</button><button data-p="right" aria-label="Move east">▶</button><button data-p="down" aria-label="Move south">▼</button></div><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="tiltBtn" aria-label="Switch between 3D and top view">2D</button><button id="homeBtn" aria-label="Back to my options">⌂</button><button id="helpBtn" aria-label="How to move on the map">?</button></div>
   <div class="tour" id="tour"></div>
   <div class="maphint" id="maphint"><b>Fly over the south pole</b><span>Drag to move · scroll or pinch to zoom · double-click to dive in</span><span>Right-drag or Shift-drag to turn and tilt</span></div>
@@ -103,7 +103,7 @@
     <button class="infobtn" id="infoBtn" aria-expanded="false"><i>i</i>How to move here · your lander</button>
     <div class="infobox" id="infoBox" hidden><p class="viewhint" id="viewHint"></p><p class="landerinfo" id="landerInfo"></p></div>
     <div class="status" id="status"></div>
-    <div class="look"><button class="btn ghost" id="lookSun">Look at the Sun</button><button class="btn ghost" id="lookEarth">Look at Earth</button><button class="btn ghost disc-x" id="discX" aria-pressed="false"><i class="spark"></i>Discover nearby</button></div>
+    <div class="look"><button class="btn ghost" id="lookSun"><span class="ll">Look at the </span>Sun</button><button class="btn ghost" id="lookEarth"><span class="ll">Look at </span>Earth</button><button class="btn ghost disc-x" id="discX" aria-pressed="false"><i class="spark"></i>Discover nearby</button></div>
   </div>
   <div class="xpin" id="xPin" style="display:none"><i></i><span>Landing site</span></div>
   <div class="exhint" id="exhint"><b>Look around</b><span>Drag to turn</span><span>Scroll to zoom</span><span>Right-drag to move</span><span>Stand there to walk</span></div>
