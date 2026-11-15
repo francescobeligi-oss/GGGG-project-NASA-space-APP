@@ -818,3 +818,37 @@ body.panel-off #explore .time { right: 0 !important; }
   #nav { display: none !important; }
   body.touch[data-screen="explore"] .vpad { bottom: 158px !important; }
 }
+/* what each option costs */
+.ct { width: 100%; border-collapse: collapse; font-size: 15px; }
+.ct th, .ct td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ct thead th { font-family: var(--head); text-transform: uppercase; letter-spacing: .08em; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.ct thead small { display: block; text-transform: none; letter-spacing: 0; font-family: var(--body, inherit); font-size: 12px; opacity: .8; margin-top: 2px; }
+.ct tbody th { font-weight: 500; white-space: nowrap; }
+.ct tbody th b { font-family: var(--head); margin-right: 6px; }
+.ct td.num { font-weight: 600; white-space: nowrap; }
+.ct tr.lo td.num { color: var(--go); }
+.ct-best { color: var(--go); }
+.cb-ctrl label small { color: var(--muted); font-size: 12.5px; }
+.cb-price { display: grid; gap: 8px; font-size: 14px; color: var(--muted); }
+.cb-price .tabs button small { opacity: .7; margin-left: 4px; }
+@media (max-width: 700px) {
+  #costbox { padding: 18px 14px; }
+  .ct thead { display: none; }
+  .ct, .ct tbody, .ct tr, .ct th, .ct td { display: block; width: auto; }
+  .ct tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ct th, .ct td { border: 0; padding: 2px 0; }
+  .ct td::before { color: var(--muted); font-size: 12.5px; margin-right: 6px; }
+  .ct td:nth-of-type(1)::before { content: 'Longest darkness'; } .ct td:nth-of-type(2)::before { content: 'Extra battery'; }
+  .ct td:nth-of-type(3)::before { content: 'Cost to fly it'; } .ct td:nth-of-type(4)::before { content: 'Without Sun or Earth'; } .ct td:nth-of-type(5)::before { content: 'Total'; }
+  .cb-ctrl label, .cb-ctrl input[type=range] { min-width: 0; width: 100%; }
+  .cb-say { font-size: 16px; }
+}
+.actions.exports { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; max-width: 900px; }
+.actions.exports > div { display: grid; gap: 8px; align-content: start; }
+.actions.exports small { color: var(--muted); font-size: 13.5px; line-height: 1.45; }
+@media (max-width: 700px) {
+  #costbox { width: calc(100vw - 32px); max-width: calc(100vw - 32px); box-sizing: border-box; }
+  .cb-price .tabs { flex-wrap: wrap; }
+  .cb-price .tabs button { padding: 8px 10px; font-size: 12px; }
+  .actions.exports { width: calc(100vw - 32px); }
+}

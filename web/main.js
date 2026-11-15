@@ -1365,33 +1365,31 @@ function renderCompare() {
 
 }
 
-/* ================= what darkness costs: one picture, three public prices ================= */
+/* ================= what each site costs: one table, one answer ================= */
 function renderCostbox(mm, partial) {
-  const o = S.data.options, P = [...PRICES].sort((a, b) => a.usdPerKg - b.usdPerKg), lo = P[0], mid = P[1], hi = P[2];
+  const o = S.data.options, P = [...PRICES].sort((a, b) => a.usdPerKg - b.usdPerKg), pi = Math.max(0, P.findIndex(p => p.id === COST.price)), price = P[pi];
   const dark = x => { const q = mm(x); return q ? q.longestDark : (x.ranges && x.ranges.longest_dark_h ? x.ranges.longest_dark_h[1] : x.light.longest_dark_h); };
-  const rows = o.map((x, i) => { const h = dark(x), kg = battKg(h); return { x, i, h, kg, c: P.map(p => kg * p.usdPerKg) }; });
-  const maxC = Math.max(1, ...rows.map(r => r.c[2])), worst = rows.reduce((a, r) => r.kg > a.kg ? r : a, rows[0]), free = rows.filter(r => r.kg < 0.05);
-  const when = S.whenIdx != null && S.when ? 'on the date you picked' : 'at their best dates';
-  const say = free.length === rows.length ? `None of your sites needs extra battery ${when}: they stay in sunlight.`
-    : `${free.length ? `${free.map(r => esc(r.x.site_name)).join(' and ')} need${free.length > 1 ? '' : 's'} no extra battery. ` : ''}${esc(worst.x.site_name)} needs ${fmt(worst.kg)} kg more battery to get through ${hrs(worst.h)} of darkness: ${usd(worst.c[0])} to ${usd(worst.c[2])} to fly it to the Moon.`;
-  const bar = r => r.kg < 0.05 ? `<div class="cb-none">No darkness, no extra battery</div>`
-    : `<div class="cb-track"><div class="cb-range" style="left:${r.c[0] / maxC * 100}%;width:${Math.max(0.6, (r.c[2] - r.c[0]) / maxC * 100)}%"></div>${P.map((p, k) => `<i class="cb-dot d${k}" style="left:${r.c[k] / maxC * 100}%" title="${esc(p.label)}"></i>`).join('')}</div>
-       <div class="cb-nums"><span>${fmt(r.kg)} kg</span><span>${usd(r.c[0])}</span><span>${usd(r.c[1])}</span><span>${usd(r.c[2])}</span></div>`;
-  const lost = x => { const q = mm(x), l = q ? q.lostH : lostHours(x); return { l, v: valueLost(l, x.duration_h) }; };
-  const rowsHTML = `${rows.map(r => `<div class="cb-row"><div class="cb-name"><b style="color:${LINE[r.i]}">${r.i + 1}</b> ${esc(r.x.site_name)}<small>${r.h > 0 ? `${hrs(r.h)} of darkness` : 'always in sunlight'}</small></div>${bar(r)}</div>`).join('')}
-      <div class="cb-axis"><span></span><span>Extra battery</span><span>Lowest price</span><span>List price</span><span>NASA paid</span></div>`;
-  if (partial && $('#costbox .cb-rows')) { $('#costbox .cb-say').innerHTML = say; $('#costbox .cb-rows').innerHTML = rowsHTML; return; }
+  const rows = o.map((x, i) => { const q = mm(x), h = dark(x), kg = battKg(h), bat = kg * price.usdPerKg, lostH = q ? q.lostH : lostHours(x), lost = valueLost(lostH, x.duration_h); return { x, i, h, kg, bat, lostH, lost, tot: bat + lost }; });
+  const lo = rows.reduce((a, r) => r.tot < a.tot ? r : a, rows[0]), first = rows[0];
+  const when = S.whenIdx != null && S.when ? 'on the date you picked' : 'each at its best date';
+  const say = rows.every(r => r.kg < 0.05 && r.lostH === 0) ? `No site needs extra battery or loses surface time, ${when}. Cost does not separate them: pick on the other rows.`
+    : lo === first ? `${esc(first.x.site_name)} is also the cheapest. ${rows.filter(r => r !== first).map(r => `${esc(r.x.site_name)} costs <b>${usd(r.tot - first.tot)} more</b>`).join(', ')}.`
+    : `${esc(lo.x.site_name)} costs <b>${usd(first.tot - lo.tot)} less</b> than option 1, ${esc(first.x.site_name)}. Weigh that against the verdict and the other rows.`;
+  const same = rows.every(r => Math.abs(r.tot - lo.tot) < 1), extra = r => same ? 'Same' : r === lo ? '<span class="ct-best">Cheapest</span>' : `+${usd(r.tot - lo.tot)}`;
+  const table = `<table class="ct"><thead><tr><th>Option</th><th>Longest darkness<small>worst case</small></th><th>Extra battery<small>at ${fmt(COST.loadW)} W</small></th><th>Cost to fly it<small>${usd(price.usdPerKg)} per kg</small></th><th>Time without Sun or Earth<small>share of a ${usd(COST.missionUsd)} mission</small></th><th>Total<small>against the cheapest</small></th></tr></thead><tbody>
+    ${rows.map(r => `<tr${r === lo && !same ? ' class="lo"' : ''}><th><b style="color:${LINE[r.i]}">${r.i + 1}</b> ${esc(r.x.site_name)}</th><td>${r.h > 0 ? hrs(r.h) : 'None'}</td><td>${r.kg >= 0.05 ? `${fmt(r.kg, 1)} kg` : 'None'}</td><td>${r.kg >= 0.05 ? usd(r.bat) : '$0'}</td><td>${r.lostH ? `${hrs(r.lostH)} = ${usd(r.lost)}` : 'None'}</td><td class="num">${extra(r)}</td></tr>`).join('')}</tbody></table>`;
+  if (partial && $('#costbox .ct')) { $('#costbox .cb-say').innerHTML = say; $('#costbox .ct').outerHTML = table; return; }
   $('#costbox').innerHTML = `
-    <div class="cb-head"><h3>What darkness costs</h3><p class="cb-say">${say}</p></div>
-    <div class="cb-ctrl"><label>Power kept on during the dark <b id="cLoadV">${fmt(COST.loadW)} W</b><input id="cLoad" type="range" min="20" max="1000" step="10" value="${COST.loadW}"></label>
-      <div class="cb-legend">${P.map((p, k) => `<span><i class="cb-dot d${k}"></i>${['Lowest public price', 'Published list price', 'Price NASA paid'][k]}: ${usd(p.usdPerKg)} per kg</span>`).join('')}</div></div>
-    <div class="cb-rows">${rowsHTML}</div>
-    <div class="xp cb-expert">
-      <h4>Mission time you cannot fully use</h4>
-      <div class="cb-lost">${o.map((x, i) => { const L = lost(x); return `<div><b style="color:${LINE[i]}">${i + 1}</b> ${esc(x.site_name)}<span>${hrs(L.l)} without Sun or Earth</span><span class="num">${usd(L.v)}</span></div>`; }).join('')}</div>
-      <label class="cb-mission">Mission price <span>$ <input id="cMission" type="number" min="1" value="${COST.missionUsd / 1e6}"> million</span></label>
-      <p class="small">How we compute it: extra battery = longest darkness × power ÷ 0.8 usable charge ÷ ${BATT_WH_PER_KG} Wh/kg (the best lithium-ion cells in NASA's Small Spacecraft State of the Art report, so real mass and cost are higher). Cost = battery mass × delivery price per kg. Unused time = hours without Sun or Earth ÷ stay × mission price (default: NASA CLPS award CP-22, $116.9M). Prices are public figures, not quotes: ${P.map(p => `<a href="${p.url}" target="_blank" rel="noopener">${esc(p.label)}</a>`).join('; ')}.</p></div>`;
+    <div class="cb-head"><h3>What each option costs</h3><p class="cb-say">${say}</p></div>
+    ${table}
+    <div class="cb-ctrl">
+      <label>Power kept on during the dark <b id="cLoadV">${fmt(COST.loadW)} W</b><input id="cLoad" type="range" min="20" max="1000" step="10" value="${COST.loadW}"><small>${S.data.costLoadGiven ? 'From the mission profile.' : 'Your mission did not say: 100 W is an example.'}</small></label>
+      <div class="cb-price"><span>Delivery price to the Moon</span><div class="tabs" id="cPrice">${P.map((p, k) => `<button data-p="${p.id}" aria-pressed="${k === pi}" title="${esc(p.label)}">${['Lowest', 'List price', 'NASA paid'][k]} <small>${usd(p.usdPerKg)}/kg</small></button>`).join('')}</div></div>
+      <label class="cb-mission xp">Mission price <span>$ <input id="cMission" type="number" min="1" value="${COST.missionUsd / 1e6}"> million</span></label>
+    </div>
+    <p class="small">Extra battery = longest darkness × power kept on ÷ 0.8 usable charge ÷ ${BATT_WH_PER_KG} Wh/kg (the best lithium-ion cells in NASA's Small Spacecraft State of the Art report, so real packs weigh more). Time without Sun or Earth is valued as its share of the mission price (default: NASA CLPS award CP-22, $116.9M). Public prices, not quotes: ${P.map(p => `<a href="${p.url}" target="_blank" rel="noopener">${esc(p.label)}</a>`).join('; ')}. Every step is in the Excel file, Cost and Power sheets.</p>`;
   $('#cLoad').oninput = e => { COST.loadW = +e.target.value; $('#cLoadV').textContent = `${fmt(COST.loadW)} W`; clearTimeout(S.cbT); S.cbT = setTimeout(() => { renderCostbox(mm, true); renderResults(); drawWhen(); }, 40); };
+  $$('#cPrice button').forEach(btn => btn.onclick = () => { COST.price = btn.dataset.p; renderCostbox(mm); renderResults(); });
   $('#cMission').onchange = e => { COST.missionUsd = Math.max(1, +e.target.value || 116.9) * 1e6; renderCostbox(mm); };
 }
 
@@ -1646,9 +1644,10 @@ $('#discP').onclick = () => $('#discT').click();
 $('#discT').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discP').setAttribute('aria-pressed', S.showDiscover); $('#discX').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite');
   if (S.showDiscover && S.discover) toast(`${S.discover.items.length} places to discover: water, hazards and history. Fly around and click a glowing icon.`, 5200); if (!S.showDiscover) $$('.pop.dcard').forEach(x => x.remove()); GQ.dirty = true; };
 $('#closeCal').onclick = () => $('#calendar').classList.remove('open');
-const CTX = () => ({ COST, PRICES, priceNow, costDark, battKg, valueLost, lostHours, BATT_WH_PER_KG, MISSIONS, VEXPERT, vx, verdictOf });
-$('#pdf').onclick = () => exportPDF(S, CTX());
-$('#xlsx').onclick = () => exportXLSX(S, CTX());
+const CTX = () => ({ DOD, COST, PRICES, priceNow, costDark, battKg, valueLost, lostHours, BATT_WH_PER_KG, MISSIONS, VEXPERT, vx, verdictOf });
+const busy = async (btn, job) => { const t = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…'; try { await job(); } catch (e) { toast(`Could not build the file: ${e.message}`); } finally { btn.disabled = false; btn.textContent = t; } };
+$('#pdf').onclick = e => busy(e.currentTarget, () => exportPDF(S, CTX()));
+$('#xlsx').onclick = e => busy(e.currentTarget, () => exportXLSX(S, CTX()));
 $('#play').onclick = () => { if (S.t >= series().t.length - 1) S.t = 0; setPlaying(!S.playing); };
 $('#scrub').oninput = e => { S.t = +e.target.value; applyTime(); };
 $$('#speed button').forEach(b => b.onclick = () => { S.speed = +b.dataset.s; $$('#speed button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
