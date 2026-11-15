@@ -852,3 +852,10 @@ body.panel-off #explore .time { right: 0 !important; }
   .cb-price .tabs button { padding: 8px 10px; font-size: 12px; }
   .actions.exports { width: calc(100vw - 32px); }
 }
+@media (max-width: 700px) {
+  /* phones: the two lane labels sit in one line above the bars, so the colours are never unexplained */
+  #explore .time .lanes { display: flex !important; grid-column: 1 / -1; grid-row: 1; gap: 16px; margin: 0; font-size: 10.5px; line-height: 12px; }
+  #explore .time .lanes .l-day { display: none; }
+  #explore .time .play { grid-row: 2; } #explore .time .track { grid-row: 2; }
+  #explore .time { row-gap: 6px !important; }
+}
