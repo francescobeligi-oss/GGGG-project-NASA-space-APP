@@ -522,7 +522,31 @@ const DICON = {
   ice: '<svg viewBox="0 0 24 24"><path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 4l3 2 3-2M9 20l3-2 3 2M4 10.5l1-3.4M19 13.5l1 3.4M4 13.5l1 3.4M19 10.5l1-3.4"/></svg>',
   hazard: '<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 17.5v.5"/></svg>',
   history: '<svg viewBox="0 0 24 24"><path d="M6 21V3M6 4h11l-2.5 4L17 12H6"/></svg>',
+  site: '<svg viewBox="0 0 24 24"><path d="M12 22s7-7.2 7-12a7 7 0 0 0-14 0c0 4.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
   wonder: '<svg viewBox="0 0 24 24"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>' };
+function nearbyItems() { // what is around this landing site, from NASA data and our own site list
+  const sx = X.site.x_m, sy = X.site.y_m, out = [], dist = (x, y) => Math.hypot(x - sx, y - sy), km = d => d < 1000 ? `${Math.round(d / 10) * 10} m` : `${fmt(d / 1000, 1)} km`;
+  const P = S.psr; if (P && P.x_m) { const idx = []; for (let k = 0; k < P.x_m.length; k++) { const d = dist(P.x_m[k], P.y_m[k]); if (d < 20000) idx.push([d / Math.sqrt(Math.max(0.02, P.area_km2[k])), k, d]); }
+    idx.sort((a, b) => a[0] - b[0]).slice(0, 4).forEach(([, k, d]) => out.push({ cat: 'ice', name: `Ice-bearing dark area, ${km(d)}`, x_m: P.x_m[k], y_m: P.y_m[k], title: `Never-sunlit ground ${km(d)} away`,
+      what: `A ${fmt(P.area_km2[k], 2)} km² patch where the Sun never shines, mapped by NASA's LRO laser altimeter (a permanently shadowed region). Places like this are cold enough to keep water ice for billions of years.`,
+      why: d < 3000 ? 'Close enough for a rover to drive in from this landing site and look for water, the most wanted resource on the Moon. It is also extremely cold and dark: equipment needs heaters and its own power to work inside.' : 'A possible water source within reach of a long rover drive. Inside, it is extremely cold and dark.',
+      source: { label: 'NASA LOLA permanently shadowed regions (Barker et al. 2023)', url: 'https://pgda.gsfc.nasa.gov/' } })); }
+  for (const p of (S.places && S.places.places) || []) { const d = dist(p.x_m, p.y_m); if (d < 60000) out.push({ cat: 'wonder', name: `${p.name}, ${km(d)}`, x_m: p.x_m, y_m: p.y_m, title: p.name, what: `${p.type.split(',')[0]}, ${fmt(p.diam_km)} km across, ${km(d)} from your landing site. ${p.fact}`, why: `Named after ${p.namesake}`, source: { label: 'IAU Gazetteer of Planetary Nomenclature', url: p.source } }); }
+  for (const t of S.index.sites) { if (t.id === X.sid) continue; const d = dist(t.x_m, t.y_m); if (d < 40000) out.push({ cat: 'site', name: `${t.name}, ${km(d)}`, x_m: t.x_m, y_m: t.y_m, title: `Another candidate site: ${t.name}`, what: `One of the 11 landing sites this tool checks, ${km(d)} from yours.`, why: 'A nearby backup if your site has a bad date: open Compare to see how it does.', source: null }); }
+  for (const p of (S.discover && S.discover.items) || []) { const rho = 2 * R_MOON * Math.tan(rad(90 + p.lat) / 2), x_m = rho * Math.sin(rad(p.lon)), y_m = rho * Math.cos(rad(p.lon)), d = dist(x_m, y_m); if (d < 90000) out.push({ ...p, x_m, y_m, name: `${p.name}, ${km(d)}` }); }
+  return out;
+}
+function buildNearby() {
+  (X.dpins || []).forEach(q => q.el.remove()); X.dpinsSid = X.sid;
+  X.dpins = nearbyItems().map(p => { const el = document.createElement('button'); el.className = `pin disc xdisc c-${p.cat}`; el.innerHTML = `<span class="dic">${DICON[p.cat] || ''}</span><span class="dl">${esc(p.name)}</span>`; el.style.display = 'none'; el.onclick = () => discoverCard(p, el, true); document.body.appendChild(el); return { el, x_m: p.x_m, y_m: p.y_m }; });
+}
+function xFlyTo(point, closer = 0.55) { // fly the 3D camera to a point, keeping the angle
+  const t0 = performance.now(), fromT = X.controls.target.clone(), fromP = X.camera.position.clone(), off = fromP.clone().sub(fromT).multiplyScalar(closer), toT = point.clone(), toP = toT.clone().add(off.setLength(Math.max(30, off.length())));
+  X.controls.enabled = false; hideExHint();
+  const step = now => { const k = Math.min(1, (now - t0) / 1100), q = ease(k); X.controls.target.lerpVectors(fromT, toT, q); X.camera.position.lerpVectors(fromP, toP, q); X.camera.lookAt(X.controls.target); GQ.dirty = true;
+    if (k < 1) requestAnimationFrame(step); else { X.controls.update(); X.controls.enabled = true; } };
+  requestAnimationFrame(step);
+}
 function placeDiscover() {
   const D2 = S.discover; if (!D2) return;
   for (const p of D2.items) {
@@ -536,10 +560,12 @@ function placeDiscover() {
 function discoverCard(p, el, inExplore) {
   $$('.pop').forEach(x => x.remove());
   if (!inExplore) flyTo(M.moon.localToWorld(globePoint(p.lat, p.lon, 1)), Math.min(NAV.d, 0.05));
+  else if (X.site && S.view !== 'fp') { const dx = p.x_m - X.site.x_m, dy = p.y_m - X.site.y_m, inSite = Math.abs(dx) < X.half - 20 && Math.abs(dy) < X.half - 20;
+    xFlyTo(new THREE.Vector3(dx, inSite ? localH(dx, -dy) : regionH(p.x_m, p.y_m) - X.h0 - (dx * dx + dy * dy) / (2 * R_MOON), -dy), Math.hypot(dx, dy) > 20000 ? 1 : 0.7); }
   const pop = document.createElement('div'); pop.className = `pop dcard c-${p.cat}`; const src = [p.source, p.source2].filter(Boolean);
-  pop.innerHTML = `<div class="dchip"><span class="dic">${DICON[p.cat] || ''}</span>${esc(S.discover.cats[p.cat])}</div><b>${esc(p.title)}</b>
+  pop.innerHTML = `<div class="dchip"><span class="dic">${DICON[p.cat] || ''}</span>${esc(({ ...S.discover.cats, site: 'Candidate site', wonder: S.discover.cats.wonder })[p.cat] || '')}</div><b>${esc(p.title)}</b>
     <div class="dsec"><span>What it is</span>${esc(p.what)}</div><div class="dsec"><span>Why it matters</span>${esc(p.why)}</div>
-    <div class="small">Source: ${src.map(q => `<a href="${q.url}" target="_blank" rel="noopener">${esc(q.label)}</a>`).join('; ')}</div>
+    ${src.length ? `<div class="small">Source: ${src.map(q => `<a href="${q.url}" target="_blank" rel="noopener">${esc(q.label)}</a>`).join('; ')}</div>` : ''}
     <button class="dclose" aria-label="Close">×</button>`;
   pop.style.visibility = 'hidden'; pop.style.top = '84px'; pop.style.left = '10px'; document.body.appendChild(pop); pop.__anchor = el; pop.querySelector('.dclose').onclick = () => { pop.remove(); GQ.dirty = true; };
   const r = el.getBoundingClientRect(), right = innerWidth > 980 ? innerWidth - 450 : innerWidth - 10; pop.style.left = Math.max(10, Math.min(right - 345, r.left - 20)) + 'px'; pop.style.top = Math.max(84, Math.min(innerHeight - pop.offsetHeight - 12, r.top - 40)) + 'px'; pop.style.visibility = ''; GQ.dirty = true; GQ.activeUntil = performance.now() + 600;
@@ -938,6 +964,7 @@ async function loadPreset(id, btn) {
 async function afterData() {
   await Promise.all(S.data.options.map(o => siteMeta(o.site)));
   S.opt = 0; X.sid = null; S.when = null; S.whenIdx = null; M.map = false;
+  if (innerWidth <= 700 && !$('#dock').classList.contains('closed')) $('#dockToggle').click(); // phones: the map gets the screen, options fold down
   placeMarkers(); placePlaces(); placeDiscover(); renderResults(); go('results'); loadWhen();
   idle(() => S.data.options.slice(0, 3).forEach((o, i) => setTimeout(() => siteTerrain(o.site).catch(() => {}), i * 400)));
 }
@@ -1071,7 +1098,7 @@ $('#tourBtn').onclick = () => tourStep(TOUR.i < 0 ? 0 : TOUR.i + 1);
 mapButtons();
 $('#toBest').onclick = toBest;
 $$('#metric button').forEach(b => b.onclick = () => { S.metric = b.dataset.m; $$('#cmpMetric button, #metric button').forEach(x => x.setAttribute('aria-pressed', x.dataset.m === S.metric)); drawWhen(); });
-$('#dockToggle').onclick = () => { const d = $('#dock'), c = d.classList.toggle('closed'); document.body.classList.toggle('wide', c); $('#dockToggle').textContent = c ? 'Show options' : 'Hide options'; $('#dockToggle').setAttribute('aria-expanded', !c); setTimeout(drawWhen, 480); };
+$('#dockToggle').onclick = () => { const d = $('#dock'), c = d.classList.toggle('closed'); document.body.classList.toggle('wide', c); $('#dockToggle').textContent = innerWidth <= 700 ? (c ? '▲ Your 3 options' : '▼ Back to the map') : c ? 'Show options' : 'Hide options'; $('#dockToggle').setAttribute('aria-expanded', !c); setTimeout(drawWhen, 480); };
 
 /* ================= step 4: explore ================= */
 async function openExplore(i) {
@@ -1485,7 +1512,7 @@ function frame(now) {
     M.stars.rotation.y = M.spin * 0.2;
     if (M.map && M.sun.castShadow && (lerping || NAV.fly)) renderer.shadowMap.needsUpdate = true;
     renderer.toneMappingExposure = M.map || (S.screen === 'hero' && STORY.p > 0.05) ? 1.25 : 1.15; renderer.render(M.scene, M.camera); GQ.sig = M.camera.matrixWorld.elements.join(',') + M.camera.projectionMatrix.elements[0];
-    const showPins = M.map && S.screen === 'results', dr = $('#dock').getBoundingClientRect(), cardLeft = showPins && VW > 980 && !$('#dock').classList.contains('closed') ? dr.left - 8 : VW, barTop = $('.whenbar').getBoundingClientRect().top - 6;
+    const showPins = M.map && S.screen === 'results', dr = $('#dock').getBoundingClientRect(), cardLeft = showPins && VW > 980 && !$('#dock').classList.contains('closed') ? dr.left - 8 : VW, barTop = (r => r.height ? r.top : Math.min(VH, $('#dock').getBoundingClientRect().top) - 60)($('.whenbar').getBoundingClientRect()) - 6;
     const boxes = showPins ? ['.map-key', '.navctl', '.ctlegend:not([hidden])', '.ctl-chip:not([hidden])', '.res-head h2', '.res-head .lead', '.res-tools', '.tour.on', '#dockToggle'].map(s => document.querySelector(s)).filter(Boolean).map(e => { const r = e.getBoundingClientRect(); return [r.left - 6, r.top - 6, r.right + 6, r.bottom + 6]; }).filter(b => b[2] > b[0]) : [];
     for (const m of markers.slice().sort((a, b) => (a.top ? 0 : a.disc ? 1 : a.poi ? 3 : 2) - (b.top ? 0 : b.disc ? 1 : b.poi ? 3 : 2))) {
       if (!showPins) { m.el.style.display = 'none'; continue; }
@@ -1534,12 +1561,13 @@ function frame(now) {
     { const xp = $('#xPin'), far = S.view === 'region' || S.view === 'orbit'; // label the landing spot when it is too small to see
       if (xp && far && X.ring && S.screen === 'explore') { v3.set(0, localH(0, 0) + 2, 0).project(X.camera); const px = (v3.x + 1) / 2 * innerWidth, py = (1 - v3.y) / 2 * innerHeight; const ok = v3.z < 1 && px > 0 && px < (innerWidth > 980 ? innerWidth - 560 : innerWidth - 120) && py > 0 && py < innerHeight; xp.style.display = ok ? '' : 'none'; if (ok) xp.style.transform = `translate(${px}px, ${py}px)`; }
       else if (xp) xp.style.display = 'none';
-      // Discover icons around the site in the far views, when Discover is on
-      if (S.discover && X.site) { if (!X.dpins) { X.dpins = S.discover.items.map(p => { const rho = 2 * R_MOON * Math.tan(rad(90 + p.lat) / 2), x_m = rho * Math.sin(rad(p.lon)), y_m = rho * Math.cos(rad(p.lon));
-          const el = document.createElement('button'); el.className = `pin disc xdisc c-${p.cat}`; el.innerHTML = `<span class="dic">${DICON[p.cat] || ''}</span><span class="dl">${esc(p.name)}</span>`; el.style.display = 'none'; el.onclick = () => discoverCard(p, el, true); document.body.appendChild(el); return { el, x_m, y_m }; }); }
-        for (const q of X.dpins) { let ok = far && S.showDiscover && S.screen === 'explore';
-          if (ok) { const dx = q.x_m - X.site.x_m, dy = q.y_m - X.site.y_m; v3.set(dx, regionH(q.x_m, q.y_m) - X.h0 - (dx * dx + dy * dy) / (2 * R_MOON) + 300, -dy).project(X.camera); const px = (v3.x + 1) / 2 * innerWidth, py = (1 - v3.y) / 2 * innerHeight;
-            ok = v3.z < 1 && px > 10 && px < innerWidth - 440 && py > ($('.look').getBoundingClientRect().bottom || 240) + 24 && py < innerHeight - 110; if (ok) q.el.style.transform = `translate(${px}px, ${py}px)`; }
+      // Discover nearby: ice-bearing dark areas, named places, other candidate sites and the Discover finds around this site
+      if (X.site) { if (X.dpinsSid !== X.sid) buildNearby();
+        const near = S.view === 'fp' || S.view === 'drone', ui = ['#optTabs', '#views', '#infoBtn', '#infoBox', '#status', '.look'].map(q => document.querySelector(q)).filter(e => e && !e.hidden).map(e => e.getBoundingClientRect()).filter(r => r.width);
+        for (const q of X.dpins || []) { let ok = S.showDiscover && S.screen === 'explore';
+          if (ok) { const dx = q.x_m - X.site.x_m, dy = q.y_m - X.site.y_m, inSite = Math.abs(dx) < X.half - 20 && Math.abs(dy) < X.half - 20;
+            v3.set(dx, (inSite ? localH(dx, -dy) : regionH(q.x_m, q.y_m) - X.h0 - (dx * dx + dy * dy) / (2 * R_MOON)) + (near ? 25 : 300), -dy).project(X.camera); const px = (v3.x + 1) / 2 * innerWidth, py = (1 - v3.y) / 2 * innerHeight;
+            ok = v3.z < 1 && px > 10 && px < (innerWidth > 980 ? innerWidth - 450 : innerWidth - 10) && py > 70 && !ui.some(r => px > r.left - 16 && px < r.right + 16 && py > r.top - 16 && py < r.bottom + 16) && py < innerHeight - (innerWidth > 980 ? 110 : innerHeight * 0.4 + 90); if (ok) q.el.style.transform = `translate(${px}px, ${py}px)`; }
           q.el.style.display = ok ? '' : 'none'; } } }
     renderer.render(X.sky, X.camera); renderer.clearDepth(); renderer.render(X.scene, X.camera); GQ.sig = X.camera.matrixWorld.elements.join(',') + X.camera.projectionMatrix.elements[0];
   }
@@ -1559,8 +1587,12 @@ $('#back').onclick = () => {
 $('#openCal').onclick = () => openCalendar();
 $('#placesT').onclick = () => { S.showPlaces = !S.showPlaces; $('#placesT').setAttribute('aria-pressed', S.showPlaces); };
 const toast = (msg, ms = 4200) => { const t = $('#edgeToast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), ms); };
-$('#discX').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discX').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite'); if (S.showDiscover && (S.view === 'fp' || S.view === 'drone')) setView('region'); if (!S.showDiscover) $$('.pop.dcard').forEach(x => x.remove()); GQ.dirty = true; };
+$('#discX').onclick = () => { S.showDiscover = !S.showDiscover; $('#discT').setAttribute('aria-pressed', S.showDiscover); $('#discX').setAttribute('aria-pressed', S.showDiscover); $('#discT').classList.remove('invite'); if (S.showDiscover && X.site) { if (X.dpinsSid !== X.sid) buildNearby(); const n = (X.dpins || []).length; toast(n ? `${n} things around this site: ice-bearing dark areas, places and other sites. Click an icon to fly there.` : 'Nothing mapped within 20 km of this site.', 5200); } if (!S.showDiscover) $$('.pop.dcard').forEach(x => x.remove()); GQ.dirty = true; };
 $('#tutBtn').onclick = () => tutorial();
+{ // phones: the 3D details are a sheet you pull up
+  const h = document.createElement('button'); h.id = 'sheetBtn'; h.className = 'sheetbtn'; h.textContent = '▲ Details'; document.querySelector('#explore').appendChild(h);
+  h.onclick = () => { const open = document.body.classList.toggle('sheet-open'); h.textContent = open ? '▼ Back to the scene' : '▲ Details'; GQ.dirty = true; }; }
+$('#infoBtn').onclick = () => { const b = $('#infoBox'), open = b.hidden; b.hidden = !open; $('#infoBtn').setAttribute('aria-expanded', open); };
 { // game-style arrows for phones and tablets: hold to move, same keys as the keyboard
   const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0; document.body.classList.toggle('touch', touch);
   const target = () => S.screen === 'explore' ? X.walk : (NAV.keys ||= {});

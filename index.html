@@ -75,7 +75,7 @@
     <button class="ctl-show" id="ctlShow">Show me in 20 seconds</button>
   </div>
   <button class="ctl-chip" id="ctlChip" hidden>Moving around</button>
-  <div class="edgetoast" id="edgeToast">For now you can fly over the south pole. The rest of the Moon comes next.</div>
+
   <div class="map-key">
     <span class="tabs light" id="lightMode"><button data-l="photo" aria-pressed="true">Photo</button><button data-l="date" aria-pressed="false">Sunlight on the date</button></span>
     <button class="layer" data-layer="sun" aria-pressed="true"><i style="background:var(--sun)"></i>Often sunlit</button>
@@ -99,7 +99,8 @@
       <div class="tabs" id="optTabs"></div>
       <div class="tabs views" id="views"><button data-view="fp"><b>On the ground</b><small>eye level</small></button><button data-view="drone" aria-pressed="true"><b>The lander</b><small>close up</small></button><button data-view="region"><b>The whole area</b><small>10 km around</small></button><button data-view="orbit"><b>From space</b><small>100 km away</small></button></div>
     </div>
-    <p class="viewhint" id="viewHint"></p><p class="landerinfo" id="landerInfo"></p>
+    <button class="infobtn" id="infoBtn" aria-expanded="false"><i>i</i>How to move here · your lander</button>
+    <div class="infobox" id="infoBox" hidden><p class="viewhint" id="viewHint"></p><p class="landerinfo" id="landerInfo"></p></div>
     <div class="status" id="status"></div>
     <div class="look"><button class="btn ghost" id="lookSun">Look at the Sun</button><button class="btn ghost" id="lookEarth">Look at Earth</button><button class="btn ghost disc-x" id="discX" aria-pressed="false"><i class="spark"></i>Discover nearby</button></div>
   </div>
@@ -136,6 +137,7 @@
     </div>
   </div>
 </section>
+<div class="edgetoast" id="edgeToast">For now you can fly over the south pole. The rest of the Moon comes next.</div>
 <div class="vpad" id="vpad" aria-label="Move with the arrows">
     <div class="dpad"><button data-k="arrowup" aria-label="Forward">▲</button><button data-k="arrowleft" aria-label="Left">◀</button><button data-k="arrowright" aria-label="Right">▶</button><button data-k="arrowdown" aria-label="Back">▼</button></div>
     <div class="vside"><button data-k="f" aria-label="Closer">+</button><button data-k="r" aria-label="Farther">−</button><button data-k="q" aria-label="Turn left">⟲</button><button data-k="e" aria-label="Turn right">⟳</button></div>
