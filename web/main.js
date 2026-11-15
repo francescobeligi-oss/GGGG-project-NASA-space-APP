@@ -1525,10 +1525,10 @@ const v3 = new THREE.Vector3();
 const STORY = { p: 0, to: 0, n: 4, sunAz: 40 };
 const STORY_K = [ // map-mode views: point on the Moon (lat, lon), distance (Moon radii), heading, extra tilt
   null,
-  { lat: -89.6, lon: 0, d: 0.75, head: 0.4, tiltU: -0.25 },
+  { lat: -89.6, lon: 0, d: 0.2, head: 0.4, tiltU: 0.05 }, // close enough that the edge of the polar map stays out of view
   { lat: -89.3, lon: -150, d: 0.075, head: 1.9, tiltU: 0.12 },
   { lat: -88.8, lon: 125, d: 0.022, head: 3.3, tiltU: 0.22 },
-  { lat: -89.4, lon: 0, d: 0.55, head: 4.2, tiltU: -0.1 },
+  { lat: -89.4, lon: 0, d: 0.24, head: 4.2, tiltU: 0.05 },
 ];
 function storyPose(p) {
   const i = Math.min(3, Math.max(1, Math.floor(p))), f = ease(Math.min(1, Math.max(0, p - i))), a = STORY_K[i], b = STORY_K[i + 1];
@@ -1563,17 +1563,17 @@ function storyApply(dt) {
     M.sun.castShadow = false; M.sun.position.set(-3, 1.4, 2.2); M.sun.target.position.set(0, 0, 0); M.sun.intensity = 3.4; M.hemi.intensity = 0.04; M.camera.up.set(0, 1, 0);
     M.camera.near = 0.01; M.camera.far = 200; M.camera.updateProjectionMatrix(); return false;
   }
-  const e = ease(Math.min(1, p)), gb = Math.min(1, Math.max(0, (e - 0.45) / 0.5)); // far away the polar map shows the same image as the globe; coming closer, NASA's detailed polar photo fades in: no cut
+  const e = ease(Math.min(1, p)), gb = Math.min(1, Math.max(0, (e - 0.72) / 0.28)); // the detailed photo only once close: from far the pole shows the same image as the rest of the Moon, so no disc appears // far away the polar map shows the same image as the globe; coming closer, NASA's detailed polar photo fades in: no cut
   M.full.visible = false; M.holed.visible = true; M.cap.visible = true; TERR.u.uGlobeMix.value = 1 - gb * gb * (3 - 2 * gb); TERR.u.uPhoto.value = 0.5; TERR.photoTo = null;
   if (!STORY.dimmed) { applyTint(M.cap, 0); M.tint = M.tintTo = 0; STORY.dimmed = true; } // plain colours in the story: the tint uniform at 0, no buffer rewrite
-  const dimF = Math.min(1, Math.max(0, (e - 0.55) / 0.45)), dm = dimF * dimF * (3 - 2 * dimF) * 0.55; // the Moon darkens first, then the lit pole appears: a spotlight, not a pasted disc
+  const dm = 0; // no spotlight: the pole and the rest of the Moon stay one surface (the dimmed ring looked like a pasted disc) // the Moon darkens first, then the lit pole appears: a spotlight, not a pasted disc
   M.holed.material.color.setScalar(1 - 0.6 * dm); M.full.material.color.setScalar(1 - 0.6 * dm); TERR.u.uRimW.value = 170000; TERR.u.uRim.value = dm; // the rest of the Moon dims gradually: the pole stands out, with no edge
   M.pivot.rotation.set(M.tilt + (-Math.PI - M.tilt) * e, 0, 0); M.moon.rotation.y = (M.spin % (Math.PI * 2)) * (1 - e); M.pivot.updateMatrixWorld(true);
   // the Sun circles the pole a degree and a half above the horizon; its shadows turn with it
-  STORY.sunAz += dt * (p > 0.9 ? 9 : 0); const az = rad(STORY.sunAz), el = rad(1.6), sd = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el));
+  STORY.sunAz += dt * (p > 0.9 ? 9 : 0); const az = rad(STORY.sunAz), el = rad(10), sd = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el));
   const pole = new THREE.Vector3(0, 1, 0), front = new THREE.Vector3(-3, 1.4, 2.2).normalize(), ls = Math.min(1, e / 0.7);
   const dir = front.clone().lerp(sd, ls * ls * (3 - 2 * ls)).normalize(); // the light eases from the front (the whole Moon lit) to the low polar Sun
-  M.sun.target.position.copy(pole); M.sun.position.copy(pole).addScaledVector(dir, 2); M.sun.castShadow = e > 0.6; M.cap.castShadow = M.cap.receiveShadow = true;
+  M.sun.target.position.copy(pole); M.sun.position.copy(pole).addScaledVector(dir, 2); M.sun.castShadow = false; M.cap.castShadow = M.cap.receiveShadow = false; // no cast shadows in the story: the shading of the slopes tells it, and shadow maps drew hard wedges
   M.sun.intensity = 3.4 + 1.2 * e; M.hemi.intensity = 0.04 + 0.32 * e; // enough soft light that shadowed ground stays visible: no black Moon renderer.shadowMap.needsUpdate = true;
   let pos, up, look;
   if (p < 1) {
