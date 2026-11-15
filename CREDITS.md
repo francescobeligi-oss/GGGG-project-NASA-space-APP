@@ -15,7 +15,7 @@ The app shows public facts about real missions and companies, with sources. It d
 - JPL Horizons, used to validate Sun and Earth positions: https://ssd.jpl.nasa.gov/horizons/
 - NASA Deep Space Network station locations: https://deepspace.jpl.nasa.gov/
 - NASA Blue Marble Earth image (NASA Visible Earth): https://visibleearth.nasa.gov/
-- Global Moon colour image (`assets/moon_2k.jpg`): NASA Scientific Visualization Studio, CGI Moon Kit (LRO LROC colour mosaic), https://svs.gsfc.nasa.gov/4720 [TO VERIFY: confirm this is the file used, or replace it with the CGI Moon Kit image]
+- Global Moon colour image (`assets/moon_2k.jpg`): `lroc_color_poles_2k.tif` from the CGI Moon Kit (LRO LROC colour mosaic with polar fill), NASA's Scientific Visualization Studio, https://svs.gsfc.nasa.gov/4720 – converted to JPEG, verified identical to the original
 - NASA Small Spacecraft Technology State of the Art (power chapter, battery energy density): https://www.nasa.gov/smallsat-institute/sst-soa/
 - Lunar feature names: IAU Gazetteer of Planetary Nomenclature (USGS), https://planetarynames.wr.usgs.gov/
 
