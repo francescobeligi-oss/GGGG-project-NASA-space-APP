@@ -3,7 +3,7 @@
 Lunar Site Scout, NASA Space Apps Challenge 2026, challenge "Lunar Landing Site Navigator".
 
 ## Our work
-All code, text, 3D lander models (drawn in code), the regolith grain texture (generated in code), the report and workbook formats, and the demo video were made by the team for this challenge. Licence: MIT (see `LICENSE`), an Open Source Initiative approved licence.
+All code, text, 3D lander models (drawn in code), the regolith grain texture (generated in code), the report and workbook formats, and the demo slides were made by the team for this challenge. Licence: MIT (see `LICENSE`), an Open Source Initiative approved licence.
 
 The app shows public facts about real missions and companies, with sources. It does not promote or sell any commercial product or service.
 
