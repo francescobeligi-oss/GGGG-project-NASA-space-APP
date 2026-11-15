@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { quickCheck, readDocument, dateMetrics } from './quick.js?v=1440';
-import { exportPDF, exportXLSX } from './exports.js?v=1440';
-import { STATS_URL } from './config.js?v=1440';
+import { quickCheck, readDocument, dateMetrics } from './quick.js?v=1600';
+import { exportPDF, exportXLSX } from './exports.js?v=1600';
+import { STATS_URL } from './config.js?v=1600';
 
 /* ================= helpers ================= */
 const $ = s => document.querySelector(s);
@@ -1525,7 +1525,7 @@ const v3 = new THREE.Vector3();
 const STORY = { p: 0, to: 0, n: 4, sunAz: 40 };
 const STORY_K = [ // map-mode views: point on the Moon (lat, lon), distance (Moon radii), heading, extra tilt
   null,
-  { lat: -89.6, lon: 0, d: 0.2, head: 0.4, tiltU: 0.05 }, // close enough that the edge of the polar map stays out of view
+  { lat: -89.6, lon: 0, d: 0.2, head: 3.14, tiltU: 0.05 }, // close enough that the edge of the polar map stays out of view; facing the same way as the opening view, so the camera never swings round
   { lat: -89.3, lon: -150, d: 0.075, head: 1.9, tiltU: 0.12 },
   { lat: -88.8, lon: 125, d: 0.022, head: 3.3, tiltU: 0.22 },
   { lat: -89.4, lon: 0, d: 0.24, head: 4.2, tiltU: 0.05 },
@@ -1545,9 +1545,12 @@ addEventListener('wheel', e => { if (S.screen === 'hero' && !$('#how').classList
   const end = STORY.p > STORY.n - 0.02, now = performance.now();
   if (end && e.deltaY > 20 && STORY.endAt && now - STORY.endAt > 900 && now - (STORY.lastWheel || 0) > 250) { STORY.lastWheel = now; go('who'); return; }
   if (end && !STORY.endAt) STORY.endAt = now; if (!end) STORY.endAt = 0; STORY.lastWheel = now;
-  storyGo(Math.max(-0.5, Math.min(0.5, e.deltaY / 500))); } }, { passive: false });
+  // one scroll gesture = one whole chapter: the scene never stops halfway, and a long trackpad swipe does not skip chapters
+  if (now - (STORY.wAt || 0) > 220) STORY.wAcc = 0; STORY.wAt = now; STORY.wAcc = (STORY.wAcc || 0) + e.deltaY;
+  if (now > (STORY.wCool || 0) && Math.abs(STORY.wAcc) > 40) { const d = STORY.wAcc > 0 ? 1 : -1; STORY.wAcc = 0; STORY.wCool = now + 1100;
+    STORY.to = Math.max(0, Math.min(STORY.n, Math.round(STORY.to) + d)); GQ.dirty = true; } } }, { passive: false });
 addEventListener('keydown', e => { if (S.screen !== 'hero' || e.target.closest('input')) return; const k = e.key; if (['ArrowDown', 'PageDown', ' '].includes(k)) { e.preventDefault(); if (STORY.p > STORY.n - 0.02) { go('who'); return; } storyGo(1 - (STORY.to % 1 || 0) || 1); STORY.to = Math.round(STORY.to); } else if (['ArrowUp', 'PageUp'].includes(k)) { e.preventDefault(); STORY.to = Math.max(0, Math.ceil(STORY.to) - 1); } });
-{ let ty = null; addEventListener('touchstart', e => { if (S.screen === 'hero') ty = e.touches[0].clientY; }, { passive: true }); addEventListener('touchmove', e => { if (S.screen === 'hero' && ty != null) { storyGo((ty - e.touches[0].clientY) / 400); ty = e.touches[0].clientY; } }, { passive: true }); }
+{ let ty = null; addEventListener('touchstart', e => { if (S.screen === 'hero') ty = e.touches[0].clientY; }, { passive: true }); addEventListener('touchmove', e => { if (S.screen === 'hero' && ty != null) { const dy = ty - e.touches[0].clientY; if (Math.abs(dy) > 50) { STORY.to = Math.max(0, Math.min(STORY.n, Math.round(STORY.to) + (dy > 0 ? 1 : -1))); ty = null; GQ.dirty = true; } } }, { passive: true }); } // a swipe = one chapter
 $('#storyNext').onclick = () => { STORY.to = Math.min(STORY.n, Math.floor(STORY.to) + 1); GQ.dirty = true; };
 function storyEarth() {
   if (M.earthS) return M.earthS;
@@ -1555,18 +1558,44 @@ function storyEarth() {
   M.earthS = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), new THREE.MeshStandardMaterial({ map: t, roughness: 0.8 })); M.earthS.visible = false; M.scene.add(M.earthS);
   return M.earthS;
 }
-// the story is short and simple: the whole Moon turns its south pole toward you and comes a little closer while the text changes.
-// No flight into the terrain (up close the global image turned to blur, and the heavy polar map made the scroll stutter).
 function storyApply(dt) {
-  const k = 1 - Math.pow(0.03, dt); STORY.p += (STORY.to - STORY.p) * k; if (Math.abs(STORY.to - STORY.p) < 1e-3) STORY.p = STORY.to;
-  const c = Math.round(STORY.p); if (c !== STORY.c) { STORY.c = c; storyChapter(); }
-  const e = ease(Math.min(1, STORY.p / STORY.n));
-  M.tiltTo = -0.12 + (-1.05 + 0.12) * e; M.distTo = 3.0 - 0.45 * e; M.offTo = 0.2 + 0.04 * e;
-  M.full.visible = true; M.holed.visible = false; if (M.cap) M.cap.visible = false; if (M.earthS) M.earthS.visible = false;
-  if (STORY.dimmed) { STORY.dimmed = false; M.holed.material.color.setScalar(1); M.full.material.color.setScalar(1); TERR.u.uRim.value = 0; }
-  M.sun.castShadow = false; M.sun.position.set(-3, 1.4, 2.2); M.sun.target.position.set(0, 0, 0); M.sun.intensity = 3.4; M.hemi.intensity = 0.04; M.camera.up.set(0, 1, 0);
-  if (M.camera.near !== 0.01) { M.camera.near = 0.01; M.camera.far = 200; M.camera.updateProjectionMatrix(); }
-  return false; // the usual globe motion (in frame) eases the Moon to these values
+  // a tween that starts and ends at rest: the move never jolts at the start or stops dead at the end
+  if (STORY.tw == null || STORY.tw.to !== STORY.to) { const v = STORY.tw && STORY.tw.k < 1 ? STORY.tw : null; STORY.tw = { from: STORY.p, to: STORY.to, t: 0, dur: Math.min(2.4, 1.3 + 0.55 * Math.abs(STORY.to - STORY.p)), k: 0, blend: v ? 0.25 : 0 }; }
+  { const w = STORY.tw; w.t += dt; w.k = Math.min(1, w.t / w.dur); const q = w.k < 0.5 ? 4 * w.k * w.k * w.k : 1 - Math.pow(-2 * w.k + 2, 3) / 2; STORY.p = w.from + (w.to - w.from) * q; }
+  const p = STORY.p, ready = M.cap && TERR.photo;
+  if (!ready || p <= 0.001) { // the whole Moon, turning slowly
+    M.full.visible = true; M.holed.visible = false; if (M.cap) M.cap.visible = false; if (M.earthS) M.earthS.visible = false; if (STORY.dimmed) { STORY.dimmed = false; if (M.cap) applyTint(M.cap, 0); M.holed.material.color.setScalar(1); M.full.material.color.setScalar(1); TERR.u.uRim.value = 0; }
+    M.sun.castShadow = false; M.sun.position.set(-3, 1.4, 2.2); M.sun.target.position.set(0, 0, 0); M.sun.intensity = 3.4; M.hemi.intensity = 0.04; M.camera.up.set(0, 1, 0);
+    M.camera.near = 0.01; M.camera.far = 200; M.camera.updateProjectionMatrix(); return false;
+  }
+  const e = ease(Math.min(1, p)), gb = Math.min(1, Math.max(0, (2.6 - M.camera.position.length()) / 1.0)); // the detailed photo only once close: from far the pole shows the same image as the rest of the Moon, so no disc appears // far away the polar map shows the same image as the globe; coming closer, NASA's detailed polar photo fades in: no cut
+  M.full.visible = false; M.holed.visible = true; M.cap.visible = true; TERR.u.uGlobeMix.value = 1 - gb * gb * (3 - 2 * gb); TERR.u.uPhoto.value = 0.5; TERR.photoTo = null;
+  if (!STORY.dimmed) { applyTint(M.cap, 0); M.tint = M.tintTo = 0; STORY.dimmed = true; } // plain colours in the story: the tint uniform at 0, no buffer rewrite
+  const dm = 0; // no spotlight: the pole and the rest of the Moon stay one surface (the dimmed ring looked like a pasted disc) // the Moon darkens first, then the lit pole appears: a spotlight, not a pasted disc
+  M.holed.material.color.setScalar(1 - 0.6 * dm); M.full.material.color.setScalar(1 - 0.6 * dm); TERR.u.uRimW.value = 170000; TERR.u.uRim.value = dm; // the rest of the Moon dims gradually: the pole stands out, with no edge
+  M.pivot.rotation.set(M.tilt + (M.py || 0) * (1 - e) + (-Math.PI - M.tilt) * e, (M.px || 0) * (1 - e), 0); M.moon.rotation.y = (M.spin % (Math.PI * 2)) * (1 - e); M.pivot.updateMatrixWorld(true);
+  // the Sun circles the pole a degree and a half above the horizon; its shadows turn with it
+  STORY.sunAz += dt * (p > 0.9 ? 9 : 0); const az = rad(STORY.sunAz), el = rad(10), sd = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el));
+  const pole = new THREE.Vector3(0, 1, 0), front = new THREE.Vector3(-3, 1.4, 2.2).normalize(), ls = Math.min(1, e / 0.7);
+  const dir = front.clone().lerp(sd, ls * ls * (3 - 2 * ls)).normalize(); // the light eases from the front (the whole Moon lit) to the low polar Sun
+  M.sun.target.position.copy(pole); M.sun.position.copy(pole).addScaledVector(dir, 2); M.sun.castShadow = false; M.cap.castShadow = M.cap.receiveShadow = false; // no cast shadows in the story: the shading of the slopes tells it, and shadow maps drew hard wedges
+  M.sun.intensity = 3.4 + 1.2 * e; M.hemi.intensity = 0.04 + 0.32 * e; // enough soft light that shadowed ground stays visible: no black Moon renderer.shadowMap.needsUpdate = true;
+  let pos, up, look, rot = null;
+  if (p < 1) {
+    const st1 = storyPose(1), hp = navPose(st1), from = new THREE.Vector3(0, 0, M.dist), look1 = hp.surf.clone().addScaledVector(hp.up, st1.d * 0.12);
+    const er = e * e * (3 - 2 * e), q = new THREE.Quaternion().setFromUnitVectors(from.clone().normalize(), hp.pos.clone().normalize()), qi = new THREE.Quaternion().slerp(q, er);
+    pos = from.clone().normalize().applyQuaternion(qi).multiplyScalar(Math.exp(Math.log(M.dist) + (Math.log(hp.pos.length()) - Math.log(M.dist)) * er));
+    const ek = 1 - (1 - er) * (1 - er); // the aim settles before the camera does, so the end of the move is a calm glide, not a last swing
+    up = new THREE.Vector3(0, 1, 0).lerp(hp.up, ek).normalize(); look = new THREE.Vector3().lerp(look1, ek);
+    if (VW > 980) M.camera.setViewOffset(VW, VH, -VW * M.off * (1 - er), -VH * 0.06 * (1 - er), VW, VH); else M.camera.clearViewOffset();
+  } else { const st = storyPose(p), q = navPose(st); pos = q.pos; up = q.up; look = q.surf.clone().addScaledVector(q.up, st.d * 0.12); M.camera.clearViewOffset(); }
+  M.camera.position.copy(pos); M.camera.up.copy(up); if (rot) M.camera.quaternion.copy(rot); else M.camera.lookAt(look);
+  const dd = M.camera.position.distanceTo(look), nr = Math.max(2e-5, dd * 0.02); M.camera.near = nr; M.camera.far = dd * 30 + 3; M.camera.updateProjectionMatrix();
+  // Earth, low over the horizon (chapter 3): true angular size, about 1.9 degrees
+  const ea = storyEarth(), show = p > 2.4; ea.visible = show;
+  if (show) { const st = storyPose(Math.min(3, p)), u = st.t.clone().normalize(), [e1, e2] = tangent(u), fwd = e1.multiplyScalar(Math.cos(st.head)).addScaledVector(e2, Math.sin(st.head)).normalize();
+    const ed = fwd.multiplyScalar(Math.cos(rad(1.0))).addScaledVector(u, Math.sin(rad(1.0))).normalize(), D = Math.min(2, M.camera.far * 0.6); ea.position.copy(M.camera.position).addScaledVector(ed, D); ea.scale.setScalar(D * Math.tan(rad(0.95))); ea.lookAt(M.camera.position); }
+  return true;
 }
 function leaveStory() { TERR.u.uGlobeMix.value = 0; if (STORY.dimmed) { STORY.dimmed = false; if (M.cap) applyTint(M.cap, 0); M.holed.material.color.setScalar(1); M.full.material.color.setScalar(1); TERR.u.uRim.value = 0; } STORY.p = STORY.to = 0; storyChapter(); if (M.earthS) M.earthS.visible = false; M.camera.clearViewOffset(); M.pivot.rotation.set(M.tilt, 0, 0); }
 // a ring follows the pointer and grows over things you can press or drag

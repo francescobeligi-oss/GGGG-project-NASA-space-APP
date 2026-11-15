@@ -7,7 +7,7 @@
 <meta name="description" content="Find where and when to land near the lunar south pole: sunlight, Earth contact and terrain from NASA data.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="web/style.css?v=1440">
+<link rel="stylesheet" href="web/style.css?v=1600">
 <script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 </head>
 <body data-screen="hero">
@@ -31,11 +31,13 @@
     <div class="ch" data-i="0"><h1>Choose where<br>to land.</h1><p>The best spot and day to land at the Moon’s south pole, checked with NASA data.</p>
       <ol class="howto"><li><b>1</b>Load your mission profile, or pick a real mission</li><li><b>2</b>11 sites checked every 6 hours against NASA terrain and JPL Sun and Earth positions</li><li><b>3</b>Go or no-go, the best landing window, power and cost</li></ol>
       <div class="ch-act"><button class="btn primary" data-go="who">Find my landing site</button><button class="btn ghost" id="storyNext">Or scroll: why the south pole is hard</button></div></div>
-    <div class="ch" data-i="1"><h2>At the south pole, the Sun never rises high.</h2><p>It circles the horizon a degree or two up. A hill far away can hide it for days, and Earth can sink behind a ridge: no power, no radio. Where you land decides both.</p></div>
-    <div class="ch" data-i="2"><h2>Ten missions are heading here.<br>Where will yours land?</h2><p>We check 11 candidate sites hour by hour, from NASA terrain and JPL ephemeris, for your mission and your dates.</p>
+    <div class="ch" data-i="1"><h2>At the south pole, the Sun never rises high.</h2><p>It circles the horizon a degree or two up. Every hill throws a shadow tens of kilometres long, and the shadows turn with the Sun.</p></div>
+    <div class="ch" data-i="2"><h2>A hill far away can hide it for days.</h2><p>Some crater floors have not seen sunlight for billions of years. They are among the coldest places known, and may hold water ice.</p></div>
+    <div class="ch" data-i="3"><h2>Earth hangs low on the horizon.</h2><p>When it sinks behind a ridge, a lander cannot call home. Where you land decides when you have power and when you can talk.</p></div>
+    <div class="ch" data-i="4"><h2>Ten missions are heading here.<br>Where will yours land?</h2><p>We check 11 candidate sites hour by hour, from NASA terrain and JPL ephemeris, for your mission and your dates.</p>
       <div class="ch-act"><button class="btn primary" data-go="who">Find my landing site</button></div></div>
   </div>
-  <div class="story-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="story-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
   <div class="scrollcue" id="scrollCue"><span>Scroll</span><i></i></div>
   <div class="hero-foot">Photo: NASA LRO camera. Heights: NASA LOLA. Sun and Earth: JPL ephemeris<span> · <a class="credits-link" href="https://github.com/francescobeligi-oss/GGGG-project-NASA-space-APP/blob/main/CREDITS.md" target="_blank" rel="noopener">Sources and licences</a></span><span class="stats-note" id="statsNote" hidden> · Anonymous usage statistics, no cookies, no names: <button id="statsOff">turn off</button></span><div class="loadbar" id="loadBar"><i></i></div></div>
 </section>
@@ -180,6 +182,6 @@
 <div id="fade"></div>
 <pre class="dbg" id="dbg" hidden></pre>
 <div class="gpu-note" id="gpuNote">Your graphics card needed a moment. Switching to light graphics.</div>
-<script type="module" src="web/main.js?v=1440"></script>
+<script type="module" src="web/main.js?v=1600"></script>
 </body>
 </html>
