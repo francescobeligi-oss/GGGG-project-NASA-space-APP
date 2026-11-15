@@ -25,3 +25,6 @@ pip install -r requirements.txt
 python src/ephem.py && python src/horizon.py && python src/precompute.py
 streamlit run app.py
 ```
+
+## Credits and licences
+Code: MIT licence (`LICENSE`). Every data source, reference and third-party licence is listed in [`CREDITS.md`](CREDITS.md).
