@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { quickCheck, readDocument, dateMetrics } from './quick.js?v=1600';
-import { exportPDF, exportXLSX } from './exports.js?v=1600';
-import { STATS_URL } from './config.js?v=1600';
+import { quickCheck, readDocument, dateMetrics } from './quick.js?v=1610';
+import { exportPDF, exportXLSX } from './exports.js?v=1610';
+import { STATS_URL } from './config.js?v=1610';
 
 /* ================= helpers ================= */
 const $ = s => document.querySelector(s);
@@ -477,25 +477,32 @@ function skyNow() {
   if (m && m.earthAz != null) return m;
   const sh = o.series_hourly; return { sunAz: o.landing.sun_azimuth_deg, sunEl: o.landing.sun_elevation_deg, earthAz: sh ? sh.earth_az[0] : null, earthEl: sh ? sh.earth_el[0] : o.landing.earth_elevation_deg };
 }
-const _p0 = new THREE.Vector3(), _p1 = new THREE.Vector3();
+// the real Sun and Earth in the map's sky, as in Explore: a glowing Sun and the NASA Blue Marble Earth lit by that Sun (true phase),
+// placed in their true directions for the chosen date. Mountains and the Moon's edge hide them when they are below the horizon.
+const MAP_SKY_D = 3.0;
+function mapDir(s0, az, el) { const dv = dirFromAzEl(s0, az, el); return new THREE.Vector3(-dv.z, dv.y, dv.x).normalize(); }
+function mapSky() {
+  if (M.sky) return M.sky;
+  M.sky = new THREE.Scene();
+  M.skySun = new THREE.Sprite(X.sunGlow.material.clone()); M.sky.add(M.skySun);
+  M.skyEarth = new THREE.Mesh(X.earth.geometry, X.earth.material); M.sky.add(M.skyEarth);
+  M.skyLight = new THREE.DirectionalLight(0xffffff, 3.2); M.sky.add(M.skyLight, M.skyLight.target, new THREE.AmbientLight(0x223344, 0.08));
+  return M.sky;
+}
 function skyMarks() {
-  const sm = $('#sunMark'), em = $('#earthMark'); if (!sm) return;
-  const show = S.screen === 'results' && M.map && !anim && S.data && NAV.cur && !document.body.classList.contains('immerse');
-  sm.classList.toggle('on', !!show); em.classList.toggle('on', !!show); $('#skyLines').classList.toggle('on', !!show); if (!show) return;
-  const s0 = S.sites[S.data.options[0].site], m = skyNow(); if (!s0) return;
-  const up = NAV.cur.t.clone().normalize(); _p0.copy(up).multiplyScalar(1.001).project(M.camera);
-  const cx = (_p0.x + 1) / 2 * VW, cy = (1 - _p0.y) / 2 * VH, R = Math.min(VW > 980 ? VW - 460 : VW, VH) * (VW > 700 ? 0.42 : 0.38);
-  const place = (el, az, elev, name) => {
-    if (az == null) { el.classList.remove('on'); return; }
-    const dv = dirFromAzEl(s0, az, Math.max(-5, Math.min(5, elev))), d = new THREE.Vector3(-dv.z, 0, dv.x).normalize(), dir = d.sub(up.clone().multiplyScalar(d.dot(up))).normalize();
-    _p1.copy(up).multiplyScalar(1.001).addScaledVector(dir, 0.02).project(M.camera);
-    const a = Math.atan2((1 - _p1.y) / 2 * VH - cy, (_p1.x + 1) / 2 * VW - cx), dockW = VW > 980 && !$('#dock').classList.contains('closed') ? 440 : 16;
-    const x = Math.max(24, Math.min(VW - dockW - 24, cx + R * Math.cos(a))), y = Math.max(110, Math.min(VH - 150, cy + R * Math.sin(a)));
-    el.style.transform = `translate(${x}px, ${y}px)`; el.classList.toggle('below', elev < 0);
-    const ln = $(name === 'Sun' ? '#sunLine' : '#earthLine'), r0 = 34; ln.setAttribute('x1', cx + r0 * Math.cos(a)); ln.setAttribute('y1', cy + r0 * Math.sin(a)); ln.setAttribute('x2', x - 14 * Math.cos(a)); ln.setAttribute('y2', y - 14 * Math.sin(a)); ln.classList.toggle('below', elev < 0);
-    el.querySelector('span').innerHTML = `${name}${elev < 0 ? ', behind the horizon' : ''}<em class="xp"> ${fmt(elev, 1)}°</em>`; // plain words; the angle only in Expert
-  };
-  place(sm, m.sunAz, m.sunEl, 'Sun'); place(em, m.earthAz, m.earthEl, 'Earth');
+  const show = S.screen === 'results' && M.map && !anim && S.data && NAV.cur; if (!show) return false;
+  const s0 = S.sites[S.data.options[0].site], m = skyNow(); if (!s0) return false;
+  mapSky(); const cp = M.camera.position, sd = mapDir(s0, m.sunAz, m.sunEl);
+  M.skySun.position.copy(cp).addScaledVector(sd, MAP_SKY_D); M.skySun.scale.setScalar(MAP_SKY_D * Math.tan(rad(0.27)) * 56);
+  M.skyEarth.visible = m.earthAz != null;
+  if (m.earthAz != null) { const ed = mapDir(s0, m.earthAz, m.earthEl); M.skyEarth.position.copy(cp).addScaledVector(ed, MAP_SKY_D); M.skyEarth.scale.setScalar(MAP_SKY_D * Math.tan(rad(0.95)));
+    M.skyLight.target.position.copy(M.skyEarth.position); M.skyLight.position.copy(M.skyEarth.position).addScaledVector(sd, 10); }
+  return true;
+}
+function mapLook(which) {
+  if (!S.data || !NAV.cur) return; const s0 = S.sites[S.data.options[0].site], m = skyNow(); if (!s0 || (which === 'earth' && m.earthAz == null)) return;
+  const d = mapDir(s0, which === 'sun' ? m.sunAz : m.earthAz, which === 'sun' ? m.sunEl : m.earthEl), up = NAV.t.clone().normalize(), [e1, e2] = tangent(up);
+  NAV.head = Math.atan2(d.dot(e2), d.dot(e1)); NAV.tiltU = rad(84) - autoTilt(NAV.d); NAV.fly = true; GQ.dirty = true;
 }
 function setMapLight(instant) {
   if (!S.data) return;
@@ -1229,6 +1236,7 @@ $('#whenPlay').onclick = () => {
 function setLightMode(l) { S.lightMode = l; $$('#lightMode button').forEach(x => x.setAttribute('aria-pressed', x.dataset.l === l)); setMapLight(); }
 $$('#lightMode button').forEach(b => b.onclick = () => setLightMode(b.dataset.l));
 $$('.map-key [data-layer]').forEach(b => b.onclick = () => { const k = b.dataset.layer; S.layers[k] = !S.layers[k]; b.setAttribute('aria-pressed', S.layers[k]); setCapTint(M.tint); });
+$('#mapSun').onclick = () => mapLook('sun'); $('#mapEarth').onclick = () => mapLook('earth');
 $('#tourBtn').onclick = () => tourStep(TOUR.i < 0 ? 0 : TOUR.i + 1);
 mapButtons();
 $('#toBest').onclick = toBest;
@@ -1647,13 +1655,12 @@ function frame(now) {
       const dockOpen = VW > 980 && S.screen === 'results' && !$('#dock').classList.contains('closed'), wantX = (dockOpen ? 210 : 0) - (S.screen === 'results' && VW > 980 && document.querySelector('.ctlegend:not([hidden])') ? 150 : 0), wantY = S.screen === 'results' && VW > 980 ? VH / 2 - (layoutY().a + layoutY().b) / 2 : VH * 0.06; // centre the map in the free space between the headline and the legend
       M.offX = (M.offX ?? 0) + (wantX - (M.offX ?? 0)) * k; M.offY = (M.offY ?? 0) + (wantY - (M.offY ?? 0)) * k; M.camera.setViewOffset(VW, VH, M.offX, M.offY, VW, VH);
     }
-    skyMarks();
     if (M.map && !anim) { navApply(dt); if (M.lightTo) { M.sun.position.lerp(M.lightTo.pos, 1 - Math.pow(0.02, dt)); M.hemi.intensity += (M.hemiTo - M.hemi.intensity) * (1 - Math.pow(0.02, dt)); } }
     if (M.cap && Math.abs(M.tint - M.tintTo) > 0.002) { M.tint += (M.tintTo - M.tint) * Math.min(1, dt * 3); setCapTint(M.tint); }
     if (TERR.photoTo != null && Math.abs(TERR.u.uPhoto.value - TERR.photoTo) > 0.002) { TERR.u.uPhoto.value += (TERR.photoTo - TERR.u.uPhoto.value) * Math.min(1, dt * 3); GQ.dirty = true; }
     M.stars.rotation.y = M.spin * 0.2;
     if (M.map && M.sun.castShadow && (lerping || NAV.fly)) renderer.shadowMap.needsUpdate = true;
-    { const ex = M.map || (anim && S.screen === 'results') ? 1.38 : S.screen === 'hero' && STORY.p > 0.05 ? 1.25 : 1.15; M.expo = M.expo == null ? ex : M.expo + (ex - M.expo) * Math.min(1, dt * 2.5); if (Math.abs(ex - M.expo) > 0.002) GQ.dirty = true; renderer.toneMappingExposure = M.expo; } renderer.render(M.scene, M.camera); // exposure eases, never pops GQ.sig = M.camera.matrixWorld.elements.join(',') + M.camera.projectionMatrix.elements[0];
+    { const ex = M.map || (anim && S.screen === 'results') ? 1.38 : S.screen === 'hero' && STORY.p > 0.05 ? 1.25 : 1.15; M.expo = M.expo == null ? ex : M.expo + (ex - M.expo) * Math.min(1, dt * 2.5); if (Math.abs(ex - M.expo) > 0.002) GQ.dirty = true; renderer.toneMappingExposure = M.expo; } if (skyMarks()) { renderer.render(M.sky, M.camera); renderer.clearDepth(); } renderer.render(M.scene, M.camera); // exposure eases, never pops GQ.sig = M.camera.matrixWorld.elements.join(',') + M.camera.projectionMatrix.elements[0];
     const showPins = M.map && S.screen === 'results', dr = $('#dock').getBoundingClientRect(), cardLeft = showPins && VW > 980 && !$('#dock').classList.contains('closed') ? dr.left - 8 : VW, barTop = (r => r.height ? r.top : Math.min(VH, $('#dock').getBoundingClientRect().top) - 60)($('.whenbar').getBoundingClientRect()) - 6;
     const boxes = showPins ? ['.map-key', '.navctl', '.ctlegend:not([hidden])', '.ctl-chip:not([hidden])', '.res-head h2', '.res-head .lead', '.res-tools', '.tour.on', '#dockToggle'].map(s => document.querySelector(s)).filter(Boolean).map(e => { const r = e.getBoundingClientRect(); return [r.left - 6, r.top - 6, r.right + 6, r.bottom + 6]; }).filter(b => b[2] > b[0]) : [];
     for (const m of markers.slice().sort((a, b) => (a.top ? 0 : a.disc ? 1 : a.poi ? 3 : 2) - (b.top ? 0 : b.disc ? 1 : b.poi ? 3 : 2))) {

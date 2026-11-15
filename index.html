@@ -7,7 +7,7 @@
 <meta name="description" content="Find where and when to land near the lunar south pole: sunlight, Earth contact and terrain from NASA data.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="web/style.css?v=1600">
+<link rel="stylesheet" href="web/style.css?v=1610">
 <script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 </head>
 <body data-screen="hero">
@@ -78,14 +78,12 @@
   </div>
   <button class="ctl-chip" id="ctlChip" hidden>Lost? Need help?</button>
 
-  <svg class="skylines" id="skyLines" aria-hidden="true"><line id="sunLine"/><line id="earthLine"/></svg>
-  <div class="skymark sun" id="sunMark" aria-hidden="true"><i></i><span>Sun</span></div>
-  <div class="skymark earth" id="earthMark" aria-hidden="true"><i></i><span>Earth</span></div>
   <div class="map-key">
     <span class="tabs light" id="lightMode"><button data-l="photo" aria-pressed="true">Photo</button><button data-l="date" aria-pressed="false">Sunlight on the date</button></span>
     <button class="layer" data-layer="sun" aria-pressed="true"><i style="background:var(--sun)"></i>Often sunlit</button>
     <button class="layer" data-layer="ice" aria-pressed="true"><i style="background:var(--ice)"></i>Always dark, may hold ice</button>
     <button class="layer" id="placesT" aria-pressed="true"><i class="dia"></i>Places</button><button class="layer disc-t invite" id="discT" aria-pressed="false" title="Water, hazards and history near the pole"><i class="spark"></i>Discover</button><button class="layer tut-b" id="tutBtn" hidden>How to move</button>
+    <button class="layer" id="mapSun"><i style="background:#f5b83d;border-radius:50%"></i>Look at the Sun</button><button class="layer" id="mapEarth"><i style="background:#4ea3ff;border-radius:50%"></i>Look at Earth</button>
     <span class="credit xp">Photo: NASA LRO camera (LROC WAC). Heights: NASA LOLA.</span>
   </div>
   <div class="whenbar">
@@ -182,6 +180,6 @@
 <div id="fade"></div>
 <pre class="dbg" id="dbg" hidden></pre>
 <div class="gpu-note" id="gpuNote">Your graphics card needed a moment. Switching to light graphics.</div>
-<script type="module" src="web/main.js?v=1600"></script>
+<script type="module" src="web/main.js?v=1610"></script>
 </body>
 </html>
