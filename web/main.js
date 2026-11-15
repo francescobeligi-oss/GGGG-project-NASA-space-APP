@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { quickCheck, readDocument, dateMetrics } from './quick.js?v=1615';
-import { exportPDF, exportXLSX } from './exports.js?v=1615';
-import { STATS_URL } from './config.js?v=1615';
+import { quickCheck, readDocument, dateMetrics } from './quick.js?v=1630';
+import { exportPDF, exportXLSX } from './exports.js?v=1630';
+import { STATS_URL } from './config.js?v=1630';
 
 /* ================= helpers ================= */
 const $ = s => document.querySelector(s);
@@ -1590,7 +1590,12 @@ function storyApply(dt) {
   M.sun.intensity = 3.4 + 1.2 * e; M.hemi.intensity = 0.04 + 0.32 * e; // enough soft light that shadowed ground stays visible: no black Moon renderer.shadowMap.needsUpdate = true;
   let pos, up, look, rot = null;
   if (p < 1) {
-    const st1 = storyPose(1), hp = navPose(st1), from = new THREE.Vector3(0, 0, M.dist), look1 = hp.surf.clone().addScaledVector(hp.up, st1.d * 0.12);
+    // the end of the flight, worked out once with the Moon in its final pose. Recomputing it every frame while the Moon turned
+    // made the aim point jump twice (the local frame flips at one angle) and the height wobble: those were the visible jolts.
+    if (!STORY.fp) { const r0 = [M.pivot.rotation.x, M.pivot.rotation.y, M.moon.rotation.y]; M.pivot.rotation.set(-Math.PI, 0, 0); M.moon.rotation.y = 0; M.pivot.updateMatrixWorld(true);
+      const st = storyPose(1), q = navPose(st); STORY.fp = { pos: q.pos.clone(), up: q.up.clone(), look: q.surf.clone().addScaledVector(q.up, st.d * 0.12) };
+      M.pivot.rotation.set(r0[0], r0[1], 0); M.moon.rotation.y = r0[2]; M.pivot.updateMatrixWorld(true); }
+    const hp = STORY.fp, from = new THREE.Vector3(0, 0, M.dist), look1 = hp.look;
     const er = e, q = new THREE.Quaternion().setFromUnitVectors(from.clone().normalize(), hp.pos.clone().normalize()), qi = new THREE.Quaternion().slerp(q, er);
     pos = from.clone().normalize().applyQuaternion(qi).multiplyScalar(Math.exp(Math.log(M.dist) + (Math.log(hp.pos.length()) - Math.log(M.dist)) * er));
     const ek = 1 - (1 - er) * (1 - er); // the aim settles before the camera does, so the end of the move is a calm glide, not a last swing
