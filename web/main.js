@@ -1758,6 +1758,11 @@ function youInputs() {
   rows.push(['View', S.mode === 'expert' ? 'Expert' : 'Simple']);
   return rows;
 }
+// phones: touching the map, the 3D view or the arrow pad hides everything that is not needed to move; it all comes back 1.6 s after you let go
+{ let t = 0; const on = e => { if (!document.body.classList.contains('touch') || innerWidth > 700) return; if (!['results', 'explore'].includes(S.screen)) return;
+    const el = e.target; if (!(el === canvas || (el.closest && el.closest('.vpad')))) return; clearTimeout(t); document.body.classList.add('immerse'); };
+  const off = () => { clearTimeout(t); t = setTimeout(() => document.body.classList.remove('immerse'), 1600); };
+  addEventListener('pointerdown', on, true); addEventListener('pointerup', off, true); addEventListener('pointercancel', off, true); }
 const busy = async (btn, job) => { const t = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…'; try { await job(); } catch (e) { toast(`Could not build the file: ${e.message}`); } finally { btn.disabled = false; btn.textContent = t; } };
 $('#pdf').onclick = e => busy(e.currentTarget, () => exportPDF(S, CTX()));
 $('#xlsx').onclick = e => busy(e.currentTarget, () => exportXLSX(S, CTX()));

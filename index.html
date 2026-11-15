@@ -28,8 +28,9 @@
 
 <section class="screen" id="hero">
   <div class="story">
-    <div class="ch" data-i="0"><h1>Choose where<br>to land.</h1><p>Sunlight, contact with Earth and safe ground for every site near the Moon’s south pole, worked out from NASA data.</p>
-      <div class="ch-act"><button class="btn primary" data-go="who">Start</button><button class="btn ghost" id="storyNext">Scroll to fly to the south pole</button></div></div>
+    <div class="ch" data-i="0"><h1>Choose where<br>to land.</h1><p>Find the best place and day to land near the Moon’s south pole: sunlight, contact with Earth and safe ground, worked out from NASA data.</p>
+      <ol class="howto"><li><b>1</b>Tell us who you are</li><li><b>2</b>Pick a mission, or describe yours</li><li><b>3</b>Get the best site and date, and why</li></ol>
+      <div class="ch-act"><button class="btn primary" data-go="who">Find my landing site</button><button class="btn ghost" id="storyNext">Or scroll: why the south pole is hard</button></div><p class="ch-time">About one minute. Free, nothing to install.</p></div>
     <div class="ch" data-i="1"><h2>At the south pole, the Sun never rises high.</h2><p>It circles the horizon a degree or two up. Every hill throws a shadow tens of kilometres long, and the shadows turn with the Sun.</p></div>
     <div class="ch" data-i="2"><h2>A hill far away can hide it for days.</h2><p>Some crater floors have not seen sunlight for billions of years. They are among the coldest places known, and may hold water ice.</p></div>
     <div class="ch" data-i="3"><h2>Earth hangs low on the horizon.</h2><p>When it sinks behind a ridge, a lander cannot call home. Where you land decides when you have power and when you can talk.</p></div>
@@ -58,7 +59,7 @@
 
 <section class="screen" id="results">
   <div class="res-head"><h2 id="answer"></h2><p class="lead" id="answerSub"></p>
-    <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button><button class="btn discp" id="discP" aria-pressed="false">✦ Discover</button><button class="btn" id="tourBtn" hidden>Discover the south pole</button></div></div>
+    <div class="res-tools"><button class="btn" id="openCal">Landing calendar</button><button class="btn" data-go="compare">Compare</button><button class="btn discp" id="discP" aria-pressed="false">✦ Discover</button><button class="btn" id="tourBtn" hidden>Guided tour</button></div></div>
   <div class="navctl" aria-label="Map controls"><button id="compass" aria-label="North up, back to the three sites" title="North up, back to the three sites"><i>N</i></button><div class="pad" aria-label="Move the map"><button data-p="up" aria-label="Move north">▲</button><button data-p="left" aria-label="Move west">◀</button><button data-p="right" aria-label="Move east">▶</button><button data-p="down" aria-label="Move south">▼</button></div><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="tiltBtn" aria-label="Switch between 3D and top view">2D</button><button id="homeBtn" aria-label="Back to my options">⌂</button><button id="helpBtn" aria-label="How to move on the map">?</button></div>
   <div class="tour" id="tour"></div>
   <div class="maphint" id="maphint"><b>Fly over the south pole</b><span>Drag to move · scroll or pinch to zoom · double-click to dive in</span><span>Right-drag or Shift-drag to turn and tilt</span></div>

@@ -888,3 +888,21 @@ body.panel-off #explore .time { right: 0 !important; }
 @media (max-width: 980px) { .cmp-chartgrid { grid-template-columns: 1fr; } .sky canvas { height: 130px; } }
 @media (max-width: 700px) { .chart-legend.mini { display: none; } .cmp-when .when-track.tall { height: 120px; } }
 .cmp-when .when-track.tall #cmpSlider { left: 40px; right: 2px; width: auto; }
+/* first screen: what to do, in three steps */
+.howto { list-style: none; padding: 0; margin: 18px 0 22px; display: grid; gap: 8px; }
+.howto li { display: flex; align-items: center; gap: 12px; font-size: 16px; color: var(--text); }
+.howto b { width: 26px; height: 26px; border: 1px solid rgba(255,255,255,.5); border-radius: 50%; display: inline-grid; place-items: center; font-family: var(--head); font-size: 13px; font-weight: 600; flex: none; }
+.ch-time { font-size: 13px !important; color: var(--muted); margin-top: 12px !important; }
+@media (max-width: 700px) { .howto { margin: 12px 0 16px; gap: 6px; } .howto li { font-size: 14.5px; } }
+
+/* phones: while you steer (touching the map or the arrows) everything else steps aside; it comes back when you let go */
+@media (max-width: 700px) {
+  body.touch .bar, body.touch .res-head, body.touch .map-key, body.touch #results .whenbar, body.touch .dock-toggle, body.touch #ctLegend, body.touch #ctlChip,
+  body.touch #explore .ex-left, body.touch #explore .ex-top, body.touch #explore .look, body.touch #explore .time, body.touch #sheetBtn, body.touch .vside { transition: opacity .35s ease, visibility .35s; }
+  body.touch.immerse .bar, body.touch.immerse .res-head, body.touch.immerse .map-key, body.touch.immerse #results .whenbar, body.touch.immerse .dock-toggle, body.touch.immerse #ctLegend, body.touch.immerse #ctlChip,
+  body.touch.immerse #explore .ex-left, body.touch.immerse #explore .ex-top, body.touch.immerse #explore .look, body.touch.immerse #explore .time, body.touch.immerse #sheetBtn, body.touch.immerse .pin .pl, body.touch.immerse .xpin span { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+  /* no cut-off words: labels wrap or shorten instead of ending in "..." */
+  .res-tools .btn, .tabs button, .choice b, .choice span { text-overflow: clip !important; }
+  .res-tools { flex-wrap: wrap; }
+}
+@media (max-width: 700px) { .story-dots { display: none; } }
