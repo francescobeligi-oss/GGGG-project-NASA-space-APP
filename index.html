@@ -7,7 +7,7 @@
 <meta name="description" content="Find where and when to land near the lunar south pole: sunlight, Earth contact and terrain from NASA data.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="web/style.css">
+<link rel="stylesheet" href="web/style.css?v=1554">
 <script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 </head>
 <body data-screen="hero">
@@ -29,7 +29,7 @@
 <section class="screen" id="hero">
   <div class="story">
     <div class="ch" data-i="0"><h1>Choose where<br>to land.</h1><p>The best spot and day to land at the Moon’s south pole, checked with NASA data.</p>
-      <ol class="howto"><li><b>1</b>Tell us who you are</li><li><b>2</b>Pick a mission, or describe yours</li><li><b>3</b>Get the best site and date, and why</li></ol>
+      <ol class="howto"><li><b>1</b>Load your mission profile, or pick a real mission</li><li><b>2</b>11 sites checked every 6 hours against NASA terrain and JPL Sun and Earth positions</li><li><b>3</b>Go or no-go, the best landing window, power and cost</li></ol>
       <div class="ch-act"><button class="btn primary" data-go="who">Find my landing site</button><button class="btn ghost" id="storyNext">Or scroll: why the south pole is hard</button></div></div>
     <div class="ch" data-i="1"><h2>At the south pole, the Sun never rises high.</h2><p>It circles the horizon a degree or two up. Every hill throws a shadow tens of kilometres long, and the shadows turn with the Sun.</p></div>
     <div class="ch" data-i="2"><h2>A hill far away can hide it for days.</h2><p>Some crater floors have not seen sunlight for billions of years. They are among the coldest places known, and may hold water ice.</p></div>
@@ -78,6 +78,7 @@
   </div>
   <button class="ctl-chip" id="ctlChip" hidden>Lost? Need help?</button>
 
+  <svg class="skylines" id="skyLines" aria-hidden="true"><line id="sunLine"/><line id="earthLine"/></svg>
   <div class="skymark sun" id="sunMark" aria-hidden="true"><i></i><span>Sun</span></div>
   <div class="skymark earth" id="earthMark" aria-hidden="true"><i></i><span>Earth</span></div>
   <div class="map-key">
@@ -181,6 +182,6 @@
 <div id="fade"></div>
 <pre class="dbg" id="dbg" hidden></pre>
 <div class="gpu-note" id="gpuNote">Your graphics card needed a moment. Switching to light graphics.</div>
-<script type="module" src="web/main.js"></script>
+<script type="module" src="web/main.js?v=1554"></script>
 </body>
 </html>

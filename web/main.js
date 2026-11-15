@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { quickCheck, readDocument, dateMetrics } from './quick.js';
-import { exportPDF, exportXLSX } from './exports.js';
-import { STATS_URL } from './config.js';
+import { quickCheck, readDocument, dateMetrics } from './quick.js?v=1554';
+import { exportPDF, exportXLSX } from './exports.js?v=1554';
+import { STATS_URL } from './config.js?v=1554';
 
 /* ================= helpers ================= */
 const $ = s => document.querySelector(s);
@@ -481,7 +481,7 @@ const _p0 = new THREE.Vector3(), _p1 = new THREE.Vector3();
 function skyMarks() {
   const sm = $('#sunMark'), em = $('#earthMark'); if (!sm) return;
   const show = S.screen === 'results' && M.map && !anim && S.data && NAV.cur && !document.body.classList.contains('immerse');
-  sm.classList.toggle('on', !!show); em.classList.toggle('on', !!show); if (!show) return;
+  sm.classList.toggle('on', !!show); em.classList.toggle('on', !!show); $('#skyLines').classList.toggle('on', !!show); if (!show) return;
   const s0 = S.sites[S.data.options[0].site], m = skyNow(); if (!s0) return;
   const up = NAV.cur.t.clone().normalize(); _p0.copy(up).multiplyScalar(1.001).project(M.camera);
   const cx = (_p0.x + 1) / 2 * VW, cy = (1 - _p0.y) / 2 * VH, R = Math.min(VW > 980 ? VW - 460 : VW, VH) * (VW > 700 ? 0.42 : 0.38);
@@ -492,6 +492,7 @@ function skyMarks() {
     const a = Math.atan2((1 - _p1.y) / 2 * VH - cy, (_p1.x + 1) / 2 * VW - cx), dockW = VW > 980 && !$('#dock').classList.contains('closed') ? 440 : 16;
     const x = Math.max(24, Math.min(VW - dockW - 24, cx + R * Math.cos(a))), y = Math.max(110, Math.min(VH - 150, cy + R * Math.sin(a)));
     el.style.transform = `translate(${x}px, ${y}px)`; el.classList.toggle('below', elev < 0);
+    const ln = $(name === 'Sun' ? '#sunLine' : '#earthLine'), r0 = 34; ln.setAttribute('x1', cx + r0 * Math.cos(a)); ln.setAttribute('y1', cy + r0 * Math.sin(a)); ln.setAttribute('x2', x - 14 * Math.cos(a)); ln.setAttribute('y2', y - 14 * Math.sin(a)); ln.classList.toggle('below', elev < 0);
     el.querySelector('span').innerHTML = `${name}${elev < 0 ? ', behind the horizon' : ''}<em class="xp"> ${fmt(elev, 1)}°</em>`; // plain words; the angle only in Expert
   };
   place(sm, m.sunAz, m.sunEl, 'Sun'); place(em, m.earthAz, m.earthEl, 'Earth');
@@ -1566,14 +1567,14 @@ function storyApply(dt) {
   M.full.visible = false; M.holed.visible = true; M.cap.visible = true; TERR.u.uGlobeMix.value = 1 - gb * gb * (3 - 2 * gb); TERR.u.uPhoto.value = 0.5; TERR.photoTo = null;
   if (!STORY.dimmed) { applyTint(M.cap, 0); M.tint = M.tintTo = 0; STORY.dimmed = true; } // plain colours in the story: the tint uniform at 0, no buffer rewrite
   const dimF = Math.min(1, Math.max(0, (e - 0.55) / 0.45)), dm = dimF * dimF * (3 - 2 * dimF) * 0.55; // the Moon darkens first, then the lit pole appears: a spotlight, not a pasted disc
-  M.holed.material.color.setScalar(1 - 0.86 * dm); M.full.material.color.setScalar(1 - 0.86 * dm); TERR.u.uRimW.value = 170000; TERR.u.uRim.value = dm; // the rest of the Moon dims gradually: the pole stands out, with no edge
+  M.holed.material.color.setScalar(1 - 0.6 * dm); M.full.material.color.setScalar(1 - 0.6 * dm); TERR.u.uRimW.value = 170000; TERR.u.uRim.value = dm; // the rest of the Moon dims gradually: the pole stands out, with no edge
   M.pivot.rotation.set(M.tilt + (-Math.PI - M.tilt) * e, 0, 0); M.moon.rotation.y = (M.spin % (Math.PI * 2)) * (1 - e); M.pivot.updateMatrixWorld(true);
   // the Sun circles the pole a degree and a half above the horizon; its shadows turn with it
   STORY.sunAz += dt * (p > 0.9 ? 9 : 0); const az = rad(STORY.sunAz), el = rad(1.6), sd = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el));
   const pole = new THREE.Vector3(0, 1, 0), front = new THREE.Vector3(-3, 1.4, 2.2).normalize(), ls = Math.min(1, e / 0.7);
   const dir = front.clone().lerp(sd, ls * ls * (3 - 2 * ls)).normalize(); // the light eases from the front (the whole Moon lit) to the low polar Sun
   M.sun.target.position.copy(pole); M.sun.position.copy(pole).addScaledVector(dir, 2); M.sun.castShadow = e > 0.6; M.cap.castShadow = M.cap.receiveShadow = true;
-  M.sun.intensity = 3.4 + 1.0 * e; M.hemi.intensity = 0.04 + 0.11 * e; renderer.shadowMap.needsUpdate = true;
+  M.sun.intensity = 3.4 + 1.2 * e; M.hemi.intensity = 0.04 + 0.32 * e; // enough soft light that shadowed ground stays visible: no black Moon renderer.shadowMap.needsUpdate = true;
   let pos, up, look;
   if (p < 1) {
     const hp = navPose(STORY_K[1] && storyPose(1)), from = new THREE.Vector3(0, 0, M.dist);
@@ -1600,10 +1601,7 @@ function leaveStory() { TERR.u.uGlobeMix.value = 0; if (STORY.dimmed) { STORY.di
 function setLow() {
   if (GQ.low) return; GQ.low = true; renderer.setPixelRatio(1);
   for (const L of [M.sun, X.sun]) { L.shadow.mapSize.set(1024, 1024); if (L.shadow.map) { L.shadow.map.dispose(); L.shadow.map = null; } }
-  if (M.cap) { // rebuild the polar terrain at half the vertices
-    const vis = M.cap.visible, sh = M.cap.castShadow; M.moon.remove(M.cap); M.cap.geometry.dispose(); M.cap.material.dispose(); M.cap = null; buildCap();
-    M.cap.visible = vis; M.cap.castShadow = M.cap.receiveShadow = sh; applyTint(M.cap, M.tint); if (M.midHole) capIndex(M.midHole); STORY.dimmed = false;
-  }
+  // the polar map keeps its geometry: rebuilding it here froze the screen in the middle of a move
   renderer.shadowMap.needsUpdate = true; GQ.dirty = true;
 }
 for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchmove']) addEventListener(ev, () => { GQ.activeUntil = performance.now() + 1200; }, { passive: true });
@@ -1620,8 +1618,8 @@ function frame(now) {
   const heroSpin = scene === 'moon' && !M.map && !anim, lerping = (M.cap && Math.abs(M.tint - M.tintTo) > 0.002) || (M.map && M.lightTo && M.sun.position.distanceTo(M.lightTo.pos) > 1e-4);
   if (scene === 'moon' && M.map && !anim) navInertia(dt);
   const navMoving = (M.map && (NAV.vel || Object.keys(NAV.keys || {}).length)) || M.map && NAV.cur && (NAV.cur.t.angleTo(NAV.t) > 1e-6 || Math.abs(Math.log(NAV.cur.d / NAV.d)) > 1e-4 || Math.abs(((NAV.head - NAV.cur.head + Math.PI * 3) % (Math.PI * 2)) - Math.PI) > 1e-5 || Math.abs(NAV.cur.tiltU - NAV.tiltU) > 1e-5);
-  const storyMoving = S.screen === 'hero' && (Math.abs(STORY.to - STORY.p) > 1e-4 || (STORY.p > 0.9 && !(GQ.skip2 = !GQ.skip2))); // the turning Sun redraws at half rate
-  const busy = anim || S.playing || GQ.dirty || (S.screen === 'explore' && Object.values(X.walk).some(Boolean)) || storyMoving || (S.fit > 0 && S.screen === 'results') || now < GQ.activeUntil || lerping || navMoving || (heroSpin && !(GQ.skip = !GQ.skip)) || (X.ring && now - X.ringBorn < 1600) || sig !== GQ.sig;
+  const storyMoving = S.screen === 'hero' && (Math.abs(STORY.to - STORY.p) > 1e-4 || STORY.p > 0.9); // every frame while the Sun turns: half-rate drawing looked jerky
+  const busy = anim || S.playing || GQ.dirty || (S.screen === 'explore' && Object.values(X.walk).some(Boolean)) || storyMoving || (S.fit > 0 && S.screen === 'results') || now < GQ.activeUntil || lerping || navMoving || heroSpin || (X.ring && now - X.ringBorn < 1600) || sig !== GQ.sig;
   GQ.drew = !!busy;
   if (!busy) { requestAnimationFrame(frame); return; }
   GQ.dirty = false;
@@ -1857,6 +1855,6 @@ if (/[?&]debug/.test(location.search)) { // diagnostics for testing on other com
     const [r, rs] = await Promise.all([getBufProgress('terrain/' + (w16 ? w16.file : S.info.region.file), f => { lp.querySelector('i').style.width = Math.round(f * 100) + '%'; }), getBuf('terrain/' + S.info.region_sun.file)]);
     lp.classList.remove('on');
     S.region = w16 ? dec16(r, w16) : new Float32Array(r); S.regionSun = new Uint8Array(rs);
-    setTimeout(() => { buildCap(); idle(prewarm); }, 300); // ready before the first flight to the pole, with its shaders compiled and textures on the GPU
+    setTimeout(() => { buildCap(); setTimeout(prewarm, 60); }, 300); // all heavy preparation in the first second, while you read the title, never in the middle of a move // ready before the first flight to the pole, with its shaders compiled and textures on the GPU
   } catch (e) { $('.story .ch[data-i="0"] p').textContent = `${e.message}. Open the app from a web server, not as a local file.`; }
 })();

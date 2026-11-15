@@ -925,3 +925,15 @@ body.panel-off #explore .time { right: 0 !important; }
 .skymark.below span { color: rgba(255,255,255,.7); }
 @media (max-width: 700px) { .skymark span { font-size: 10px; padding: 3px 5px; } }
 .skymark span em { font-style: normal; opacity: .75; }
+/* Sun and Earth on the map: bigger, with a line from the centre of the view, so you see them at once */
+.skylines { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 2; opacity: 0; transition: opacity .4s; }
+.skylines.on { opacity: 1; }
+.skylines line { stroke-width: 1.6; stroke-dasharray: 5 6; }
+#sunLine { stroke: rgba(245,184,61,.85); } #earthLine { stroke: rgba(78,163,255,.85); }
+.skylines line.below { opacity: .35; }
+.skymark { margin: -17px 0 0 -17px; }
+.skymark i { width: 34px; height: 34px; }
+.skymark.sun i { box-shadow: 0 0 26px 10px rgba(245,184,61,.5); }
+.skymark.earth i { width: 28px; height: 28px; margin: 3px; }
+.skymark span { font-size: 12px; padding: 5px 8px; }
+@media (max-width: 700px) { .skymark i { width: 26px; height: 26px; } .skymark.earth i { width: 22px; height: 22px; } }
