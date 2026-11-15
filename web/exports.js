@@ -408,7 +408,7 @@ export function buildWorkbook(X, S, C) {
   if (m.you.length) {
     ip.h2('What you told the app, and what you changed on screen', 3);
     m.you.forEach(([k, v]) => { const r = ip.add([k, v], [ST.lab, ST.txt]); ip.span(1, 3, r); if (String(v).length > 70) ip.hts[r] = 30; });
-    ip.para('Everything ran in your browser: your answers and any document you gave were read on your computer and were not sent anywhere.', ST.note, 3);
+    ip.para('The analysis ran in your browser. Any document you gave was read on your computer and never uploaded. See the usage statistics line above for what, if anything, was shared.', ST.note, 3);
   }
   ip.h2('The mission profile used by the engine', 3);
   ip.add(['Field', 'Value', 'Origin', 'Source or note'], ST.head);
@@ -697,7 +697,7 @@ export function buildPDF(jsPDF, S, C) {
 
   /* ---------- assumptions, limits, validation, sources ---------- */
   H1('Inputs, limits and trust', 'What the analysis was told, what it does not see, and how it was checked.');
-  if (m.you.length) { H2('What you told the app'); table(null, m.you.map(([k, v]) => [k, v]), { w0: 62, styles: { fontSize: 7.5, cellPadding: 1.2 } }); P('Everything ran in your browser: your answers and any document were read on your computer and not sent anywhere.', { s: 7.5, c: K.grey, after: 3 }); }
+  if (m.you.length) { H2('What you told the app'); table(null, m.you.map(([k, v]) => [k, v]), { w0: 62, styles: { fontSize: 7.5, cellPadding: 1.2 } }); P('The analysis ran in your browser; any document was read on your computer and never uploaded. The usage statistics line says what, if anything, was shared.', { s: 7.5, c: K.grey, after: 3 }); }
   H2('Mission profile used by the engine');
   const val = v => typeof v === 'object' ? (Array.isArray(v) ? `${v.length} item(s)` : JSON.stringify(v)) : v === true ? 'Yes' : v === false ? 'No' : String(v);
   if (d.provenance) table(['Field', 'Value', 'Origin and source'], d.provenance.map(r => [r.field, val(r.value), `${r.label}${r.source ? ': ' + r.source : ''}`]), { cols: { 0: { cellWidth: 52, fontStyle: 'bold' }, 1: { cellWidth: 34 } }, styles: { fontSize: 7, cellPadding: 1.1 } });

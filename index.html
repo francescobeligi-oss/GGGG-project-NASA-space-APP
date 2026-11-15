@@ -39,7 +39,7 @@
   </div>
   <div class="story-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
   <div class="scrollcue" id="scrollCue"><span>Scroll</span><i></i></div>
-  <div class="hero-foot">Photo: NASA LRO camera. Heights: NASA LOLA. Sun and Earth: JPL ephemeris<div class="loadbar" id="loadBar"><i></i></div></div>
+  <div class="hero-foot">Photo: NASA LRO camera. Heights: NASA LOLA. Sun and Earth: JPL ephemeris<span class="stats-note" id="statsNote" hidden> · Anonymous usage statistics, no cookies, no names: <button id="statsOff">turn off</button></span><div class="loadbar" id="loadBar"><i></i></div></div>
 </section>
 
 <section class="screen" id="who">
@@ -146,6 +146,14 @@
     </div>
     <div class="cmp" id="cmp"></div>
     <div class="costbox" id="costbox"></div>
+    <form class="needs" id="needs" hidden>
+      <h3>Tell us what your mission needs</h3>
+      <p class="small">A site, a date range, a hardware question, something missing in this tool. We read every answer.</p>
+      <textarea id="needMsg" rows="3" maxlength="1500" required placeholder="For example: 20-day robotic lander, 300 W in the dark, landing in 2028"></textarea>
+      <label class="needs-mail">Email, only if you want an answer <input type="email" id="needMail" maxlength="120" placeholder="name@example.com"></label>
+      <label class="needs-ok"><input type="checkbox" id="needOk"> I agree that Lunar Site Scout keeps my email to answer this message and deletes it within 6 months. It is never shared or sold.</label>
+      <div class="needs-act"><button class="btn primary" type="submit">Send</button><span id="needDone" class="small"></span></div>
+    </form>
     <div class="actions exports">
       <div><button class="btn primary" id="pdf">Download the report (PDF)</button><small>The answer and why, one page per site, costs, landing calendar, sources. 8 or 9 pages.</small></div>
       <div><button class="btn" id="xlsx">Download every number (Excel)</button><small>Every calculation as a live formula: change power, prices or requirements and the answer updates.</small></div>

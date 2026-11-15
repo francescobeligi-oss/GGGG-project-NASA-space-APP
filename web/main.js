@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { quickCheck, readDocument, dateMetrics } from './quick.js';
 import { exportPDF, exportXLSX } from './exports.js';
+import { STATS_URL } from './config.js';
 
 /* ================= helpers ================= */
 const $ = s => document.querySelector(s);
@@ -913,6 +914,7 @@ function go(name, fromHistory) {
   if (name === 'results') { if (M.map) backToMap(); else flyToPole(); }
   if (name === 'explore') scene = 'site';
   if (name === 'compare') { renderCompare(); setTimeout(drawWhen, 60); }
+  if (S.data && ['results', 'compare'].includes(name)) track('screen', { screen: name });
   setPlaying(false);
 }
 function leaveMap() {
@@ -960,7 +962,7 @@ function backToMap() { scene = 'moon'; if (M.saved) { NAV.cur = { t: M.saved.t.c
 
 /* ================= step 1: who ================= */
 $$('#roles .choice').forEach(b => b.onclick = () => {
-  S.role = b.dataset.role; $$('#roles .choice').forEach(x => x.setAttribute('aria-pressed', x === b));
+  S.role = b.dataset.role; track('role'); $$('#roles .choice').forEach(x => x.setAttribute('aria-pressed', x === b));
   $('#tourBtn').hidden = S.role !== 'student'; // the guided tour of famous places is for students and the curious
   setMode(S.role === 'student' || S.role === 'past' ? 'simple' : 'expert');
   S.q = 0; S.doc = null; S.answers = null; renderMission(); go('mission');
@@ -1021,6 +1023,7 @@ async function readDoc(f) {
   catch (e) { $('#missionBody .lead').textContent = `We could not read this file (${e.message}). Try another PDF, or answer the questions instead.`; }
 }
 async function loadPreset(id, btn) {
+  track('mission', { preset: id });
   if (btn) btn.querySelector('span').textContent = 'Loading…';
   S.mission = id; S.data = await getJSON(`options/${id}.json`);
   const pre = await getJSON(`presets/${id}.json`).catch(() => null), lw = pre && pre.power && pre.power.load_operations_w && pre.power.load_operations_w.v;
@@ -1072,7 +1075,7 @@ async function runQuick() {
     await Promise.all(S.index.sites.map(s => siteMeta(s.id)));
     const p = { earliestUtc: a.earliestUtc + 'T00:00:00Z', slipDays: a.slipDays, durationDays: a.durationDays, mast: a.mast, continuousSun: a.continuousSun, earthAtLanding: a.earthAtLanding, loadW: a.loadW, batteryWh: a.batteryWh, dte: true };
     S.data = await quickCheck(p, S.index, S.sites, f => $('#qLoad i').style.width = Math.round(f * 100) + '%');
-    S.data.profile = p; S.mission = 'custom'; COST.loadW = a.loadW || 100; S.data.costLoadGiven = !!a.loadW;
+    S.data.profile = p; S.mission = 'custom'; track('mission', { answers: p, from_document: S.doc ? Object.fromEntries(Object.entries(S.doc.fields || {}).map(([k, f]) => [k, f && f.v])) : null }); // values only: never the file or its name COST.loadW = a.loadW || 100; S.data.costLoadGiven = !!a.loadW;
     await afterData();
   } catch (e) { $('#qErr').textContent = e.message; $('#qnext').disabled = false; }
 }
@@ -1206,7 +1209,7 @@ $$('#metric button').forEach(b => b.onclick = () => { S.metric = b.dataset.m; $$
 $('#dockToggle').onclick = () => { const d = $('#dock'), c = d.classList.toggle('closed'); document.body.classList.toggle('wide', c); $('#dockToggle').textContent = innerWidth <= 700 ? (c ? '▲ Your 3 options' : '▼ Back to the map') : c ? 'Show options' : 'Hide options'; $('#dockToggle').setAttribute('aria-expanded', !c); setTimeout(drawWhen, 480); };
 
 /* ================= step 4: explore ================= */
-async function openExplore(i) {
+async function openExplore(i) { track('explore', { option: arguments[0] });
   S.opt = i; S.t = 0; S.hw = 'none'; X.walked = false;
   if (S.screen === 'results' && M.map && !REDUCED && NAV.cur) {
     // enter: the camera dives toward the site, then the 3D site takes over
@@ -1756,6 +1759,7 @@ function youInputs() {
   rows.push(['Date picked on the slider', m ? `${dateTime(m.utc)} (this report keeps each site at its best date)` : 'none: each site at its best date']);
   if (S.hw && S.hw !== 'none') rows.push(['Solar panel option tried in 3D', { mast_10m: '10 m mast', tracking_panels: 'panels that follow the Sun' }[S.hw] || S.hw]);
   rows.push(['View', S.mode === 'expert' ? 'Expert' : 'Simple']);
+  rows.push(['Usage statistics', statsOn() ? 'on: anonymous choices only (no names, no cookies, never your document)' : 'off: nothing was sent']);
   return rows;
 }
 // phones: touching the map, the 3D view or the arrow pad hides everything that is not needed to move; it all comes back 1.6 s after you let go
@@ -1763,9 +1767,25 @@ function youInputs() {
     const el = e.target; if (!(el === canvas || (el.closest && el.closest('.vpad')))) return; clearTimeout(t); document.body.classList.add('immerse'); };
   const off = () => { clearTimeout(t); t = setTimeout(() => document.body.classList.remove('immerse'), 1600); };
   addEventListener('pointerdown', on, true); addEventListener('pointerup', off, true); addEventListener('pointercancel', off, true); }
+/* anonymous usage statistics: what people choose, never who they are. No cookies, no names, no addresses; a random visit number lives only in this page.
+   Sent only if STATS_URL is set (web/config.js) and the visitor has not turned statistics off. */
+const VISIT = Math.random().toString(36).slice(2, 10);
+const statsOn = () => { try { return !!STATS_URL && localStorage.getItem('lss_nostats') !== '1'; } catch (e) { return !!STATS_URL; } };
+function track(event, details) {
+  if (!statsOn()) return;
+  try { fetch(STATS_URL, { method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ kind: 'event', visit: VISIT, event, role: S.role || '', mission: S.mission || '', details: details || {} }) }).catch(() => {}); } catch (e) {}
+}
+if (STATS_URL) {
+  $('#needs').hidden = false; $('#statsNote').hidden = !statsOn();
+  $('#statsOff').onclick = () => { try { localStorage.setItem('lss_nostats', '1'); } catch (e) {} $('#statsNote').hidden = true; toast('Statistics turned off on this browser.'); };
+  $('#needs').onsubmit = e => { e.preventDefault(); const msg = $('#needMsg').value.trim(), mail = $('#needMail').value.trim(), ok = $('#needOk').checked; if (!msg) return;
+    if (mail && !ok) { $('#needDone').textContent = 'Tick the box to send your email, or clear it to send the message alone.'; return; }
+    fetch(STATS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ kind: 'feedback', visit: VISIT, mission: S.mission || '', message: msg, email: ok ? mail : '', consent: ok && !!mail }) })
+      .then(() => { $('#needDone').textContent = 'Sent. Thank you.'; $('#needMsg').value = ''; }).catch(() => { $('#needDone').textContent = 'Not sent: check your connection and try again.'; }); };
+}
 const busy = async (btn, job) => { const t = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…'; try { await job(); } catch (e) { toast(`Could not build the file: ${e.message}`); } finally { btn.disabled = false; btn.textContent = t; } };
-$('#pdf').onclick = e => busy(e.currentTarget, () => exportPDF(S, CTX()));
-$('#xlsx').onclick = e => busy(e.currentTarget, () => exportXLSX(S, CTX()));
+$('#pdf').onclick = e => { track('download', { file: 'pdf' }); busy(e.currentTarget, () => exportPDF(S, CTX())); };
+$('#xlsx').onclick = e => { track('download', { file: 'xlsx' }); busy(e.currentTarget, () => exportXLSX(S, CTX())); };
 $('#play').onclick = () => { if (S.t >= series().t.length - 1) S.t = 0; setPlaying(!S.playing); };
 $('#scrub').oninput = e => { S.t = +e.target.value; applyTime(); };
 $$('#speed button').forEach(b => b.onclick = () => { S.speed = +b.dataset.s; $$('#speed button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
