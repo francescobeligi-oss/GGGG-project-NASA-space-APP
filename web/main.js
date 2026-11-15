@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { quickCheck, readDocument, dateMetrics } from './quick.js?v=1610';
-import { exportPDF, exportXLSX } from './exports.js?v=1610';
-import { STATS_URL } from './config.js?v=1610';
+import { quickCheck, readDocument, dateMetrics } from './quick.js?v=1615';
+import { exportPDF, exportXLSX } from './exports.js?v=1615';
+import { STATS_URL } from './config.js?v=1615';
 
 /* ================= helpers ================= */
 const $ = s => document.querySelector(s);
@@ -1533,7 +1533,7 @@ const v3 = new THREE.Vector3();
 const STORY = { p: 0, to: 0, n: 4, sunAz: 40 };
 const STORY_K = [ // map-mode views: point on the Moon (lat, lon), distance (Moon radii), heading, extra tilt
   null,
-  { lat: -89.6, lon: 0, d: 0.2, head: 3.14, tiltU: 0.05 }, // close enough that the edge of the polar map stays out of view; facing the same way as the opening view, so the camera never swings round
+  { lat: -89.6, lon: 0, d: 0.3, head: 3.14, tiltU: 0.0 }, // close enough that the edge of the polar map stays out of view; facing the same way as the opening view, so the camera never swings round
   { lat: -89.3, lon: -150, d: 0.075, head: 1.9, tiltU: 0.12 },
   { lat: -88.8, lon: 125, d: 0.022, head: 3.3, tiltU: 0.22 },
   { lat: -89.4, lon: 0, d: 0.24, head: 4.2, tiltU: 0.05 },
@@ -1568,7 +1568,7 @@ function storyEarth() {
 }
 function storyApply(dt) {
   // a tween that starts and ends at rest: the move never jolts at the start or stops dead at the end
-  if (STORY.tw == null || STORY.tw.to !== STORY.to) { const v = STORY.tw && STORY.tw.k < 1 ? STORY.tw : null; STORY.tw = { from: STORY.p, to: STORY.to, t: 0, dur: Math.min(2.4, 1.3 + 0.55 * Math.abs(STORY.to - STORY.p)), k: 0, blend: v ? 0.25 : 0 }; }
+  if (STORY.tw == null || STORY.tw.to !== STORY.to) { const v = STORY.tw && STORY.tw.k < 1 ? STORY.tw : null; STORY.tw = { from: STORY.p, to: STORY.to, t: 0, dur: (Math.min(STORY.p, STORY.to) < 1 ? 3.4 : Math.min(2.4, 1.3 + 0.55 * Math.abs(STORY.to - STORY.p))), k: 0, blend: v ? 0.25 : 0 }; }
   { const w = STORY.tw; w.t += dt; w.k = Math.min(1, w.t / w.dur); const q = w.k < 0.5 ? 4 * w.k * w.k * w.k : 1 - Math.pow(-2 * w.k + 2, 3) / 2; STORY.p = w.from + (w.to - w.from) * q; }
   const p = STORY.p, ready = M.cap && TERR.photo;
   if (!ready || p <= 0.001) { // the whole Moon, turning slowly
@@ -1576,7 +1576,7 @@ function storyApply(dt) {
     M.sun.castShadow = false; M.sun.position.set(-3, 1.4, 2.2); M.sun.target.position.set(0, 0, 0); M.sun.intensity = 3.4; M.hemi.intensity = 0.04; M.camera.up.set(0, 1, 0);
     M.camera.near = 0.01; M.camera.far = 200; M.camera.updateProjectionMatrix(); return false;
   }
-  const e = ease(Math.min(1, p)), gb = Math.min(1, Math.max(0, (2.6 - M.camera.position.length()) / 1.0)); // the detailed photo only once close: from far the pole shows the same image as the rest of the Moon, so no disc appears // far away the polar map shows the same image as the globe; coming closer, NASA's detailed polar photo fades in: no cut
+  const e = Math.min(1, p), gb = Math.min(1, Math.max(0, (2.6 - M.camera.position.length()) / 1.0)); // the detailed photo only once close: from far the pole shows the same image as the rest of the Moon, so no disc appears // far away the polar map shows the same image as the globe; coming closer, NASA's detailed polar photo fades in: no cut
   M.full.visible = false; M.holed.visible = true; M.cap.visible = true; TERR.u.uGlobeMix.value = 1 - gb * gb * (3 - 2 * gb); TERR.u.uPhoto.value = 0.5; TERR.photoTo = null;
   if (!STORY.dimmed) { applyTint(M.cap, 0); M.tint = M.tintTo = 0; STORY.dimmed = true; } // plain colours in the story: the tint uniform at 0, no buffer rewrite
   const dm = 0; // no spotlight: the pole and the rest of the Moon stay one surface (the dimmed ring looked like a pasted disc) // the Moon darkens first, then the lit pole appears: a spotlight, not a pasted disc
@@ -1591,7 +1591,7 @@ function storyApply(dt) {
   let pos, up, look, rot = null;
   if (p < 1) {
     const st1 = storyPose(1), hp = navPose(st1), from = new THREE.Vector3(0, 0, M.dist), look1 = hp.surf.clone().addScaledVector(hp.up, st1.d * 0.12);
-    const er = e * e * (3 - 2 * e), q = new THREE.Quaternion().setFromUnitVectors(from.clone().normalize(), hp.pos.clone().normalize()), qi = new THREE.Quaternion().slerp(q, er);
+    const er = e, q = new THREE.Quaternion().setFromUnitVectors(from.clone().normalize(), hp.pos.clone().normalize()), qi = new THREE.Quaternion().slerp(q, er);
     pos = from.clone().normalize().applyQuaternion(qi).multiplyScalar(Math.exp(Math.log(M.dist) + (Math.log(hp.pos.length()) - Math.log(M.dist)) * er));
     const ek = 1 - (1 - er) * (1 - er); // the aim settles before the camera does, so the end of the move is a calm glide, not a last swing
     up = new THREE.Vector3(0, 1, 0).lerp(hp.up, ek).normalize(); look = new THREE.Vector3().lerp(look1, ek);
